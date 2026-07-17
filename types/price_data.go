@@ -7,6 +7,11 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// OtherRatioModelDiscount is the OtherRatios key carrying a per-model discount
+// multiplier, kept separate from ModelRatio so logs show the original ratio
+// alongside the discounted charge.
+const OtherRatioModelDiscount = "model_discount"
+
 type GroupRatioInfo struct {
 	GroupRatio        float64
 	GroupSpecialRatio float64

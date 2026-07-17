@@ -54,6 +54,11 @@ import {
   buildOAuthCallbackUrl,
   resolveOAuthSiteUrl,
 } from './oauth-callback-url'
+import {
+  getWriteOnlySecretPlaceholder,
+  hasWriteOnlySecretReplacement,
+  orderAuthOptionUpdates,
+} from './write-only-secret'
 
 /**
  * react-hook-form 7 treats dotted `name` strings as nested paths. To keep
@@ -177,7 +182,7 @@ function OAuthSetupGuide(props: OAuthSetupGuideProps) {
 const buildFormDefaults = (defaults: FlatOAuthDefaults): OAuthFormValues => ({
   GitHubOAuthEnabled: defaults.GitHubOAuthEnabled,
   GitHubClientId: defaults.GitHubClientId ?? '',
-  GitHubClientSecret: defaults.GitHubClientSecret ?? '',
+  GitHubClientSecret: '',
   discord: {
     enabled: defaults['discord.enabled'],
     client_id: defaults['discord.client_id'] ?? '',
@@ -245,6 +250,9 @@ export function OAuthSection(props: OAuthSectionProps) {
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
   const [activeTab, setActiveTab] = useState('github')
+  const [githubSecretConfigured, setGitHubSecretConfigured] = useState(
+    props.defaultValues.GitHubClientSecretConfigured
+  )
   const siteUrl = resolveOAuthSiteUrl(props.serverAddress, t('Site URL'))
   const githubCallbackUrl = buildOAuthCallbackUrl(
     props.serverAddress,
@@ -287,6 +295,9 @@ export function OAuthSection(props: OAuthSectionProps) {
     if (serialized === baselineSerializedRef.current) return
     baselineRef.current = props.defaultValues
     baselineSerializedRef.current = serialized
+    setGitHubSecretConfigured(
+      props.defaultValues.GitHubClientSecretConfigured
+    )
     form.reset(buildFormDefaults(props.defaultValues))
   }, [props.defaultValues, form])
 
@@ -338,7 +349,7 @@ export function OAuthSection(props: OAuthSectionProps) {
 
     const normalized = normalizeFormValues(
       finalValues,
-      props.defaultValues.GitHubClientSecretConfigured
+      githubSecretConfigured
     )
     const changedKeys = (
       Object.keys(normalized) as Array<keyof FlatOAuthDefaults>
@@ -353,16 +364,33 @@ export function OAuthSection(props: OAuthSectionProps) {
       return
     }
 
-    for (const key of changedKeys) {
-      await updateOption.mutateAsync({
+    const updates: Array<[string, string | boolean]> = changedKeys.map(
+      (key) => [key, normalized[key]]
+    )
+    const orderedUpdates = orderAuthOptionUpdates(
+      updates,
+      'GitHubOAuthEnabled',
+      normalized.GitHubOAuthEnabled
+    )
+    for (const [key, value] of orderedUpdates) {
+      const result = await updateOption.mutateAsync({
         key,
-        value: normalized[key],
+        value,
       })
+      if (!result.success) return
     }
 
-    baselineRef.current = normalized
-    baselineSerializedRef.current = JSON.stringify(normalized)
-    form.reset(buildFormDefaults(normalized))
+    const savedValues = {
+      ...normalized,
+      GitHubClientSecret: '',
+      GitHubClientSecretConfigured:
+        githubSecretConfigured ||
+        hasWriteOnlySecretReplacement(normalized.GitHubClientSecret),
+    }
+    setGitHubSecretConfigured(savedValues.GitHubClientSecretConfigured)
+    baselineRef.current = savedValues
+    baselineSerializedRef.current = JSON.stringify(savedValues)
+    form.reset(buildFormDefaults(savedValues))
   }
 
   const handleReset = () => {
@@ -469,11 +497,10 @@ export function OAuthSection(props: OAuthSectionProps) {
                       <FormControl>
                         <Input
                           type='password'
-                          placeholder={
-                            props.defaultValues.GitHubClientSecretConfigured
-                              ? t('Configured — leave blank to keep unchanged')
-                              : t('Your GitHub OAuth Client Secret')
-                          }
+                          placeholder={getWriteOnlySecretPlaceholder(
+                            githubSecretConfigured,
+                            t('Your GitHub OAuth Client Secret')
+                          )}
                           autoComplete='new-password'
                           value={field.value ?? ''}
                           onChange={(event) =>

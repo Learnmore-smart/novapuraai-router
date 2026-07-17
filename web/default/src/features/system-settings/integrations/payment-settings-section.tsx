@@ -144,6 +144,8 @@ const paymentSchema = z.object({
   StripeApiSecret: z.string(),
   StripeWebhookSecret: z.string(),
   StripePriceId: z.string(),
+  StripeTopupProductID: z.string(),
+  StripeTopupEnabled: z.boolean(),
   StripeUnitPrice: z.coerce.number().min(0),
   StripeMinTopUp: z.coerce.number().min(0),
   StripePromotionCodesEnabled: z.boolean(),
@@ -430,6 +432,8 @@ export function PaymentSettingsSection({
       StripeApiSecret: values.StripeApiSecret.trim(),
       StripeWebhookSecret: values.StripeWebhookSecret.trim(),
       StripePriceId: values.StripePriceId.trim(),
+      StripeTopupProductID: values.StripeTopupProductID.trim(),
+      StripeTopupEnabled: values.StripeTopupEnabled,
       StripeUnitPrice: values.StripeUnitPrice,
       StripeMinTopUp: values.StripeMinTopUp,
       StripePromotionCodesEnabled: values.StripePromotionCodesEnabled,
@@ -474,6 +478,8 @@ export function PaymentSettingsSection({
       StripeApiSecret: initialRef.current.StripeApiSecret.trim(),
       StripeWebhookSecret: initialRef.current.StripeWebhookSecret.trim(),
       StripePriceId: initialRef.current.StripePriceId.trim(),
+      StripeTopupProductID: initialRef.current.StripeTopupProductID.trim(),
+      StripeTopupEnabled: initialRef.current.StripeTopupEnabled,
       StripeUnitPrice: initialRef.current.StripeUnitPrice,
       StripeMinTopUp: initialRef.current.StripeMinTopUp,
       StripePromotionCodesEnabled:
@@ -581,6 +587,17 @@ export function PaymentSettingsSection({
 
     if (sanitized.StripePriceId !== initial.StripePriceId) {
       updates.push({ key: 'StripePriceId', value: sanitized.StripePriceId })
+    }
+
+    if (sanitized.StripeTopupProductID !== initial.StripeTopupProductID) {
+      updates.push({
+        key: 'StripeTopupProductID',
+        value: sanitized.StripeTopupProductID,
+      })
+    }
+
+    if (sanitized.StripeTopupEnabled !== initial.StripeTopupEnabled) {
+      updates.push({ key: 'StripeTopupEnabled', value: sanitized.StripeTopupEnabled })
     }
 
     if (sanitized.StripeUnitPrice !== initial.StripeUnitPrice) {
@@ -1358,6 +1375,50 @@ export function PaymentSettingsSection({
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className='grid gap-6 md:grid-cols-2'>
+                  <FormField
+                    control={form.control}
+                    name='StripeTopupProductID'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('Wallet top-up product ID')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder='prod_xxx'
+                            {...field}
+                            onChange={(event) => field.onChange(event.target.value)}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t('Stripe product ID used for dynamic wallet top-up prices.')}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name='StripeTopupEnabled'
+                    render={({ field }) => (
+                      <SettingsSwitchItem>
+                        <SettingsSwitchContent>
+                          <FormLabel>{t('Enable wallet top-ups')}</FormLabel>
+                          <FormDescription>
+                            {t('Allow the multi-currency Stripe Checkout wallet top-up flow.')}
+                          </FormDescription>
+                        </SettingsSwitchContent>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </SettingsSwitchItem>
                     )}
                   />
                 </div>

@@ -155,6 +155,7 @@ export const ModelPricingEditorPanel = forwardRef<
   })
   const [billingExpr, setBillingExpr] = useState('')
   const [requestRuleExpr, setRequestRuleExpr] = useState('')
+  const [discountPrice, setDiscountPrice] = useState('')
   const [editorReloadToken, setEditorReloadToken] = useState(0)
   const isEditMode = !!editData
 
@@ -170,6 +171,7 @@ export const ModelPricingEditorPanel = forwardRef<
       imageRatio: '',
       audioRatio: '',
       audioCompletionRatio: '',
+      discount: '',
     },
   })
 
@@ -187,6 +189,7 @@ export const ModelPricingEditorPanel = forwardRef<
         imageRatio: editData.imageRatio || '',
         audioRatio: editData.audioRatio || '',
         audioCompletionRatio: editData.audioCompletionRatio || '',
+        discount: editData.discount || '',
       })
       setPricingMode(
         editData.billingMode === 'tiered_expr'
@@ -197,6 +200,16 @@ export const ModelPricingEditorPanel = forwardRef<
       )
       setBillingExpr(editData.billingExpr || '')
       setRequestRuleExpr(editData.requestRuleExpr || '')
+
+      const discountRate = toNumberOrNull(editData.discount)
+      const discountBase = editData.price
+        ? toNumberOrNull(editData.price)
+        : toNumberOrNull(nextLaneState.promptPrice)
+      setDiscountPrice(
+        discountRate !== null && discountBase !== null
+          ? formatPricingNumber(discountBase * discountRate)
+          : ''
+      )
     } else {
       form.reset({
         name: '',
@@ -208,10 +221,12 @@ export const ModelPricingEditorPanel = forwardRef<
         imageRatio: '',
         audioRatio: '',
         audioCompletionRatio: '',
+        discount: '',
       })
       setPricingMode('per-token')
       setBillingExpr('')
       setRequestRuleExpr('')
+      setDiscountPrice('')
     }
 
     setPromptPrice(nextLaneState.promptPrice)
@@ -280,6 +295,12 @@ export const ModelPricingEditorPanel = forwardRef<
     if (!numericDraftRegex.test(value)) return
     setPromptPrice(value)
     syncLaneRatios(value, lanePrices, laneEnabled)
+    if (pricingMode === 'per-token') {
+      syncDiscountPrice(
+        form.getValues('discount') || '',
+        discountBaseFor('per-token', value)
+      )
+    }
   }
 
   const handleLanePriceChange = (lane: LaneKey, value: string) => {
@@ -338,6 +359,44 @@ export const ModelPricingEditorPanel = forwardRef<
     if (nextMode === 'tiered_expr' && !billingExpr) {
       setBillingExpr('tier("base", p * 0 + c * 0)')
     }
+    syncDiscountPrice(form.getValues('discount') || '', discountBaseFor(nextMode))
+  }
+
+  // Discount rate and discounted price stay in lock-step: editing one derives
+  // the other from the mode's base price (input price or fixed request price).
+  const discountBaseFor = (mode: PricingMode, base?: string) => {
+    if (mode === 'per-request') {
+      return toNumberOrNull(base ?? form.getValues('price'))
+    }
+    return toNumberOrNull(base ?? promptPrice)
+  }
+
+  const syncDiscountPrice = (rate: string, baseNumber: number | null) => {
+    const rateNumber = toNumberOrNull(rate)
+    if (rateNumber === null || baseNumber === null) {
+      setDiscountPrice('')
+      return
+    }
+    setDiscountPrice(formatPricingNumber(baseNumber * rateNumber))
+  }
+
+  const handleDiscountRateChange = (value: string) => {
+    if (!numericDraftRegex.test(value)) return
+    setFormValue('discount', value)
+    syncDiscountPrice(value, discountBaseFor(pricingMode))
+  }
+
+  const handleDiscountPriceChange = (value: string) => {
+    if (!numericDraftRegex.test(value)) return
+    setDiscountPrice(value)
+    if (value === '') {
+      setFormValue('discount', '')
+      return
+    }
+    const priceNumber = toNumberOrNull(value)
+    const baseNumber = discountBaseFor(pricingMode)
+    if (priceNumber === null || baseNumber === null || baseNumber === 0) return
+    setFormValue('discount', formatPricingNumber(priceNumber / baseNumber))
   }
 
   const watchedValues = form.watch()
@@ -451,6 +510,8 @@ export const ModelPricingEditorPanel = forwardRef<
         imageRatio: values.imageRatio || '',
         audioRatio: values.audioRatio || '',
         audioCompletionRatio: values.audioCompletionRatio || '',
+        // The backend does not apply discounts to expression-billed models.
+        discount: pricingMode === 'tiered_expr' ? '' : values.discount || '',
       }
 
       if (pricingMode === 'tiered_expr') {
@@ -618,6 +679,10 @@ export const ModelPricingEditorPanel = forwardRef<
                                       const value = event.target.value
                                       if (numericDraftRegex.test(value)) {
                                         field.onChange(value)
+                                        syncDiscountPrice(
+                                          form.getValues('discount') || '',
+                                          discountBaseFor('per-request', value)
+                                        )
                                       }
                                     }}
                                   />
@@ -652,6 +717,75 @@ export const ModelPricingEditorPanel = forwardRef<
                     </FieldGroup>
                   </TabsContent>
                 </Tabs>
+
+                {pricingMode !== 'tiered_expr' && (
+                  <FormField
+                    control={form.control}
+                    name='discount'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('Discount')}</FormLabel>
+                        <div className='grid gap-3 sm:grid-cols-2'>
+                          <Field>
+                            <FormControl>
+                              <InputGroup>
+                                <InputGroupAddon>×</InputGroupAddon>
+                                <InputGroupInput
+                                  inputMode='decimal'
+                                  placeholder='0.8'
+                                  value={field.value || ''}
+                                  onChange={(event) =>
+                                    handleDiscountRateChange(event.target.value)
+                                  }
+                                />
+                                <InputGroupAddon align='inline-end'>
+                                  {t('rate')}
+                                </InputGroupAddon>
+                              </InputGroup>
+                            </FormControl>
+                            <FieldDescription>
+                              {t(
+                                'Discount rate in (0, 1]; e.g. 0.8 bills 80% of the price.'
+                              )}
+                            </FieldDescription>
+                          </Field>
+                          <Field>
+                            <InputGroup>
+                              <InputGroupAddon>$</InputGroupAddon>
+                              <InputGroupInput
+                                inputMode='decimal'
+                                placeholder='—'
+                                value={discountPrice}
+                                disabled={
+                                  discountBaseFor(pricingMode) === null
+                                }
+                                onChange={(event) =>
+                                  handleDiscountPriceChange(event.target.value)
+                                }
+                              />
+                              <InputGroupAddon align='inline-end'>
+                                {pricingMode === 'per-request'
+                                  ? t('per request')
+                                  : '$/1M'}
+                              </InputGroupAddon>
+                            </InputGroup>
+                            <FieldDescription>
+                              {t(
+                                'Discounted price; editing it recalculates the rate.'
+                              )}
+                            </FieldDescription>
+                          </Field>
+                        </div>
+                        <FormDescription>
+                          {t(
+                            'Users see the original price struck through and pay the discounted price. Leave empty for no discount.'
+                          )}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
               </FieldGroup>
 
               <aside className='bg-muted/20 sticky top-0 rounded-lg border'>

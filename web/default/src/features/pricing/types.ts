@@ -45,6 +45,8 @@ export type PricingModel = {
   image_ratio?: number | null
   audio_ratio?: number | null
   audio_completion_ratio?: number | null
+  /** Per-model discount rate in (0, 1); absent or 1 means no discount */
+  discount?: number
   enable_groups: string[]
   tags?: string
   supported_endpoint_types?: string[]

@@ -89,7 +89,7 @@ func GetOptions(c *gin.Context) {
 		value := common.Interface2String(v)
 		isSensitiveKey := strings.HasSuffix(k, "Token") ||
 			strings.HasSuffix(k, "Secret") ||
-			strings.HasSuffix(k, "Key") ||
+			(strings.HasSuffix(k, "Key") && k != "TurnstileSiteKey") ||
 			strings.HasSuffix(k, "secret") ||
 			strings.HasSuffix(k, "api_key")
 		if isSensitiveKey {
@@ -215,7 +215,7 @@ func UpdateOption(c *gin.Context) {
 		if option.Value == "true" && !turnstileConfigurationReady() {
 			c.JSON(http.StatusOK, gin.H{
 				"success": false,
-				"message": "Turnstile cannot be enabled until the site key, allowed hostnames, and TURNSTILE_SECRET_KEY (environment / Secret Manager) are configured.",
+				"message": "Turnstile cannot be enabled until the site key, secret key, and allowed hostnames are configured.",
 			})
 
 			return

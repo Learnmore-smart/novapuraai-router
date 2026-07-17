@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
-import { Code2, Eye, RotateCcw, Save } from 'lucide-react'
+import { Braces, Code2, Eye, RotateCcw, Save } from 'lucide-react'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -42,6 +42,7 @@ import {
   SettingsSwitchContent,
   SettingsSwitchItem,
 } from '../components/settings-form-layout'
+import { ModelPricingBulkJsonDialog } from './model-pricing-bulk-json-dialog'
 import {
   ModelRatioVisualEditor,
   type ModelRatioVisualEditorHandle,
@@ -56,6 +57,7 @@ type ModelFormValues = {
   ImageRatio: string
   AudioRatio: string
   AudioCompletionRatio: string
+  ModelDiscount: string
   ExposeRatioEnabled: boolean
   BillingMode: string
   BillingExpr: string
@@ -80,6 +82,7 @@ type ModelJsonFieldName =
   | 'ImageRatio'
   | 'AudioRatio'
   | 'AudioCompletionRatio'
+  | 'ModelDiscount'
 
 const modelJsonFields: Array<{
   name: ModelJsonFieldName
@@ -130,6 +133,12 @@ const modelJsonFields: Array<{
     labelKey: 'Audio completion ratio',
     descriptionKey: 'Ratio applied to audio completions for streaming models.',
   },
+  {
+    name: 'ModelDiscount',
+    labelKey: 'Model discount',
+    descriptionKey:
+      'JSON map of model → discount rate in (0, 1]. The billed price is the configured price multiplied by this rate.',
+  },
 ]
 
 function ModelJsonTextareaField(props: {
@@ -173,6 +182,7 @@ export const ModelRatioForm = memo(function ModelRatioForm({
   const { t } = useTranslation()
   const isUnsetVariant = variant === 'unset'
   const [editMode, setEditMode] = useState<'visual' | 'json'>('visual')
+  const [bulkJsonOpen, setBulkJsonOpen] = useState(false)
   const visualEditorRef = useRef<ModelRatioVisualEditorHandle>(null)
 
   const enabledModelsQuery = useQuery({
@@ -216,6 +226,20 @@ export const ModelRatioForm = memo(function ModelRatioForm({
     await form.handleSubmit(onSave)()
   }, [editMode, form, onSave])
 
+  const handleBulkApply = useCallback(
+    (updates: Record<string, string>) => {
+      const fieldMap: Record<string, keyof ModelFormValues> = {
+        'billing_setting.billing_mode': 'BillingMode',
+        'billing_setting.billing_expr': 'BillingExpr',
+      }
+      for (const [key, value] of Object.entries(updates)) {
+        const formField = fieldMap[key] || (key as keyof ModelFormValues)
+        handleFieldChange(formField, value)
+      }
+    },
+    [handleFieldChange]
+  )
+
   return (
     <div className='space-y-6'>
       {!isUnsetVariant && (
@@ -241,6 +265,15 @@ export const ModelRatioForm = memo(function ModelRatioForm({
               {isSaving ? t('Saving...') : t('Save model prices')}
             </Button>
           )}
+          <Button
+            type='button'
+            variant='outline'
+            size='sm'
+            onClick={() => setBulkJsonOpen(true)}
+          >
+            <Braces data-icon='inline-start' />
+            {t('Bulk edit (JSON)')}
+          </Button>
           <Button variant='outline' size='sm' onClick={toggleEditMode}>
             {editMode === 'visual' ? (
               <>
@@ -270,6 +303,7 @@ export const ModelRatioForm = memo(function ModelRatioForm({
               savedImageRatio={savedValues.ImageRatio}
               savedAudioRatio={savedValues.AudioRatio}
               savedAudioCompletionRatio={savedValues.AudioCompletionRatio}
+              savedModelDiscount={savedValues.ModelDiscount}
               savedBillingMode={savedValues.BillingMode}
               savedBillingExpr={savedValues.BillingExpr}
               modelPrice={form.watch('ModelPrice')}
@@ -280,6 +314,7 @@ export const ModelRatioForm = memo(function ModelRatioForm({
               imageRatio={form.watch('ImageRatio')}
               audioRatio={form.watch('AudioRatio')}
               audioCompletionRatio={form.watch('AudioCompletionRatio')}
+              modelDiscount={form.watch('ModelDiscount')}
               billingMode={form.watch('BillingMode')}
               billingExpr={form.watch('BillingExpr')}
               candidateModelNames={
@@ -366,6 +401,25 @@ export const ModelRatioForm = memo(function ModelRatioForm({
           </SettingsForm>
         )}
       </Form>
+
+      <ModelPricingBulkJsonDialog
+        open={bulkJsonOpen}
+        onOpenChange={setBulkJsonOpen}
+        maps={{
+          modelPrice: form.watch('ModelPrice'),
+          modelRatio: form.watch('ModelRatio'),
+          cacheRatio: form.watch('CacheRatio'),
+          createCacheRatio: form.watch('CreateCacheRatio'),
+          completionRatio: form.watch('CompletionRatio'),
+          imageRatio: form.watch('ImageRatio'),
+          audioRatio: form.watch('AudioRatio'),
+          audioCompletionRatio: form.watch('AudioCompletionRatio'),
+          modelDiscount: form.watch('ModelDiscount'),
+          billingMode: form.watch('BillingMode'),
+          billingExpr: form.watch('BillingExpr'),
+        }}
+        onApply={handleBulkApply}
+      />
     </div>
   )
 })

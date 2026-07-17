@@ -329,8 +329,9 @@ func InitResources() error {
 
 	// Initialize options, should after model.InitDB()
 	model.InitOptionMap()
-	// Env/Secret Manager Stripe secrets win over options table.
-	setting.InitStripeEnv()
+	// Env/Secret Manager Stripe credentials win over options table, while
+	// Dashboard-persisted wallet top-up settings remain authoritative.
+	setting.RefreshStripeSecretsFromEnv()
 
 	// 清理旧的磁盘缓存文件
 	common.CleanupOldCacheFiles()

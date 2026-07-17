@@ -30,6 +30,7 @@ export type ModelPricingSnapshotInput = {
   imageRatio: string
   audioRatio: string
   audioCompletionRatio: string
+  modelDiscount: string
   billingMode: string
   billingExpr: string
 }
@@ -44,6 +45,7 @@ export type ModelPricingSnapshot = {
   imageRatio?: string
   audioRatio?: string
   audioCompletionRatio?: string
+  discount?: string
   billingMode?: string
   billingExpr?: string
   requestRuleExpr?: string
@@ -112,8 +114,17 @@ export const getPriceSummary = (
   if (row.billingMode === 'tiered_expr') {
     return getExpressionSummary(row, t)
   }
+
+  const discountNumber = toNumberOrNull(row.discount)
+  const discountSuffix =
+    discountNumber !== null && discountNumber > 0 && discountNumber < 1
+      ? ` · -${Math.round((1 - discountNumber) * 100)}%`
+      : ''
+
   if (row.billingMode === 'per-request') {
-    return row.price ? `$${row.price} / ${t('request')}` : t('Unset price')
+    return row.price
+      ? `$${row.price} / ${t('request')}${discountSuffix}`
+      : t('Unset price')
   }
 
   const inputPrice = ratioToPrice(row.ratio)
@@ -129,8 +140,8 @@ export const getPriceSummary = (
   ].filter(hasPricingValue).length
 
   return extraCount > 0
-    ? `${t('Input')} $${inputPrice} · ${extraCount} ${t('extras')}`
-    : `${t('Input')} $${inputPrice}`
+    ? `${t('Input')} $${inputPrice} · ${extraCount} ${t('extras')}${discountSuffix}`
+    : `${t('Input')} $${inputPrice}${discountSuffix}`
 }
 
 export const getPriceDetail = (
@@ -172,6 +183,7 @@ export const buildModelSnapshots = ({
   imageRatio,
   audioRatio,
   audioCompletionRatio,
+  modelDiscount,
   billingMode,
   billingExpr,
 }: ModelPricingSnapshotInput): ModelPricingSnapshot[] => {
@@ -207,6 +219,10 @@ export const buildModelSnapshots = ({
     audioCompletionRatio,
     { fallback: {}, context: 'audio completion ratios' }
   )
+  const discountMap = safeJsonParse<Record<string, number>>(modelDiscount, {
+    fallback: {},
+    context: 'model discounts',
+  })
   const billingModeMap = safeJsonParse<Record<string, string>>(billingMode, {
     fallback: {},
     context: 'billing mode',
@@ -225,6 +241,7 @@ export const buildModelSnapshots = ({
     ...Object.keys(imageMap),
     ...Object.keys(audioMap),
     ...Object.keys(audioCompletionMap),
+    ...Object.keys(discountMap),
     ...Object.keys(billingModeMap),
     ...Object.keys(billingExprMap),
   ])
@@ -238,6 +255,7 @@ export const buildModelSnapshots = ({
     const image = imageMap[name]?.toString() || ''
     const audio = audioMap[name]?.toString() || ''
     const audioCompletion = audioCompletionMap[name]?.toString() || ''
+    const discount = discountMap[name]?.toString() || ''
 
     const modeForModel = billingModeMap[name]
     if (modeForModel === 'tiered_expr') {
@@ -257,6 +275,7 @@ export const buildModelSnapshots = ({
         imageRatio: image,
         audioRatio: audio,
         audioCompletionRatio: audioCompletion,
+        discount,
         hasConflict: false,
       }
     }
@@ -271,6 +290,7 @@ export const buildModelSnapshots = ({
       imageRatio: image,
       audioRatio: audio,
       audioCompletionRatio: audioCompletion,
+      discount,
       billingMode: price !== '' ? 'per-request' : 'per-token',
       hasConflict:
         price !== '' &&
@@ -296,6 +316,7 @@ export const getSnapshotSignature = (snapshot?: ModelPricingSnapshot) => {
     imageRatio: snapshot.imageRatio || '',
     audioRatio: snapshot.audioRatio || '',
     audioCompletionRatio: snapshot.audioCompletionRatio || '',
+    discount: snapshot.discount || '',
     billingMode: snapshot.billingMode || 'per-token',
     billingExpr: snapshot.billingExpr || '',
     requestRuleExpr: snapshot.requestRuleExpr || '',

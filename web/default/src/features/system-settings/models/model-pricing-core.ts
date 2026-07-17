@@ -33,7 +33,19 @@ export const createModelPricingSchema = (t: (key: string) => string) =>
     imageRatio: z.string().optional(),
     audioRatio: z.string().optional(),
     audioCompletionRatio: z.string().optional(),
+    discount: z
+      .string()
+      .optional()
+      .refine((value) => isValidDiscountDraft(value), {
+        message: t('Discount rate must be greater than 0 and at most 1.'),
+      }),
   })
+
+export function isValidDiscountDraft(value: string | undefined): boolean {
+  if (value === undefined || value === '') return true
+  const num = Number(value)
+  return Number.isFinite(num) && num > 0 && num <= 1
+}
 
 export type ModelPricingFormValues = z.infer<
   ReturnType<typeof createModelPricingSchema>
@@ -59,6 +71,7 @@ export type ModelRatioData = {
   imageRatio?: string
   audioRatio?: string
   audioCompletionRatio?: string
+  discount?: string
   billingMode?: PricingMode
   billingExpr?: string
   requestRuleExpr?: string
@@ -230,6 +243,31 @@ export function buildPreviewRows(
     ]
   }
 
+  const discountNumber = toNumberOrNull(values.discount)
+  const activeDiscount =
+    discountNumber !== null && discountNumber > 0 && discountNumber < 1
+      ? discountNumber
+      : null
+  const discountRows = (basePrice: string): PreviewRow[] => {
+    if (activeDiscount === null) return []
+    const rows: PreviewRow[] = [
+      {
+        key: 'discount',
+        label: t('Discount rate'),
+        value: `×${values.discount} (-${Math.round((1 - activeDiscount) * 100)}%)`,
+      },
+    ]
+    const baseNumber = toNumberOrNull(basePrice)
+    if (baseNumber !== null) {
+      rows.push({
+        key: 'discountedPrice',
+        label: t('Discounted price'),
+        value: `$${formatPricingNumber(baseNumber * activeDiscount)}`,
+      })
+    }
+    return rows
+  }
+
   if (mode === 'per-request') {
     return [
       {
@@ -237,6 +275,7 @@ export function buildPreviewRows(
         label: 'ModelPrice',
         value: values.price || t('Empty'),
       },
+      ...discountRows(values.price || ''),
     ]
   }
 
@@ -246,6 +285,7 @@ export function buildPreviewRows(
       label: t('Input price'),
       value: promptPrice ? `$${promptPrice}` : t('Empty'),
     },
+    ...discountRows(promptPrice),
     {
       key: 'completion',
       label: t('Completion price'),

@@ -31,7 +31,12 @@ import {
 } from '../lib/dynamic-price'
 import { parseTags } from '../lib/filters'
 import { isTokenBasedModel } from '../lib/model-helpers'
-import { formatPrice, formatRequestPrice } from '../lib/price'
+import {
+  formatPrice,
+  formatRequestPrice,
+  getModelDiscount,
+  hasModelDiscount,
+} from '../lib/price'
 import type { PricingModel, TokenUnit } from '../types'
 import { ModelBillingModeBadge } from './model-billing-mode-badge'
 import { ModelPerfBadge, type ModelPerfBadgeData } from './model-perf-badge'
@@ -128,10 +133,30 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
       )
     }
   } else if (isTokenBased) {
+    const discounted = hasModelDiscount(props.model)
     priceSummary = (
       <>
+        {discounted && (
+          <span className='rounded bg-green-500/10 px-1 py-0.5 font-mono text-[10px] font-medium whitespace-nowrap text-green-700 dark:text-green-400'>
+            -{Math.round((1 - getModelDiscount(props.model)) * 100)}%
+          </span>
+        )}
         <span className='text-muted-foreground whitespace-nowrap'>
           {t('Input')}{' '}
+          {discounted && (
+            <span className='text-muted-foreground/60 font-mono text-[11px] line-through'>
+              {formatPrice(
+                props.model,
+                'input',
+                tokenUnit,
+                showRechargePrice,
+                priceRate,
+                usdExchangeRate,
+                props.selectedGroup,
+                'original'
+              )}
+            </span>
+          )}{' '}
           <span className='text-foreground font-mono font-semibold'>
             {formatPrice(
               props.model,
@@ -146,6 +171,20 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
         </span>
         <span className='text-muted-foreground whitespace-nowrap'>
           {t('Output')}{' '}
+          {discounted && (
+            <span className='text-muted-foreground/60 font-mono text-[11px] line-through'>
+              {formatPrice(
+                props.model,
+                'output',
+                tokenUnit,
+                showRechargePrice,
+                priceRate,
+                usdExchangeRate,
+                props.selectedGroup,
+                'original'
+              )}
+            </span>
+          )}{' '}
           <span className='text-foreground font-mono font-semibold'>
             {formatPrice(
               props.model,
@@ -177,8 +216,21 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
       </>
     )
   } else {
+    const discounted = hasModelDiscount(props.model)
     priceSummary = (
       <span className='text-muted-foreground whitespace-nowrap'>
+        {discounted && (
+          <span className='text-muted-foreground/60 font-mono text-[11px] line-through'>
+            {formatRequestPrice(
+              props.model,
+              showRechargePrice,
+              priceRate,
+              usdExchangeRate,
+              props.selectedGroup,
+              'original'
+            )}
+          </span>
+        )}{' '}
         <span className='text-foreground font-mono font-semibold'>
           {formatRequestPrice(
             props.model,

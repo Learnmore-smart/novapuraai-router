@@ -20,16 +20,25 @@ For commercial licensing, please contact support@quantumnous.com
 
 @theme inline {
   --font-sans: 'Public Sans', sans-serif;
+  /* Editorial serif token — the body face used by the `serif` font axis
+   * and by presets that opt in (currently Anthropic). Lora carries only
+   * Latin glyphs, so the stack walks through CJK serifs (Noto / Source Han
+   * / Songti / SimSun) before the generic `serif` fallback. Without these
+   * explicit CJK fonts the browser's generic-serif pick on Windows is
+   * non-deterministic at small sizes and often appears sans-like. */
   --font-serif:
-    'Lora Variable', 'Lora', 'Source Serif 4', 'Noto Serif SC', 'Noto Serif TC',
-    'Noto Serif JP', 'Source Han Serif SC', 'Songti SC', 'STSong', 'SimSun',
-    Georgia, 'Times New Roman', serif;
+    'Lora Variable', 'Lora', 'Source Serif Pro', 'Source Serif 4',
+    'Noto Serif SC', 'Noto Serif TC', 'Noto Serif JP', 'Noto Serif KR',
+    'Source Han Serif SC', 'Source Han Serif TC', 'Source Han Serif',
+    'Songti SC', 'STSong', 'STSongti-SC-Regular', 'PingFang SC', 'SimSun',
+    'NSimSun', '宋体', 'FangSong', '仿宋', 'KaiTi', '楷体', Georgia,
+    'Times New Roman', Cambria, 'Liberation Serif', serif;
   --font-inter:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
-    sans-serif;
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
+    'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   --font-manrope:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
-    sans-serif;
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
+    'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -74,226 +83,206 @@ For commercial licensing, please contact support@quantumnous.com
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --color-brand-gold: var(--novapura-gold);
-  --color-brand-amber: var(--novapura-amber);
-  --color-brand-orange: var(--novapura-orange);
-  --color-brand-ember: var(--novapura-ember);
-  --color-brand-magenta: var(--novapura-magenta);
 
-  /* Elevation aliases kept for class compatibility; intentionally flat. */
-  --shadow-material-sm: var(--elevation-1);
-  --shadow-material: var(--elevation-2);
-  --shadow-material-lg: var(--elevation-3);
-
-  --radius-sm: calc(var(--radius) * 0.65);
-  --radius-md: calc(var(--radius) * 0.85);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.25);
-  --radius-2xl: calc(var(--radius) * 1.5);
-  --radius-3xl: calc(var(--radius) * 1.75);
-  --radius-4xl: calc(var(--radius) * 2);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 :root {
-  color-scheme: light;
-  /* Editorial radius: refined, not pill-heavy */
-  --radius: 0.5rem;
-  --app-header-height: 3.75rem;
-  --app-rev: '2k6e8r8p';
+  --radius: 0.75rem;
+  --app-header-height: 3rem;
+  /* Static build-channel fallback consumed when JS hasn't booted yet. */
+  --app-rev: '2k6e8r7p';
+  /* Currently active body font. The font axis swaps this between
+   * `--font-sans` and `--font-serif` via `[data-theme-font='...']` blocks
+   * in theme-presets.css. Default mirrors `--font-sans` so behavior is
+   * identical when no font preference is set. */
   --font-body: var(--font-sans);
+
+  /* ── NovaPuraAI brand tokens (logo 2026-07-14) ───────────────────────
+   * Exact hex sampled from public/logo/novapuraai_logo_router_2026-7-14.png
+   * and public/logo/novapuraai_router_favicon/site.webmanifest.
+   * Gradient: gold #fdb402 → amber #f88000 → orange #f06400 →
+   * ember #f83000 → magenta #de0e6a.
+   * Manifest theme_color: #f06400; background_color: #0f0c0a.
+   * All brand stops live here so presets and components can reference a
+   * single source of truth for the orange identity. */
+  --novapura-ink: oklch(0.16 0.006 55); /* #0f0c0a manifest bg */
+  --novapura-ink-soft: oklch(0.22 0.008 50);
+  --novapura-gold: oklch(0.831 0.172 79); /* #fdb402 */
+  --novapura-amber: oklch(0.737 0.184 58); /* #f88000 */
+  --novapura-orange: oklch(0.673 0.193 44); /* #f06400 brand hero */
+  --novapura-orange-deep: oklch(0.555 0.182 40); /* readable on light */
+  --novapura-ember: oklch(0.628 0.241 32); /* #f83000 */
+  --novapura-magenta: oklch(0.579 0.232 5); /* #de0e6a */
+  --novapura-glow: oklch(0.673 0.193 44 / 0.35);
   --novapura-mono:
-    'SFMono-Regular', 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+    'JetBrains Mono', 'SF Mono', 'Cascadia Code', 'Fira Code', ui-monospace,
+    monospace;
 
-  /* Brand spectrum — copper identity, used sparingly for actions/marks */
-  --novapura-ink: oklch(0.22 0.014 55);
-  --novapura-gold: oklch(0.78 0.12 72);
-  --novapura-amber: oklch(0.68 0.14 58);
-  --novapura-orange: oklch(0.58 0.15 45);
-  --novapura-orange-deep: oklch(0.46 0.13 42);
-  --novapura-ember: oklch(0.5 0.14 35);
-  --novapura-magenta: oklch(0.48 0.12 18);
-  /* Single restrained accent wash — not a multi-stop marketing gradient */
-  --novapura-gradient: linear-gradient(
-    180deg,
-    color-mix(in oklch, var(--novapura-amber) 35%, transparent) 0%,
-    transparent 100%
+  /* Surfaces — warm off-white with a faint orange tint, echoing the
+   * logo's warm neutrals (hue ~45–70). */
+  --background: oklch(0.992 0.006 65);
+  --foreground: oklch(0.21 0.028 48);
+  --card: oklch(0.996 0.004 65);
+  --card-foreground: oklch(0.21 0.028 48);
+  --popover: oklch(0.996 0.004 65);
+  --popover-foreground: oklch(0.21 0.028 48);
+
+  /* Primary = brand orange deep. The pure logo orange #f06400 sits at
+   * oklch(0.673 0.193 44) but falls below WCAG AA (4.5:1) for white text
+   * on light chrome, so the primary token uses a slightly deepened stop
+   * (oklch(0.555 0.182 40)) for accessible contrast. The bright brand
+   * orange is always available via --novapura-orange. */
+  --primary: oklch(0.555 0.182 40);
+  --primary-foreground: oklch(0.99 0.01 85);
+  --secondary: oklch(0.952 0.022 65);
+  --secondary-foreground: oklch(0.34 0.055 42);
+  --muted: oklch(0.962 0.014 65);
+  --muted-foreground: oklch(0.49 0.032 48);
+  --accent: color-mix(in oklch, var(--novapura-orange) 14%, var(--background));
+  --accent-foreground: oklch(0.27 0.055 38);
+
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --success: oklch(0.58 0.14 155);
+  --success-foreground: oklch(0.985 0 0);
+  --warning: oklch(0.78 0.15 75);
+  --warning-foreground: oklch(0.25 0.04 50);
+  --info: oklch(0.58 0.12 250);
+  --info-foreground: oklch(0.985 0 0);
+  --neutral: oklch(0.68 0.02 55);
+  --neutral-foreground: oklch(0.21 0.028 48);
+
+  --border: oklch(0.902 0.022 62);
+  --input: oklch(0.902 0.022 62);
+  --ring: oklch(0.555 0.182 40);
+
+  /* Charts follow the full logo gradient: orange → gold → ember →
+   * magenta → amber, so data viz reinforces the brand. */
+  --chart-1: oklch(0.673 0.193 44); /* orange #f06400 */
+  --chart-2: oklch(0.831 0.172 79); /* gold #fdb402 */
+  --chart-3: oklch(0.628 0.241 32); /* ember #f83000 */
+  --chart-4: oklch(0.579 0.232 5); /* magenta #de0e6a */
+  --chart-5: oklch(0.737 0.184 58); /* amber #f88000 */
+  --overview-accent-1: oklch(0.673 0.193 44);
+  --overview-accent-2: oklch(0.831 0.172 79);
+  --overview-accent-3: oklch(0.628 0.241 32);
+
+  --sidebar: color-mix(in oklch, var(--foreground) 1.5%, var(--background));
+  --sidebar-foreground: oklch(0.21 0.028 48);
+  --sidebar-primary: oklch(0.555 0.182 40);
+  --sidebar-primary-foreground: oklch(0.99 0.01 85);
+  --sidebar-accent: color-mix(in oklch, var(--novapura-orange) 14%, var(--background));
+  --sidebar-accent-foreground: oklch(0.36 0.11 40);
+  --sidebar-border: oklch(0.902 0.022 62);
+  --sidebar-ring: oklch(0.555 0.182 40);
+
+  --skeleton-base: oklch(0.94 0.017 65);
+  --skeleton-highlight: oklch(0.98 0.011 70);
+  --table-row: var(--background);
+  --table-header: color-mix(
+    in oklch,
+    var(--foreground) 1.5%,
+    var(--background)
   );
-  --novapura-glow: transparent;
-
-  --novapura-ink-soft: var(--muted-foreground);
-  --novapura-cyan: var(--novapura-amber);
-  --novapura-teal: var(--novapura-orange);
-  --novapura-teal-deep: var(--novapura-orange-deep);
-
-  /* Cool-warm paper canvas */
-  --background: oklch(0.985 0.004 80);
-  --foreground: oklch(0.22 0.014 55);
-  --card: oklch(0.995 0.002 80);
-  --card-foreground: var(--foreground);
-  --popover: oklch(1 0 0);
-  --popover-foreground: var(--foreground);
-  --primary: var(--novapura-orange-deep);
-  --primary-foreground: oklch(0.99 0.004 80);
-  --secondary: oklch(0.955 0.008 75);
-  --secondary-foreground: oklch(0.28 0.02 50);
-  --muted: oklch(0.96 0.006 78);
-  --muted-foreground: oklch(0.48 0.018 55);
-  --accent: oklch(0.95 0.02 65);
-  --accent-foreground: oklch(0.32 0.06 42);
-
-  --destructive: oklch(0.52 0.2 27);
-  --destructive-foreground: oklch(0.99 0 0);
-  --success: oklch(0.48 0.12 151);
-  --success-foreground: oklch(0.99 0 0);
-  --warning: oklch(0.72 0.14 74);
-  --warning-foreground: oklch(0.24 0.04 54);
-  --info: oklch(0.5 0.12 247);
-  --info-foreground: oklch(0.99 0 0);
-  --neutral: oklch(0.58 0.015 56);
-  --neutral-foreground: oklch(0.18 0.012 48);
-
-  --border: oklch(0.9 0.01 70);
-  --input: oklch(0.88 0.012 68);
-  --ring: var(--novapura-orange-deep);
-
-  --chart-1: var(--novapura-orange-deep);
-  --chart-2: oklch(0.65 0.12 65);
-  --chart-3: var(--novapura-ember);
-  --chart-4: oklch(0.45 0.08 250);
-  --chart-5: oklch(0.55 0.08 180);
-  --overview-accent-1: var(--novapura-orange-deep);
-  --overview-accent-2: var(--novapura-amber);
-  --overview-accent-3: var(--novapura-ember);
-
-  --sidebar: oklch(0.972 0.005 78);
-  --sidebar-foreground: var(--foreground);
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: oklch(0.945 0.018 65);
-  --sidebar-accent-foreground: oklch(0.3 0.05 42);
-  --sidebar-border: oklch(0.9 0.01 70);
-  --sidebar-ring: var(--ring);
-
-  --skeleton-base: oklch(0.93 0.008 72);
-  --skeleton-highlight: oklch(0.97 0.004 78);
-  --table-row: var(--card);
-  --table-header: oklch(0.965 0.006 75);
-  --table-header-hover: oklch(0.945 0.012 68);
-  --table-disabled: oklch(0.968 0.005 75);
-  --table-disabled-hover: oklch(0.952 0.008 70);
-  --table-disabled-border: oklch(0.9 0.01 68);
-
-  /* Soft material system: hairline borders + restrained elevation */
-  --material-thin: var(--background);
-  --material-regular: var(--card);
-  --material-thick: var(--card);
-  --material-separator: var(--border);
-  /* Stripe-like depth: soft, never heavy drop shadows */
-  --elevation-1: 0 1px 2px oklch(0.22 0.014 55 / 0.04),
-    0 1px 3px oklch(0.22 0.014 55 / 0.03);
-  --elevation-2: 0 2px 8px oklch(0.22 0.014 55 / 0.06),
-    0 1px 2px oklch(0.22 0.014 55 / 0.04);
-  --elevation-3: 0 8px 24px oklch(0.22 0.014 55 / 0.08),
-    0 2px 6px oklch(0.22 0.014 55 / 0.04);
-  --np-hero-wash: radial-gradient(
-      80% 60% at 50% -10%,
-      color-mix(in oklch, var(--novapura-amber) 18%, transparent) 0%,
-      transparent 70%
-    );
+  --table-header-hover: color-mix(
+    in oklch,
+    var(--foreground) 3%,
+    var(--background)
+  );
+  /* Disabled rows: kept subtle so they read as "quiet", not as a colored
+     alert state. */
+  --table-disabled: color-mix(in oklch, var(--foreground) 3%, var(--background));
+  --table-disabled-hover: color-mix(
+    in oklch,
+    var(--foreground) 4.5%,
+    var(--background)
+  );
+  --table-disabled-border: color-mix(
+    in oklch,
+    var(--foreground) 16%,
+    var(--background)
+  );
 }
 
 .dark {
-  color-scheme: dark;
-  --background: oklch(0.16 0.01 55);
-  --foreground: oklch(0.93 0.008 75);
-  --card: oklch(0.19 0.012 55);
-  --card-foreground: var(--foreground);
-  --popover: oklch(0.2 0.012 55);
-  --popover-foreground: var(--foreground);
-  --primary: oklch(0.72 0.14 55);
-  --primary-foreground: oklch(0.18 0.02 45);
-  --secondary: oklch(0.24 0.012 55);
-  --secondary-foreground: oklch(0.9 0.01 72);
-  --muted: oklch(0.23 0.01 55);
-  --muted-foreground: oklch(0.68 0.02 65);
-  --accent: oklch(0.26 0.03 50);
-  --accent-foreground: oklch(0.92 0.015 72);
+  /* NovaPura dark: warm ink canvas (matching manifest background #0f0c0a),
+   * bright logo orange primary, gold-tinted charts. The dark primary
+   * lifts to the pure brand orange #f06400 for vibrancy against ink. */
+  --background: oklch(0.16 0.006 55);
+  --foreground: oklch(0.962 0.015 72);
+  --card: oklch(0.21 0.024 48);
+  --card-foreground: oklch(0.962 0.015 72);
+  --popover: oklch(0.23 0.027 48);
+  --popover-foreground: oklch(0.962 0.015 72);
 
-  --destructive: oklch(0.66 0.18 26);
-  --destructive-foreground: oklch(0.99 0 0);
-  --success: oklch(0.68 0.13 151);
-  --success-foreground: oklch(0.15 0.02 46);
-  --warning: oklch(0.78 0.14 75);
-  --warning-foreground: oklch(0.17 0.03 49);
-  --info: oklch(0.7 0.11 244);
-  --info-foreground: oklch(0.15 0.02 46);
-  --neutral: oklch(0.66 0.02 58);
-  --neutral-foreground: oklch(0.15 0.02 46);
+  --primary: oklch(0.673 0.193 44); /* #f06400 bright brand orange */
+  --primary-foreground: oklch(0.17 0.03 45);
+  --secondary: oklch(0.27 0.03 48);
+  --secondary-foreground: oklch(0.9 0.04 68);
+  --muted: oklch(0.25 0.024 48);
+  --muted-foreground: oklch(0.74 0.03 62);
+  --accent: color-mix(in oklch, var(--novapura-orange) 18%, var(--background));
+  --accent-foreground: oklch(0.962 0.02 72);
 
-  --border: oklch(0.9 0.01 70 / 0.12);
-  --input: oklch(0.9 0.01 70 / 0.16);
-  --ring: oklch(0.72 0.14 55);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.985 0 0);
+  --success: oklch(0.72 0.14 155);
+  --success-foreground: oklch(0.17 0.03 45);
+  --warning: oklch(0.82 0.14 80);
+  --warning-foreground: oklch(0.17 0.03 45);
+  --info: oklch(0.72 0.12 250);
+  --info-foreground: oklch(0.17 0.03 45);
+  --neutral: oklch(0.72 0.02 55);
+  --neutral-foreground: oklch(0.17 0.03 45);
 
-  --chart-1: oklch(0.72 0.14 55);
-  --chart-2: oklch(0.78 0.12 72);
-  --chart-3: oklch(0.65 0.14 35);
-  --chart-4: oklch(0.65 0.1 250);
-  --chart-5: oklch(0.62 0.08 180);
-  --overview-accent-1: oklch(0.72 0.14 55);
-  --overview-accent-2: oklch(0.78 0.12 72);
-  --overview-accent-3: oklch(0.65 0.14 35);
+  --border: oklch(0.902 0.022 62 / 12%);
+  --input: oklch(0.902 0.022 62 / 16%);
+  --ring: oklch(0.673 0.193 44);
 
-  --sidebar: oklch(0.145 0.01 55);
-  --sidebar-foreground: var(--foreground);
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: oklch(0.24 0.025 50);
-  --sidebar-accent-foreground: oklch(0.92 0.015 72);
-  --sidebar-border: oklch(0.9 0.01 70 / 0.1);
-  --sidebar-ring: var(--ring);
+  /* Dark charts brighten along the same gradient for legibility on ink. */
+  --chart-1: oklch(0.673 0.193 44); /* orange */
+  --chart-2: oklch(0.84 0.14 78); /* gold lift */
+  --chart-3: oklch(0.72 0.2 32); /* ember lift */
+  --chart-4: oklch(0.7 0.18 8); /* magenta lift */
+  --chart-5: oklch(0.8 0.14 60); /* amber lift */
+  --overview-accent-1: oklch(0.673 0.193 44);
+  --overview-accent-2: oklch(0.84 0.14 78);
+  --overview-accent-3: oklch(0.72 0.2 32);
 
-  --skeleton-base: oklch(0.24 0.012 55);
-  --skeleton-highlight: oklch(0.3 0.018 55);
-  --table-row: var(--card);
-  --table-header: oklch(0.21 0.012 55);
-  --table-header-hover: oklch(0.25 0.02 52);
-  --table-disabled: oklch(0.18 0.01 55);
-  --table-disabled-hover: oklch(0.22 0.014 52);
-  --table-disabled-border: oklch(0.9 0.01 70 / 0.1);
+  --sidebar: oklch(0.14 0.022 48);
+  --sidebar-foreground: oklch(0.94 0.015 72);
+  --sidebar-primary: oklch(0.673 0.193 44);
+  --sidebar-primary-foreground: oklch(0.17 0.03 45);
+  --sidebar-accent: color-mix(in oklch, var(--novapura-orange) 18%, var(--background));
+  --sidebar-accent-foreground: oklch(0.9 0.06 50);
+  --sidebar-border: oklch(0.902 0.022 62 / 12%);
+  --sidebar-ring: oklch(0.69 0.18 44);
 
-  --material-thin: var(--background);
-  --material-regular: var(--card);
-  --material-thick: var(--card);
-  --material-separator: var(--border);
-  --novapura-glow: transparent;
-  --elevation-1: 0 1px 2px oklch(0 0 0 / 0.2), 0 1px 3px oklch(0 0 0 / 0.12);
-  --elevation-2: 0 2px 10px oklch(0 0 0 / 0.28), 0 1px 3px oklch(0 0 0 / 0.16);
-  --elevation-3: 0 10px 28px oklch(0 0 0 / 0.35), 0 2px 8px oklch(0 0 0 / 0.2);
-  --np-hero-wash: radial-gradient(
-    80% 60% at 50% -10%,
-    color-mix(in oklch, var(--novapura-amber) 12%, transparent) 0%,
-    transparent 70%
+  --skeleton-base: oklch(0.27 0.03 48);
+  --skeleton-highlight: oklch(0.37 0.04 50);
+  --table-row: var(--background);
+  --table-header: color-mix(in oklch, var(--foreground) 6%, var(--background));
+  --table-header-hover: color-mix(
+    in oklch,
+    var(--foreground) 9%,
+    var(--background)
   );
-}
-
-@media (prefers-contrast: more) {
-  :root {
-    --border: oklch(0.55 0.02 55);
-    --input: oklch(0.5 0.02 53);
-  }
-
-  .dark {
-    --border: oklch(0.82 0.02 68);
-    --input: oklch(0.88 0.02 68);
-  }
-}
-
-@media (forced-colors: active) {
-  :root,
-  .dark {
-    --primary: Highlight;
-    --primary-foreground: HighlightText;
-    --ring: Highlight;
-    --border: CanvasText;
-  }
+  --table-disabled: color-mix(in oklch, var(--foreground) 7%, var(--background));
+  --table-disabled-hover: color-mix(
+    in oklch,
+    var(--foreground) 9.5%,
+    var(--background)
+  );
+  --table-disabled-border: color-mix(
+    in oklch,
+    var(--foreground) 24%,
+    var(--background)
+  );
 }

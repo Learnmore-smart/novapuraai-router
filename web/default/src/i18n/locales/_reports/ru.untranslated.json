@@ -1,3 +1,5 @@
 {
-  "novapuraai.com, localhost": "novapuraai.com, localhost"
+  "Configured — leave blank to keep unchanged": "Configured — leave blank to keep unchanged",
+  "novapuraai.com, localhost": "novapuraai.com, localhost",
+  "Stored securely and never returned by the settings API. If GITHUB_OAUTH_CLIENT_SECRET is set in the environment, it overrides this value.": "Stored securely and never returned by the settings API. If GITHUB_OAUTH_CLIENT_SECRET is set in the environment, it overrides this value."
 }

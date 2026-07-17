@@ -17,15 +17,7 @@ var StripePromotionCodesEnabled = false
 // Preferred names (sandbox): STRIPE_TEST_SECRET_KEY, STRIPE_TEST_WEBHOOK_SECRET, STRIPE_TOPUP_PRODUCT_ID.
 // Legacy names remain supported: STRIPE_API_SECRET / StripeApiSecret, STRIPE_WEBHOOK_SECRET.
 func InitStripeEnv() {
-	if v := firstEnv("STRIPE_TEST_SECRET_KEY", "STRIPE_API_SECRET", "StripeApiSecret"); v != "" {
-		StripeApiSecret = v
-	}
-	if v := firstEnv("STRIPE_TEST_WEBHOOK_SECRET", "STRIPE_WEBHOOK_SECRET", "StripeWebhookSecret"); v != "" {
-		StripeWebhookSecret = v
-	}
-	if v := firstEnv("STRIPE_TEST_PUBLISHABLE_KEY", "STRIPE_PUBLISHABLE_KEY"); v != "" {
-		StripePublishableKey = v
-	}
+	loadStripeCredentialsFromEnv()
 	if v := firstEnv("STRIPE_TOPUP_PRODUCT_ID", "STRIPE_PRODUCT_ID"); v != "" {
 		StripeTopupProductID = v
 	}
@@ -59,6 +51,29 @@ func InitStripeEnv() {
 		}
 	}
 
+	applyStripeKeyPolicy()
+}
+
+// RefreshStripeSecretsFromEnv reapplies only credential values after database-backed
+// options are loaded, so persisted wallet top-up settings remain authoritative.
+func RefreshStripeSecretsFromEnv() {
+	loadStripeCredentialsFromEnv()
+	applyStripeKeyPolicy()
+}
+
+func loadStripeCredentialsFromEnv() {
+	if v := firstEnv("STRIPE_TEST_SECRET_KEY", "STRIPE_API_SECRET", "StripeApiSecret"); v != "" {
+		StripeApiSecret = v
+	}
+	if v := firstEnv("STRIPE_TEST_WEBHOOK_SECRET", "STRIPE_WEBHOOK_SECRET", "StripeWebhookSecret"); v != "" {
+		StripeWebhookSecret = v
+	}
+	if v := firstEnv("STRIPE_TEST_PUBLISHABLE_KEY", "STRIPE_PUBLISHABLE_KEY"); v != "" {
+		StripePublishableKey = v
+	}
+}
+
+func applyStripeKeyPolicy() {
 	// Reject live keys early when sandbox policy is on.
 	if StripeRequireTestKeys {
 		if strings.HasPrefix(StripeApiSecret, "sk_live") || strings.HasPrefix(StripeApiSecret, "rk_live") {

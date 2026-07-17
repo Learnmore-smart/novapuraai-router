@@ -88,6 +88,8 @@ func InitOptionMap() {
 	common.OptionMap["StripeApiSecret"] = setting.StripeApiSecret
 	common.OptionMap["StripeWebhookSecret"] = setting.StripeWebhookSecret
 	common.OptionMap["StripePriceId"] = setting.StripePriceId
+	common.OptionMap["StripeTopupProductID"] = setting.StripeTopupProductID
+	common.OptionMap["StripeTopupEnabled"] = strconv.FormatBool(setting.StripeTopupEnabled)
 	common.OptionMap["StripeUnitPrice"] = strconv.FormatFloat(setting.StripeUnitPrice, 'f', -1, 64)
 	common.OptionMap["StripePromotionCodesEnabled"] = strconv.FormatBool(setting.StripePromotionCodesEnabled)
 	common.OptionMap["CreemApiKey"] = setting.CreemApiKey
@@ -157,6 +159,7 @@ func InitOptionMap() {
 	common.OptionMap["ImageRatio"] = ratio_setting.ImageRatio2JSONString()
 	common.OptionMap["AudioRatio"] = ratio_setting.AudioRatio2JSONString()
 	common.OptionMap["AudioCompletionRatio"] = ratio_setting.AudioCompletionRatio2JSONString()
+	common.OptionMap["ModelDiscount"] = ratio_setting.ModelDiscount2JSONString()
 	common.OptionMap["TopUpLink"] = common.TopUpLink
 	//common.OptionMap["ChatLink"] = common.ChatLink
 	//common.OptionMap["ChatLink2"] = common.ChatLink2
@@ -197,7 +200,9 @@ func InitOptionMap() {
 func loadOptionsFromDatabase() {
 	options, _ := AllOption()
 	for _, option := range options {
-		// Env-managed secrets must never be hydrated from the options table.
+		// Strictly environment-managed secrets must never be hydrated from the
+		// options table. Turnstile is intentionally excluded so the Dashboard
+		// can provide a write-only fallback when no environment value is set.
 		if common.IsEnvManagedSecretOptionKey(option.Key) {
 			continue
 		}
@@ -428,6 +433,10 @@ func updateOptionMap(key string, value string) (err error) {
 		setting.StripeWebhookSecret = value
 	case "StripePriceId":
 		setting.StripePriceId = value
+	case "StripeTopupProductID":
+		setting.StripeTopupProductID = value
+	case "StripeTopupEnabled":
+		setting.StripeTopupEnabled = value == "true"
 	case "StripeUnitPrice":
 		setting.StripeUnitPrice, _ = strconv.ParseFloat(value, 64)
 	case "StripeMinTopUp":
@@ -495,6 +504,9 @@ func updateOptionMap(key string, value string) (err error) {
 		// environment value on top when GITHUB_OAUTH_CLIENT_SECRET is set, and
 		// scrubs it back out of OptionMap so the settings API never echoes it.
 		common.GitHubClientSecret = value
+		common.OptionMap[key] = ""
+		common.OptionMap["GitHubClientSecretConfigured"] = strconv.FormatBool(strings.TrimSpace(value) != "")
+		return nil
 	case "LinuxDOClientId":
 		common.LinuxDOClientId = value
 	case "LinuxDOClientSecret":
@@ -520,8 +532,12 @@ func updateOptionMap(key string, value string) (err error) {
 	case "TurnstileSiteKey":
 		common.TurnstileSiteKey = value
 	case "TurnstileSecretKey":
-		// Environment / Secret Manager is the only source of truth.
+		// Env-preferred, DB-writable. ApplyEnvManagedSecrets re-applies the
+		// environment value when TURNSTILE_SECRET_KEY is set, then scrubs this
+		// value from OptionMap so the settings API never echoes it.
+		common.TurnstileSecretKey = value
 		common.OptionMap[key] = ""
+		common.OptionMap["TurnstileSecretKeyConfigured"] = strconv.FormatBool(strings.TrimSpace(value) != "")
 		return nil
 	case "TurnstileAllowedHostnames":
 		common.TurnstileAllowedHostnames = value
@@ -571,6 +587,8 @@ func updateOptionMap(key string, value string) (err error) {
 		err = ratio_setting.UpdateAudioRatioByJSONString(value)
 	case "AudioCompletionRatio":
 		err = ratio_setting.UpdateAudioCompletionRatioByJSONString(value)
+	case "ModelDiscount":
+		err = ratio_setting.UpdateModelDiscountByJSONString(value)
 	case "TopUpLink":
 		common.TopUpLink = value
 	//case "ChatLink":

@@ -90,6 +90,10 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 	var audioRatio float64
 	var audioCompletionRatio float64
 	var freeModel bool
+	// Per-model discount joins billing as an OtherRatio so settlement applies it
+	// while logs keep the original model ratio/price visible. Expression-billed
+	// (tiered_expr) models are handled above and do not receive this discount.
+	discount, hasDiscount := ratio_setting.GetModelDiscount(info.OriginModelName)
 	if !usePrice {
 		preConsumedTokens := common.Max(promptTokens, common.PreConsumedQuota)
 		if meta.MaxTokens != 0 {
@@ -116,7 +120,7 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 		imageRatio, _ = ratio_setting.GetImageRatio(info.OriginModelName)
 		audioRatio = ratio_setting.GetAudioRatio(info.OriginModelName)
 		audioCompletionRatio = ratio_setting.GetAudioCompletionRatio(info.OriginModelName)
-		ratio := modelRatio * groupRatioInfo.GroupRatio
+		ratio := modelRatio * groupRatioInfo.GroupRatio * discount
 		quota, err := common.QuotaFromFloatStrict(float64(preConsumedTokens) * ratio)
 		if err != nil {
 			return types.PriceData{}, err
@@ -162,6 +166,9 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 		CacheCreation5mRatio: cacheCreationRatio5m,
 		CacheCreation1hRatio: cacheCreationRatio1h,
 		QuotaToPreConsume:    preConsumedQuota,
+	}
+	if hasDiscount {
+		priceData.AddOtherRatio(types.OtherRatioModelDiscount, discount)
 	}
 	if usePrice {
 		for name, ratio := range meta.BillingRatios {
@@ -212,7 +219,12 @@ func ModelPriceHelperPerCall(c *gin.Context, info *relaycommon.RelayInfo) (types
 	var quota int
 	freeModel := false
 
+	// Task adapters rebuild OtherRatios during settlement (ReplaceOtherRatios),
+	// so the per-model discount is folded into the price/ratio here instead of
+	// riding along as an OtherRatio that would be dropped.
+	discount, _ := ratio_setting.GetModelDiscount(info.OriginModelName)
 	if usePrice {
+		modelPrice = modelPrice * discount
 		var err error
 		quota, err = common.QuotaFromFloatStrict(modelPrice * common.QuotaPerUnit * groupRatioInfo.GroupRatio)
 		if err != nil {
@@ -226,6 +238,7 @@ func ModelPriceHelperPerCall(c *gin.Context, info *relaycommon.RelayInfo) (types
 		}
 	} else {
 		// 按量计费：以模型倍率的一半作为预扣额度
+		modelRatio = modelRatio * discount
 		var err error
 		quota, err = common.QuotaFromFloatStrict(modelRatio / 2 * common.QuotaPerUnit * groupRatioInfo.GroupRatio)
 		if err != nil {

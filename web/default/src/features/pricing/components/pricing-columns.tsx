@@ -38,6 +38,8 @@ import { isTokenBasedModel } from '../lib/model-helpers'
 import {
   formatPrice,
   formatRequestPrice,
+  getModelDiscount,
+  hasModelDiscount,
   stripTrailingZeros,
 } from '../lib/price'
 import type { PricingModel, TokenUnit } from '../types'
@@ -175,37 +177,45 @@ export function usePricingColumns(
         }
 
         const isTokenBased = isTokenBasedModel(model)
+        const discounted = hasModelDiscount(model)
+        const discountBadge = discounted ? (
+          <span className='ml-1.5 rounded bg-green-500/10 px-1 py-0.5 font-mono text-[10px] font-medium text-green-700 dark:text-green-400'>
+            -{Math.round((1 - getModelDiscount(model)) * 100)}%
+          </span>
+        ) : null
 
         if (isTokenBased) {
-          const inputPrice = stripTrailingZeros(
-            formatPrice(
-              model,
-              'input',
-              tokenUnit,
-              showRechargePrice,
-              priceRate,
-              usdExchangeRate,
-              selectedGroup
+          const priceOf = (
+            type: 'input' | 'output',
+            variant: 'discounted' | 'original'
+          ) =>
+            stripTrailingZeros(
+              formatPrice(
+                model,
+                type,
+                tokenUnit,
+                showRechargePrice,
+                priceRate,
+                usdExchangeRate,
+                selectedGroup,
+                variant
+              )
             )
-          )
-          const outputPrice = stripTrailingZeros(
-            formatPrice(
-              model,
-              'output',
-              tokenUnit,
-              showRechargePrice,
-              priceRate,
-              usdExchangeRate,
-              selectedGroup
-            )
-          )
 
           return (
             <div className='max-w-full min-w-0'>
+              {discounted && (
+                <div className='text-muted-foreground/60 font-mono text-[11px] tabular-nums line-through'>
+                  {priceOf('input', 'original')}
+                  <span className='mx-1'>/</span>
+                  {priceOf('output', 'original')}
+                </div>
+              )}
               <span className='font-mono text-sm tabular-nums'>
-                {inputPrice}
+                {priceOf('input', 'discounted')}
                 <span className='text-muted-foreground/40 mx-1'>/</span>
-                {outputPrice}
+                {priceOf('output', 'discounted')}
+                {discountBadge}
               </span>
               <div className='text-muted-foreground/50 text-[10px]'>
                 / {tokenUnitLabel} tokens
@@ -214,19 +224,29 @@ export function usePricingColumns(
           )
         }
 
-        const price = stripTrailingZeros(
-          formatRequestPrice(
-            model,
-            showRechargePrice,
-            priceRate,
-            usdExchangeRate,
-            selectedGroup
+        const requestPriceOf = (variant: 'discounted' | 'original') =>
+          stripTrailingZeros(
+            formatRequestPrice(
+              model,
+              showRechargePrice,
+              priceRate,
+              usdExchangeRate,
+              selectedGroup,
+              variant
+            )
           )
-        )
 
         return (
           <div className='max-w-full min-w-0'>
-            <span className='font-mono text-sm tabular-nums'>{price}</span>
+            {discounted && (
+              <div className='text-muted-foreground/60 font-mono text-[11px] tabular-nums line-through'>
+                {requestPriceOf('original')}
+              </div>
+            )}
+            <span className='font-mono text-sm tabular-nums'>
+              {requestPriceOf('discounted')}
+              {discountBadge}
+            </span>
             <div className='text-muted-foreground/50 text-[10px]'>
               / {t('request')}
             </div>

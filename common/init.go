@@ -237,8 +237,8 @@ func initGitHubOAuthEnv() {
 }
 
 // EnvManagedSecretOptionKeys are option keys that must never be accepted from
-// the admin API or trusted from the options table. Source of truth is process
-// environment (e.g. Cloud Run + Secret Manager).
+// the admin API or trusted from the options table. Process environment (e.g.
+// Cloud Run + Secret Manager) takes precedence whenever it is configured.
 //
 // GitHubClientSecret is intentionally NOT in this set: it is env-preferred but
 // DB-writable. When GITHUB_OAUTH_CLIENT_SECRET is present in the environment it
@@ -246,10 +246,9 @@ func initGitHubOAuthEnv() {
 // the admin settings UI is used. It is still scrubbed from OptionMap so the
 // settings API never echoes it back.
 var EnvManagedSecretOptionKeys = map[string]struct{}{
-	"TurnstileSecretKey":   {},
-	"SMTPToken":            {},
-	"StripeApiSecret":      {},
-	"StripeWebhookSecret":  {},
+	"SMTPToken":           {},
+	"StripeApiSecret":     {},
+	"StripeWebhookSecret": {},
 }
 
 func IsEnvManagedSecretOptionKey(key string) bool {
@@ -261,7 +260,7 @@ func IsEnvManagedSecretOptionKey(key string) bool {
 // map / database load so persisted rows cannot clobber Secret Manager values.
 // Also refreshes non-secret configured-status flags used by the admin UI.
 func ApplyEnvManagedSecrets() {
-	// Secrets: env only. Database values are never trusted for these keys.
+	// Strictly managed secrets: database values are never trusted for these keys.
 	if value := firstNonEmptyEnv("GITHUB_OAUTH_CLIENT_SECRET", "GITHUB_CLIENT_SECRET"); value != "" {
 		GitHubClientSecret = value
 	} else if _, loaded := os.LookupEnv("GITHUB_OAUTH_CLIENT_SECRET"); loaded {
@@ -270,10 +269,10 @@ func ApplyEnvManagedSecrets() {
 		GitHubClientSecret = ""
 	}
 
+	// Turnstile is env-preferred and DB-writable. A Secret Manager value wins
+	// when present, while a Dashboard-saved value remains usable otherwise.
 	if value := firstNonEmptyEnv("TURNSTILE_SECRET_KEY"); value != "" {
 		TurnstileSecretKey = value
-	} else if _, loaded := os.LookupEnv("TURNSTILE_SECRET_KEY"); loaded {
-		TurnstileSecretKey = ""
 	}
 
 	if value := firstNonEmptyEnv("SMTP_TOKEN", "SMTPToken"); value != "" {

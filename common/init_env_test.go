@@ -229,6 +229,27 @@ func TestApplyEnvManagedSecretsKeepsGitHubSecretFromDBWhenEnvAbsent(t *testing.T
 	assert.Equal(t, "true", OptionMap["GitHubClientSecretConfigured"])
 }
 
+func TestApplyEnvManagedSecretsKeepsTurnstileSecretWhenEnvironmentIsBlank(t *testing.T) {
+	originalSecret := TurnstileSecretKey
+	OptionMapRWMutex.Lock()
+	originalOptionMap := OptionMap
+	OptionMap = map[string]string{}
+	OptionMapRWMutex.Unlock()
+	t.Cleanup(func() {
+		TurnstileSecretKey = originalSecret
+		OptionMapRWMutex.Lock()
+		OptionMap = originalOptionMap
+		OptionMapRWMutex.Unlock()
+	})
+
+	TurnstileSecretKey = "dashboard-secret"
+	t.Setenv("TURNSTILE_SECRET_KEY", "")
+
+	ApplyEnvManagedSecrets()
+
+	assert.Equal(t, "dashboard-secret", TurnstileSecretKey)
+}
+
 func TestGitHubOAuthFailClosedWithoutSecret(t *testing.T) {
 	originalEnabled := GitHubOAuthEnabled
 	originalClientId := GitHubClientId
@@ -250,7 +271,7 @@ func TestGitHubOAuthFailClosedWithoutSecret(t *testing.T) {
 }
 
 func TestIsEnvManagedSecretOptionKey(t *testing.T) {
-	assert.True(t, IsEnvManagedSecretOptionKey("TurnstileSecretKey"))
+	assert.False(t, IsEnvManagedSecretOptionKey("TurnstileSecretKey"))
 	assert.True(t, IsEnvManagedSecretOptionKey("SMTPToken"))
 	assert.False(t, IsEnvManagedSecretOptionKey("GitHubClientId"))
 	// GitHubClientSecret is env-preferred but DB-writable, so it is not treated

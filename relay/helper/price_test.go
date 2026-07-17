@@ -181,6 +181,59 @@ func TestModelPriceHelperTieredRejectsPreConsumeOverflow(t *testing.T) {
 	require.Equal(t, common.QuotaClampOverflow, clamp.Kind)
 }
 
+func TestModelPriceHelperAppliesModelDiscount(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	savedModelPrices := ratio_setting.ModelPrice2JSONString()
+	savedModelRatios := ratio_setting.ModelRatio2JSONString()
+	savedDiscounts := ratio_setting.ModelDiscount2JSONString()
+	t.Cleanup(func() {
+		require.NoError(t, ratio_setting.UpdateModelPriceByJSONString(savedModelPrices))
+		require.NoError(t, ratio_setting.UpdateModelRatioByJSONString(savedModelRatios))
+		require.NoError(t, ratio_setting.UpdateModelDiscountByJSONString(savedDiscounts))
+	})
+
+	require.NoError(t, ratio_setting.UpdateModelPriceByJSONString(`{"discount-fixed-model":0.04}`))
+	require.NoError(t, ratio_setting.UpdateModelRatioByJSONString(`{"discount-ratio-model":15}`))
+	require.NoError(t, ratio_setting.UpdateModelDiscountByJSONString(`{"discount-fixed-model":0.5,"discount-ratio-model":0.5}`))
+
+	newInfo := func(model string) (*gin.Context, *relaycommon.RelayInfo) {
+		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+		ctx.Set("group", "default")
+		return ctx, &relaycommon.RelayInfo{
+			OriginModelName: model,
+			UserGroup:       "default",
+			UsingGroup:      "default",
+		}
+	}
+
+	// Per-token: pre-consume is halved and the discount rides along as an
+	// OtherRatio while ModelRatio keeps its original value for logging.
+	ctx, info := newInfo("discount-ratio-model")
+	priceData, err := ModelPriceHelper(ctx, info, 1000, &types.TokenCountMeta{})
+	require.NoError(t, err)
+	require.Equal(t, 7500, priceData.QuotaToPreConsume)
+	require.Equal(t, 15.0, priceData.ModelRatio)
+	require.True(t, priceData.HasOtherRatio(types.OtherRatioModelDiscount))
+
+	// Per-request: fixed price pre-consume is halved via OtherRatios.
+	ctx, info = newInfo("discount-fixed-model")
+	priceData, err = ModelPriceHelper(ctx, info, 1000, &types.TokenCountMeta{})
+	require.NoError(t, err)
+	require.True(t, priceData.UsePrice)
+	require.Equal(t, 10000, priceData.QuotaToPreConsume)
+	require.Equal(t, 0.04, priceData.ModelPrice)
+	require.True(t, priceData.HasOtherRatio(types.OtherRatioModelDiscount))
+
+	// Per-call: task adapters rebuild OtherRatios during settlement, so the
+	// discount must be folded into the price itself.
+	ctx, info = newInfo("discount-fixed-model")
+	priceData, err = ModelPriceHelperPerCall(ctx, info)
+	require.NoError(t, err)
+	require.Equal(t, 10000, priceData.Quota)
+	require.Equal(t, 0.02, priceData.ModelPrice)
+	require.False(t, priceData.HasOtherRatio(types.OtherRatioModelDiscount))
+}
+
 func TestModelPriceHelperRequestBillingRatiosOnlyApplyToFixedPrice(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	savedModelPrices := ratio_setting.ModelPrice2JSONString()

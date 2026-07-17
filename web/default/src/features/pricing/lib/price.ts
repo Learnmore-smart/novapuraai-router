@@ -103,6 +103,22 @@ function hasRatio(value: number | null | undefined): boolean {
 }
 
 /**
+ * Effective per-model discount multiplier. Returns 1 (no discount) unless the
+ * backend provided a valid rate strictly between 0 and 1.
+ */
+export function getModelDiscount(model: PricingModel): number {
+  const rate = Number(model.discount)
+  if (!Number.isFinite(rate) || rate <= 0 || rate >= 1) return 1
+  return rate
+}
+
+export function hasModelDiscount(model: PricingModel): boolean {
+  return getModelDiscount(model) < 1
+}
+
+export type PriceVariant = 'discounted' | 'original'
+
+/**
  * Apply recharge rate to price
  *
  * priceRate represents how much users need to recharge (in the display currency)
@@ -148,7 +164,8 @@ export function formatPrice(
   showWithRecharge = false,
   priceRate = 1,
   usdExchangeRate = 1,
-  selectedGroup?: string
+  selectedGroup?: string,
+  variant: PriceVariant = 'discounted'
 ): string {
   if (model.quota_type === QUOTA_TYPE_VALUES.REQUEST) {
     return '-'
@@ -157,6 +174,9 @@ export function formatPrice(
   const displayGroupRatio = getDisplayGroupRatio(model, selectedGroup)
 
   let priceInUSD = calculateTokenPrice(model, type, displayGroupRatio)
+  if (variant === 'discounted') {
+    priceInUSD *= getModelDiscount(model)
+  }
   priceInUSD = applyRechargeRate(
     priceInUSD,
     showWithRecharge,
@@ -183,7 +203,8 @@ export function formatGroupPrice(
   showWithRecharge = false,
   priceRate = 1,
   usdExchangeRate = 1,
-  groupRatio: Record<string, number>
+  groupRatio: Record<string, number>,
+  variant: PriceVariant = 'discounted'
 ): string {
   if (model.quota_type === QUOTA_TYPE_VALUES.REQUEST) {
     return '-'
@@ -191,6 +212,9 @@ export function formatGroupPrice(
 
   const ratio = getConfiguredGroupRatio(groupRatio, group)
   let priceInUSD = calculateTokenPrice(model, type, ratio)
+  if (variant === 'discounted') {
+    priceInUSD *= getModelDiscount(model)
+  }
 
   priceInUSD = applyRechargeRate(
     priceInUSD,
@@ -216,7 +240,8 @@ export function formatFixedPrice(
   showWithRecharge = false,
   priceRate = 1,
   usdExchangeRate = 1,
-  groupRatio: Record<string, number>
+  groupRatio: Record<string, number>,
+  variant: PriceVariant = 'discounted'
 ): string {
   if (model.quota_type !== QUOTA_TYPE_VALUES.REQUEST) {
     return '-'
@@ -224,6 +249,9 @@ export function formatFixedPrice(
 
   const ratio = getConfiguredGroupRatio(groupRatio, group)
   let priceInUSD = (model.model_price || 0) * ratio
+  if (variant === 'discounted') {
+    priceInUSD *= getModelDiscount(model)
+  }
 
   priceInUSD = applyRechargeRate(
     priceInUSD,
@@ -247,7 +275,8 @@ export function formatRequestPrice(
   showWithRecharge = false,
   priceRate = 1,
   usdExchangeRate = 1,
-  selectedGroup?: string
+  selectedGroup?: string,
+  variant: PriceVariant = 'discounted'
 ): string {
   if (model.quota_type !== QUOTA_TYPE_VALUES.REQUEST) {
     return '-'
@@ -256,6 +285,9 @@ export function formatRequestPrice(
   const displayGroupRatio = getDisplayGroupRatio(model, selectedGroup)
 
   let priceInUSD = (model.model_price || 0) * displayGroupRatio
+  if (variant === 'discounted') {
+    priceInUSD *= getModelDiscount(model)
+  }
 
   priceInUSD = applyRechargeRate(
     priceInUSD,

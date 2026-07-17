@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import * as z from 'zod'
@@ -42,10 +42,16 @@ import {
 import { SettingsPageFormActions } from '../components/settings-page-context'
 import { SettingsSection } from '../components/settings-section'
 import { useUpdateOption } from '../hooks/use-update-option'
+import {
+  getWriteOnlySecretPlaceholder,
+  hasWriteOnlySecretReplacement,
+  orderAuthOptionUpdates,
+} from './write-only-secret'
 
 const botProtectionSchema = z.object({
   TurnstileCheckEnabled: z.boolean(),
   TurnstileSiteKey: z.string().optional(),
+  TurnstileSecretKey: z.string().optional(),
   TurnstileAllowedHostnames: z.string().optional(),
 })
 
@@ -62,10 +68,14 @@ export function BotProtectionSection({
 }: BotProtectionSectionProps) {
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
+  const [secretConfigured, setSecretConfigured] = useState(
+    defaultValues.TurnstileSecretKeyConfigured
+  )
 
   const formDefaults: BotProtectionFormValues = {
     TurnstileCheckEnabled: defaultValues.TurnstileCheckEnabled,
     TurnstileSiteKey: defaultValues.TurnstileSiteKey,
+    TurnstileSecretKey: '',
     TurnstileAllowedHostnames: defaultValues.TurnstileAllowedHostnames,
   }
 
@@ -75,37 +85,42 @@ export function BotProtectionSection({
   })
 
   useEffect(() => {
+    setSecretConfigured(defaultValues.TurnstileSecretKeyConfigured)
     form.reset({
       TurnstileCheckEnabled: defaultValues.TurnstileCheckEnabled,
       TurnstileSiteKey: defaultValues.TurnstileSiteKey,
+      TurnstileSecretKey: '',
       TurnstileAllowedHostnames: defaultValues.TurnstileAllowedHostnames,
     })
   }, [defaultValues, form])
 
   const onSubmit = async (data: BotProtectionFormValues) => {
-    const enabledChanged =
-      data.TurnstileCheckEnabled !== defaultValues.TurnstileCheckEnabled
-    const updates = Object.entries(data).filter(
-      ([key, value]) =>
-        key !== 'TurnstileCheckEnabled' &&
-        value !== defaultValues[key as keyof BotProtectionFormValues]
-    )
+    const updates = Object.entries(data).filter(([key, value]) => {
+      if (key === 'TurnstileSecretKey') {
+        return (
+          typeof value === 'string' && hasWriteOnlySecretReplacement(value)
+        )
+      }
+      return value !== defaultValues[key as keyof BotProtectionFormValues]
+    })
 
-    if (enabledChanged && !data.TurnstileCheckEnabled) {
-      await updateOption.mutateAsync({
-        key: 'TurnstileCheckEnabled',
-        value: false,
+    const orderedUpdates = orderAuthOptionUpdates(
+      updates,
+      'TurnstileCheckEnabled',
+      data.TurnstileCheckEnabled
+    )
+    for (const [key, value] of orderedUpdates) {
+      const result = await updateOption.mutateAsync({
+        key,
+        value: value ?? '',
       })
+      if (!result.success) return
     }
-    for (const [key, value] of updates) {
-      await updateOption.mutateAsync({ key, value: value ?? '' })
+
+    if (hasWriteOnlySecretReplacement(data.TurnstileSecretKey ?? '')) {
+      setSecretConfigured(true)
     }
-    if (enabledChanged && data.TurnstileCheckEnabled) {
-      await updateOption.mutateAsync({
-        key: 'TurnstileCheckEnabled',
-        value: true,
-      })
-    }
+    form.reset({ ...data, TurnstileSecretKey: '' })
   }
 
   return (
@@ -157,24 +172,32 @@ export function BotProtectionSection({
             )}
           />
 
-          <FormItem>
-            <FormLabel>{t('Secret Key')}</FormLabel>
-            <Input
-              readOnly
-              value={
-                defaultValues.TurnstileSecretKeyConfigured
-                  ? t('Configured through Secret Manager')
-                  : t('Not configured in environment')
-              }
-              className='bg-muted text-muted-foreground'
-              autoComplete='off'
-            />
-            <FormDescription>
-              {t(
-                'Set TURNSTILE_SECRET_KEY via environment (Google Secret Manager on Cloud Run). It is never stored in the database or returned by the settings API.'
-              )}
-            </FormDescription>
-          </FormItem>
+          <FormField
+            control={form.control}
+            name='TurnstileSecretKey'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('Secret Key')}</FormLabel>
+                <FormControl>
+                  <Input
+                    type='password'
+                    placeholder={getWriteOnlySecretPlaceholder(
+                      secretConfigured,
+                      t('Your Turnstile secret key')
+                    )}
+                    autoComplete='new-password'
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  {t(
+                    'Leave blank to keep the current secret. The value is never returned by the settings API.'
+                  )}
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <FormField
             control={form.control}
