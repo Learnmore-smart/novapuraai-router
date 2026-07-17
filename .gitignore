@@ -1,0 +1,68 @@
+# IDE / editor
+.idea
+.vscode
+.zed
+.history
+.claude
+.cursor
+.DS_Store
+plans
+skills-lock.json
+
+# Private project material excluded from the public repository
+/.ai/
+/docs/
+/public/
+
+# Local secrets & runtime (Day-1 docker / deploy)
+.env
+data/
+logs/
+upload/
+
+# Binaries & local DBs
+*.exe
+*.db
+*.db-journal
+one-api
+new-api
+/__debug_bin*
+build
+
+# Frontend build artifacts & deps
+web/default/dist
+web/classic/dist
+web/node_modules
+web/dist
+electron/node_modules
+electron/dist
+node_modules/
+
+# Caches
+tiktoken_cache
+.eslintcache
+.gocache
+.gocache-temp
+.gomodcache/
+.cache
+.gopath
+.test
+.playwright-mcp
+
+# Local-only probes / scratch test workspaces
+.local-tests/
+service/relayconvert/chat_responses_live_local_test.go
+service/openaicompat/chat_responses_live_local_test.go
+token_estimator_test.go
+
+# Local Windows helpers (PATH shims; machine-specific)
+# Prefer scripts/start-dev.ps1 or run.ps1 when committing shared runners.
+/go.cmd
+
+# Personal scratch notes under docs/ (not product docs)
+docs/*npm*
+docs/启动*
+
+# OS / editor junk that sometimes appears at repo root
+Thumbs.db
+desktop.ini

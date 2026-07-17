@@ -1,0 +1,10 @@
+{
+  "name": "new-api-workspace",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c blue,green \"go run main.go\" \"cd web/default && bun run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

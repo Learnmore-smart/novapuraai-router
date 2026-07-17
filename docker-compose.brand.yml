@@ -1,0 +1,12 @@
+# Overlay: build branded NovaPuraAI image from local Dockerfile
+# (includes web/default theme.css + logo changes).
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.brand.yml up -d --build
+
+services:
+  new-api:
+    image: novapuraai/new-api:local
+    build:
+      context: .
+      dockerfile: Dockerfile

@@ -1,0 +1,260 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource-variable/public-sans';
+/* Editorial serif (Lora) backing the `serif` font axis and the Anthropic
+ * preset's default typography. See `--font-serif` in theme.css for the
+ * full Latin + CJK fallback stack and `theme-presets.css` for the cascade
+ * that activates it. Loaded globally so font-switching is instantaneous
+ * with no FOUT once the variable is fetched. */
+@import '@fontsource-variable/lora';
+
+@import './theme.css';
+@import './theme-presets.css';
+
+/* Premium infrastructure surfaces: type + space + restrained depth. */
+@layer components {
+  .novapura-glow {
+    box-shadow: none;
+  }
+
+  .novapura-hero-bg {
+    background: var(--background);
+  }
+
+  .brand-text-gradient {
+    color: var(--primary);
+    background: none;
+    -webkit-text-fill-color: unset;
+  }
+
+  .material-regular {
+    border: 1px solid var(--material-separator);
+    background: var(--material-regular);
+    box-shadow: var(--elevation-1);
+    backdrop-filter: none;
+  }
+
+  .material-thick {
+    border: 1px solid var(--material-separator);
+    background: var(--material-thick);
+    box-shadow: var(--elevation-1);
+    backdrop-filter: none;
+  }
+
+  .surface-raised {
+    border: 1px solid var(--material-separator);
+    background: var(--card);
+    box-shadow: var(--elevation-1);
+  }
+
+  .surface-inset {
+    border: 1px solid var(--material-separator);
+    background: var(--muted);
+  }
+
+  .editorial-rule {
+    height: 1px;
+    width: 100%;
+    background: var(--border);
+  }
+
+  .editorial-kicker,
+  .np-kicker {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  .np-hero-wash {
+    background-image: var(--np-hero-wash);
+    background-color: var(--background);
+  }
+
+  .np-surface {
+    border: 1px solid var(--border);
+    background: var(--card);
+    box-shadow: var(--elevation-1);
+    border-radius: var(--radius);
+  }
+
+  .np-surface-lg {
+    border: 1px solid var(--border);
+    background: var(--card);
+    box-shadow: var(--elevation-2);
+    border-radius: calc(var(--radius) * 1.15);
+  }
+
+  /* Faint engineering grid behind the hero — credibility, not decoration.
+     Masked to fade out toward the edges so it never competes with content. */
+  .np-grid {
+    background-image:
+      linear-gradient(to right, var(--border) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+    background-size: 56px 56px;
+    -webkit-mask-image: radial-gradient(
+      120% 90% at 50% 0%,
+      #000 30%,
+      transparent 78%
+    );
+    mask-image: radial-gradient(120% 90% at 50% 0%, #000 30%, transparent 78%);
+    opacity: 0.5;
+  }
+
+  .dark .np-grid {
+    opacity: 0.35;
+  }
+
+  /* Continuous, buttery marquee for the compatibility strip. Duplicated track
+     translated -50% so the loop is seamless. Pauses for reduced-motion. */
+  .np-marquee-viewport {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 12%,
+      #000 88%,
+      transparent
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 12%,
+      #000 88%,
+      transparent
+    );
+  }
+
+  .np-marquee-track {
+    animation: np-marquee 34s linear infinite;
+  }
+
+  @keyframes np-marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  .np-fade-up {
+    animation: np-fade-up 0.55s cubic-bezier(0.33, 1, 0.68, 1) both;
+  }
+
+  .np-fade-up-delay-1 {
+    animation-delay: 0.06s;
+  }
+
+  .np-fade-up-delay-2 {
+    animation-delay: 0.12s;
+  }
+
+  .np-fade-up-delay-3 {
+    animation-delay: 0.18s;
+  }
+
+  @keyframes np-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .np-fade-up,
+    .np-fade-up-delay-1,
+    .np-fade-up-delay-2,
+    .np-fade-up-delay-3,
+    .np-marquee-track {
+      animation: none;
+    }
+  }
+
+  code,
+  kbd,
+  pre,
+  .font-mono {
+    font-family: var(--novapura-mono, ui-monospace, monospace);
+  }
+}
+
+/* Shiki dual themes: token colors follow dark theme (pre background stays `bg-background` on the block) */
+@layer components {
+  .shiki span {
+    color: var(--shiki-light) !important;
+    font-style: var(--shiki-light-font-style) !important;
+    font-weight: var(--shiki-light-font-weight) !important;
+    text-decoration: var(--shiki-light-text-decoration) !important;
+  }
+
+  .dark .shiki span {
+    color: var(--shiki-dark) !important;
+    font-style: var(--shiki-dark-font-style) !important;
+    font-weight: var(--shiki-dark-font-weight) !important;
+    text-decoration: var(--shiki-dark-text-decoration) !important;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  html {
+    @apply overflow-x-hidden font-sans;
+  }
+  body {
+    @apply bg-background text-foreground has-[div[data-variant='inset']]:bg-sidebar min-h-svh w-full;
+    font-family: var(--font-body);
+    font-feature-settings: 'ss01' on, 'cv11' on;
+    letter-spacing: -0.011em;
+  }
+
+  /* Keep sticky headers stable while primitives lock body scrolling. */
+  body[data-scroll-locked] {
+    overflow: unset !important;
+  }
+
+  img {
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+  }
+}

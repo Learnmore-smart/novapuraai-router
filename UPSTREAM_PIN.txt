@@ -1,0 +1,4 @@
+upstream=https://github.com/QuantumNous/new-api
+commit=a63364d156cf2a64f1c3d1ee4923d73d5f3222a1
+date=2026-07-14
+

@@ -1,0 +1,80 @@
+# NovaPuraAI — Day-1 Docker Compose
+# Fork of QuantumNous/new-api with NovaPura branding.
+#
+# Quick Start (local):
+#   1. Copy .env.example → .env and set strong passwords / SESSION_SECRET
+#   2. docker compose up -d
+#   3. Open http://localhost:3000  (first registered user becomes admin)
+#
+# Branded image (includes theme.css changes):
+#   docker compose -f docker-compose.yml -f docker-compose.brand.yml up -d --build
+#
+# Production (GCP behind Cloudflare):
+#   - Change ALL default passwords
+#   - Set SESSION_SECRET, SESSION_COOKIE_SECURE, SESSION_COOKIE_TRUSTED_URL=https://novapuraai.com
+#   - Point CF Proxied A record to this host; never expose origin IP
+#
+# ⚠️  Never commit real secrets. Use .env (gitignored).
+
+version: '3.4'
+
+services:
+  new-api:
+    image: ${NEW_API_IMAGE:-calciumion/new-api:latest}
+    container_name: novapura-api
+    restart: always
+    command: --log-dir /app/logs
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - ./data:/data
+      - ./logs:/app/logs
+    environment:
+      - SQL_DSN=postgresql://${POSTGRES_USER:-root}:${POSTGRES_PASSWORD:-changeme_pg}@postgres:5432/${POSTGRES_DB:-new-api}
+      - REDIS_CONN_STRING=redis://:${REDIS_PASSWORD:-changeme_redis}@redis:6379
+      - TZ=Asia/Shanghai
+      - ERROR_LOG_ENABLED=true
+      - BATCH_UPDATE_ENABLED=true
+      - NODE_NAME=${NODE_NAME:-novapura-node-1}
+      - SESSION_SECRET=${SESSION_SECRET:-change_me_to_a_long_random_string}
+      # Uncomment when HTTPS is live on novapuraai.com:
+      # - SESSION_COOKIE_SECURE=true
+      # - SESSION_COOKIE_TRUSTED_URL=https://novapuraai.com
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - novapura-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:3000/api/status | grep -o '\"success\":\\s*true' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: redis:latest
+    container_name: novapura-redis
+    restart: always
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-changeme_redis}"]
+    networks:
+      - novapura-network
+
+  postgres:
+    image: postgres:15
+    container_name: novapura-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-root}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_pg}
+      POSTGRES_DB: ${POSTGRES_DB:-new-api}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - novapura-network
+
+volumes:
+  pg_data:
+
+networks:
+  novapura-network:
+    driver: bridge
