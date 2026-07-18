@@ -20,7 +20,6 @@ import (
 
 func TestStripeWebhookReturnsRetryableStatusWhenProcessingFails(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	confirmPaymentComplianceForTest(t)
 	originalAPISecret := setting.StripeApiSecret
 	originalWebhookSecret := setting.StripeWebhookSecret
 	originalPriceID := setting.StripePriceId

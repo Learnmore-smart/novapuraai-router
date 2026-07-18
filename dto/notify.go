@@ -1,6 +1,9 @@
 package dto
 
+import "github.com/google/uuid"
+
 type Notify struct {
+	EventID string        `json:"-"`
 	Type    string        `json:"type"`
 	Title   string        `json:"title"`
 	Content string        `json:"content"`
@@ -17,6 +20,7 @@ const (
 
 func NewNotify(t string, title string, content string, values []interface{}) Notify {
 	return Notify{
+		EventID: uuid.NewString(),
 		Type:    t,
 		Title:   title,
 		Content: content,

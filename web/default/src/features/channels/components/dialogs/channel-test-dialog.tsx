@@ -1,21 +1,3 @@
-/*
-Copyright (C) 2023-2026 QuantumNous
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For commercial licensing, please contact support@quantumnous.com
-*/
 import { useQueryClient } from '@tanstack/react-query'
 import type {
   ColumnDef,
@@ -25,6 +7,8 @@ import type {
 import {
   Check,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Copy,
   Gauge,
   Info,
@@ -93,6 +77,13 @@ import {
   formatResponseTime,
   handleTestChannel,
 } from '../../lib'
+import {
+  buildChannelTestTargets,
+  getChannelTestResultKey,
+  summarizeChannelTestScope,
+  summarizeModelTestResults,
+  type ChannelTestTarget,
+} from '../../lib/channel-test-results'
 import type {
   Channel,
   GetChannelsResponse,
@@ -293,6 +284,8 @@ function getTestTableColumnClass(columnId: string) {
       return 'w-28 min-w-28 whitespace-nowrap'
     case 'result':
       return 'w-80 min-w-80 max-w-80 whitespace-normal'
+    case 'failure-rate':
+      return 'w-32 min-w-32 whitespace-nowrap'
     case 'actions':
       return 'bg-popover w-px whitespace-nowrap'
     default:
@@ -328,11 +321,23 @@ function ChannelTestDialogContent({
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const currentChannelId = currentRow.id
+  const multiKeyCount = currentRow.channel_info?.is_multi_key
+    ? Math.max(1, currentRow.channel_info.multi_key_size)
+    : 1
+  const isMultiKeyChannel = multiKeyCount > 1
+  const allKeyIndexes = useMemo<Array<number | undefined>>(
+    () =>
+      isMultiKeyChannel
+        ? Array.from({ length: multiKeyCount }, (_, index) => index)
+        : [undefined],
+    [isMultiKeyChannel, multiKeyCount]
+  )
   const batchStopRequestedRef = useRef(false)
   const batchProgressToastIdRef = useRef<ReturnType<
     typeof toast.loading
   > | null>(null)
   const [endpointType, setEndpointType] = useState('auto')
+  const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null)
   const [isStreamTest, setIsStreamTest] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [testResults, setTestResults] = useState<Record<string, TestResult>>({})
@@ -362,6 +367,19 @@ function ChannelTestDialogContent({
         label: t(option.label),
       })),
     [t]
+  )
+  const keyScopeItems = useMemo(
+    () => [
+      {
+        value: 'all',
+        label: t('All {{count}} keys', { count: multiKeyCount }),
+      },
+      ...Array.from({ length: multiKeyCount }, (_, index) => ({
+        value: String(index),
+        label: t('Key {{number}}', { number: index + 1 }),
+      })),
+    ],
+    [multiKeyCount, t]
   )
 
   const dismissBatchProgressToast = useCallback(() => {
@@ -400,6 +418,7 @@ function ChannelTestDialogContent({
   const resetState = useCallback(() => {
     batchStopRequestedRef.current = true
     setEndpointType('auto')
+    setSelectedKeyIndex(null)
     setIsStreamTest(false)
     setSearchTerm('')
     setTestResults({})
@@ -453,14 +472,63 @@ function ChannelTestDialogContent({
     [baseModels, removedModels]
   )
 
+  const activeKeyIndexes = useMemo<Array<number | undefined>>(
+    () =>
+      isMultiKeyChannel && selectedKeyIndex !== null
+        ? [selectedKeyIndex]
+        : allKeyIndexes,
+    [allKeyIndexes, isMultiKeyChannel, selectedKeyIndex]
+  )
+
+  const displayedTestResult = useCallback(
+    (model: string): TestResult | undefined => {
+      if (!isMultiKeyChannel || selectedKeyIndex !== null) {
+        return testResults[
+          getChannelTestResultKey(
+            model,
+            isMultiKeyChannel ? (selectedKeyIndex ?? undefined) : undefined
+          )
+        ]
+      }
+      const summary = summarizeModelTestResults(
+        testResults,
+        model,
+        activeKeyIndexes
+      )
+      if (summary.status === 'idle') return undefined
+      return {
+        status: summary.status,
+        responseTime: summary.responseTime,
+        error:
+          summary.status === 'error'
+            ? t('{{failed}}/{{tested}} keys failed ({{rate}}%)', {
+                failed: summary.failed,
+                tested: summary.tested,
+                rate: summary.failureRate,
+              })
+            : undefined,
+      }
+    },
+    [activeKeyIndexes, isMultiKeyChannel, selectedKeyIndex, t, testResults]
+  )
+
   const successModels = useMemo(
-    () => models.filter((model) => testResults[model]?.status === 'success'),
-    [models, testResults]
+    () =>
+      models.filter(
+        (model) => displayedTestResult(model)?.status === 'success'
+      ),
+    [displayedTestResult, models]
   )
 
   const failedModels = useMemo(
-    () => models.filter((model) => testResults[model]?.status === 'error'),
-    [models, testResults]
+    () =>
+      models.filter((model) => displayedTestResult(model)?.status === 'error'),
+    [displayedTestResult, models]
+  )
+
+  const scopeSummary = useMemo(
+    () => summarizeChannelTestScope(testResults, models, activeKeyIndexes),
+    [activeKeyIndexes, models, testResults]
   )
 
   const filteredModels = useMemo(() => {
@@ -542,16 +610,19 @@ function ChannelTestDialogContent({
     [queryClient, updateChannelTestCache]
   )
 
-  const testSingleModel = useCallback(
+  const testSingleTarget = useCallback(
     async (
-      model: string,
+      target: ChannelTestTarget,
       silent = false,
       refreshList = true
     ): Promise<TestResult | undefined> => {
       if (!currentRow) return
 
-      markModelTesting(model, true)
-      updateTestResult(model, { status: 'testing' })
+      const { model, keyIndex } = target
+      const resultKey = getChannelTestResultKey(model, keyIndex)
+
+      markModelTesting(resultKey, true)
+      updateTestResult(resultKey, { status: 'testing' })
       let finalResult: TestResult | undefined
 
       try {
@@ -562,6 +633,7 @@ function ChannelTestDialogContent({
             testModel: model,
             endpointType: endpointType === 'auto' ? undefined : endpointType,
             stream: effectiveStreamTest || undefined,
+            keyIndex,
             silent,
           },
           (success, responseTime, error, errorCode) => {
@@ -573,7 +645,7 @@ function ChannelTestDialogContent({
               error,
               errorCode,
             }
-            updateTestResult(model, finalResult)
+            updateTestResult(resultKey, finalResult)
           }
         )
       } catch (error: unknown) {
@@ -582,9 +654,9 @@ function ChannelTestDialogContent({
           completedAt: Date.now(),
           error: error instanceof Error ? error.message : t('Test failed'),
         }
-        updateTestResult(model, finalResult)
+        updateTestResult(resultKey, finalResult)
       } finally {
-        markModelTesting(model, false)
+        markModelTesting(resultKey, false)
         if (refreshList) {
           refreshChannelLists(
             createChannelTestCachePatch(
@@ -616,16 +688,18 @@ function ChannelTestDialogContent({
 
   const handleBatchTest = useCallback(
     async (modelsToTest: string[]) => {
-      const uniqueModels = [
-        ...new Set(modelsToTest.map((model) => model.trim()).filter(Boolean)),
-      ]
-      if (!uniqueModels.length) return
+      const targets = buildChannelTestTargets(
+        modelsToTest,
+        multiKeyCount,
+        isMultiKeyChannel ? selectedKeyIndex : 0
+      )
+      if (!targets.length) return
 
       batchStopRequestedRef.current = false
       setIsBatchTesting(true)
       setIsBatchStopRequested(false)
       setBatchProgress({
-        total: uniqueModels.length,
+        total: targets.length,
         completed: 0,
         success: 0,
         failed: 0,
@@ -653,7 +727,7 @@ function ChannelTestDialogContent({
           failedCount = completedCount - successCount
 
           setBatchProgress({
-            total: uniqueModels.length,
+            total: targets.length,
             completed: completedCount,
             success: successCount,
             failed: failedCount,
@@ -662,29 +736,33 @@ function ChannelTestDialogContent({
 
         for (
           let startIndex = 0;
-          startIndex < uniqueModels.length;
+          startIndex < targets.length;
           startIndex += BATCH_TEST_CONCURRENCY
         ) {
           if (batchStopRequestedRef.current) {
             break
           }
 
-          const batch = uniqueModels.slice(
+          const batch = targets.slice(
             startIndex,
             startIndex + BATCH_TEST_CONCURRENCY
           )
-          const batchPromises = batch.map(async (modelName) => {
+          const batchPromises = batch.map(async (target) => {
+            const resultKey = getChannelTestResultKey(
+              target.model,
+              target.keyIndex
+            )
             try {
-              const result = await testSingleModel(modelName, true, false)
+              const result = await testSingleTarget(target, true, false)
               const finalResult = result ?? createFallbackResult()
               if (!result) {
-                updateTestResult(modelName, finalResult)
+                updateTestResult(resultKey, finalResult)
               }
               recordBatchResult(finalResult)
               return finalResult
             } catch (error: unknown) {
               const fallbackResult = createFallbackResult(error)
-              updateTestResult(modelName, fallbackResult)
+              updateTestResult(resultKey, fallbackResult)
               recordBatchResult(fallbackResult)
               return fallbackResult
             }
@@ -694,7 +772,7 @@ function ChannelTestDialogContent({
 
           if (
             batchStopRequestedRef.current ||
-            startIndex + BATCH_TEST_CONCURRENCY >= uniqueModels.length
+            startIndex + BATCH_TEST_CONCURRENCY >= targets.length
           ) {
             break
           }
@@ -704,7 +782,7 @@ function ChannelTestDialogContent({
 
         resultPatch = getLatestChannelTestCachePatch(results)
         const stopped =
-          batchStopRequestedRef.current && completedCount < uniqueModels.length
+          batchStopRequestedRef.current && completedCount < targets.length
 
         dismissBatchProgressToast()
         if (stopped) {
@@ -713,7 +791,7 @@ function ChannelTestDialogContent({
               'Batch test stopped: {{completed}}/{{total}} completed, {{success}} succeeded, {{failed}} failed',
               {
                 completed: completedCount,
-                total: uniqueModels.length,
+                total: targets.length,
                 success: successCount,
                 failed: failedCount,
               }
@@ -749,7 +827,10 @@ function ChannelTestDialogContent({
       dismissBatchProgressToast,
       refreshChannelLists,
       t,
-      testSingleModel,
+      isMultiKeyChannel,
+      multiKeyCount,
+      selectedKeyIndex,
+      testSingleTarget,
       updateTestResult,
     ]
   )
@@ -765,9 +846,7 @@ function ChannelTestDialogContent({
   }, [successModels])
 
   const handleDeleteFailedModels = useCallback(async () => {
-    const failed = models.filter(
-      (model) => testResults[model]?.status === 'error'
-    )
+    const failed = failedModels
     if (!failed.length) {
       setIsDeleteFailedDialogOpen(false)
       return
@@ -789,7 +868,9 @@ function ChannelTestDialogContent({
         })
         setTestResults((prev) => {
           const next = { ...prev }
-          for (const model of failed) delete next[model]
+          for (const model of failed) {
+            delete next[getChannelTestResultKey(model)]
+          }
           return next
         })
         setRowSelection((prev) => {
@@ -814,7 +895,7 @@ function ChannelTestDialogContent({
     } finally {
       setIsDeletingFailed(false)
     }
-  }, [currentRow.id, models, refreshChannelLists, t, testResults])
+  }, [currentRow.id, failedModels, models, refreshChannelLists, t])
 
   const handleClose = useCallback(() => {
     resetState()
@@ -832,9 +913,21 @@ function ChannelTestDialogContent({
 
   const isAnyTesting = testingModels.size > 0 || isBatchTesting
   const isFilteringModels = searchTerm.trim().length > 0
-  const testAllButtonLabel = isFilteringModels
-    ? t('Test {{count}} matching models', { count: filteredModels.length })
-    : t('Test all {{count}} models', { count: filteredModels.length })
+  const testTargetCount = filteredModels.length * activeKeyIndexes.length
+  let testAllButtonLabel: string
+  if (isMultiKeyChannel) {
+    testAllButtonLabel = isFilteringModels
+      ? t('Test {{count}} matching model-key combinations', {
+          count: testTargetCount,
+        })
+      : t('Test all {{count}} model-key combinations', {
+          count: testTargetCount,
+        })
+  } else {
+    testAllButtonLabel = isFilteringModels
+      ? t('Test {{count}} matching models', { count: filteredModels.length })
+      : t('Test all {{count}} models', { count: filteredModels.length })
+  }
 
   const columns = useMemo<ColumnDef<ModelRow>[]>(
     () => [
@@ -892,7 +985,7 @@ function ChannelTestDialogContent({
         header: t('Status'),
         cell: ({ row }) => {
           const model = row.original.model
-          const result = testResults[model]
+          const result = displayedTestResult(model)
           return <TestStatusCell result={result} />
         },
         enableSorting: false,
@@ -903,7 +996,7 @@ function ChannelTestDialogContent({
         header: t('Result'),
         cell: ({ row }) => {
           const model = row.original.model
-          const result = testResults[model]
+          const result = displayedTestResult(model)
           return (
             <TestResultCell
               result={result}
@@ -916,11 +1009,37 @@ function ChannelTestDialogContent({
         size: 320,
       },
       {
+        id: 'failure-rate',
+        header: t('Failure rate'),
+        cell: ({ row }) => {
+          const summary = summarizeModelTestResults(
+            testResults,
+            row.original.model,
+            activeKeyIndexes
+          )
+          return summary.tested > 0 ? (
+            <span className='text-muted-foreground text-sm'>
+              {t('{{failed}}/{{tested}} failed ({{rate}}%)', {
+                failed: summary.failed,
+                tested: summary.tested,
+                rate: summary.failureRate,
+              })}
+            </span>
+          ) : (
+            <span className='text-muted-foreground text-sm'>-</span>
+          )
+        },
+        enableSorting: false,
+        size: 128,
+      },
+      {
         id: 'actions',
         header: t('Actions'),
         cell: ({ row }) => {
           const model = row.original.model
-          const isTestingModel = testingModels.has(model)
+          const isTestingModel = activeKeyIndexes.some((keyIndex) =>
+            testingModels.has(getChannelTestResultKey(model, keyIndex))
+          )
 
           return (
             <Tooltip>
@@ -929,7 +1048,7 @@ function ChannelTestDialogContent({
                   <Button
                     variant='ghost'
                     size='icon-sm'
-                    onClick={() => testSingleModel(model)}
+                    onClick={() => handleBatchTest([model])}
                     disabled={isTestingModel || isBatchTesting}
                     aria-label={t('Test Connection')}
                   />
@@ -950,11 +1069,13 @@ function ChannelTestDialogContent({
     ],
     [
       defaultTestModel,
+      activeKeyIndexes,
+      displayedTestResult,
+      handleBatchTest,
       isBatchTesting,
       t,
       testResults,
       testingModels,
-      testSingleModel,
     ]
   )
 
@@ -1051,6 +1172,90 @@ function ChannelTestDialogContent({
             </div>
           </div>
 
+          {isMultiKeyChannel && (
+            <div className='border-border bg-muted/30 grid gap-3 rounded-lg border p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end'>
+              <div className='grid gap-2'>
+                <Label htmlFor='credential-scope'>
+                  {t('Credential scope')}
+                </Label>
+                <Select
+                  items={keyScopeItems}
+                  value={
+                    selectedKeyIndex === null ? 'all' : String(selectedKeyIndex)
+                  }
+                  onValueChange={(value) => {
+                    if (value === null) return
+                    setSelectedKeyIndex(value === 'all' ? null : Number(value))
+                    setPagination((prev) => ({ ...prev, pageIndex: 0 }))
+                  }}
+                >
+                  <SelectTrigger id='credential-scope' className='w-full'>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false}>
+                    <SelectGroup>
+                      {keyScopeItems.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className='flex items-center gap-2'>
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='icon-sm'
+                  aria-label={t('Previous key')}
+                  disabled={selectedKeyIndex === null}
+                  onClick={() =>
+                    setSelectedKeyIndex((current) =>
+                      current === null || current === 0 ? null : current - 1
+                    )
+                  }
+                >
+                  <ChevronLeft />
+                </Button>
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='icon-sm'
+                  aria-label={t('Next key')}
+                  disabled={selectedKeyIndex === multiKeyCount - 1}
+                  onClick={() =>
+                    setSelectedKeyIndex((current) =>
+                      current === null
+                        ? 0
+                        : Math.min(current + 1, multiKeyCount - 1)
+                    )
+                  }
+                >
+                  <ChevronRight />
+                </Button>
+              </div>
+              {scopeSummary.tested > 0 && (
+                <div className='sm:col-span-2'>
+                  <p className='text-sm font-medium'>
+                    {selectedKeyIndex === null
+                      ? t('Overall model failure rate')
+                      : t('Key {{number}} model failure rate', {
+                          number: selectedKeyIndex + 1,
+                        })}
+                  </p>
+                  <p className='text-muted-foreground text-sm'>
+                    {t('{{failed}}/{{tested}} failed ({{rate}}%)', {
+                      failed: scopeSummary.failed,
+                      tested: scopeSummary.tested,
+                      rate: scopeSummary.failureRate,
+                    })}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className='space-y-3 max-sm:has-[div[role="toolbar"]]:pb-16'>
             <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
               <div className='min-w-0 space-y-2'>
@@ -1091,7 +1296,7 @@ function ChannelTestDialogContent({
                           })}
                         </Button>
                       )}
-                      {failedModels.length > 0 && (
+                      {!isMultiKeyChannel && failedModels.length > 0 && (
                         <Button
                           variant='outline'
                           size='sm'
@@ -1140,6 +1345,7 @@ function ChannelTestDialogContent({
                     <col className='w-auto' />
                     <col className='w-28' />
                     <col className='w-80' />
+                    <col className='w-32' />
                     <col className='w-px' />
                   </colgroup>
                 }

@@ -3,11 +3,9 @@ package controller
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/console_setting"
@@ -29,23 +27,10 @@ var completionRatioMetaOptionKeys = []string{
 	"AudioCompletionRatio",
 }
 
-func isPaymentComplianceOptionKey(key string) bool {
-	return strings.HasPrefix(key, "payment_setting.compliance_")
-}
-
 func turnstileConfigurationReady() bool {
 	return strings.TrimSpace(common.TurnstileSiteKey) != "" &&
 		strings.TrimSpace(common.TurnstileSecretKey) != "" &&
 		strings.TrimSpace(common.TurnstileAllowedHostnames) != ""
-}
-
-func isPositiveOptionValue(value string) bool {
-	intValue, err := strconv.Atoi(strings.TrimSpace(value))
-	if err == nil {
-		return intValue > 0
-	}
-	floatValue, err := strconv.ParseFloat(strings.TrimSpace(value), 64)
-	return err == nil && floatValue > 0
 }
 
 func collectModelNamesFromOptionValue(raw string, modelNames map[string]struct{}) {
@@ -107,6 +92,19 @@ func GetOptions(c *gin.Context) {
 		}
 	}
 	common.OptionMapRWMutex.Unlock()
+	stripeCredentials := setting.GetStripeCredentialConfiguration()
+	stripeStatusOptions := map[string]string{
+		"StripeRuntimeEnvironment":        setting.StripeRuntimeEnvironment,
+		"StripeTestSecretConfigured":      fmt.Sprintf("%t", stripeCredentials.TestSecretConfigured),
+		"StripeTestPublishableConfigured": fmt.Sprintf("%t", stripeCredentials.TestPublishableConfigured),
+		"StripeTestWebhookConfigured":     fmt.Sprintf("%t", stripeCredentials.TestWebhookConfigured),
+		"StripeProdSecretConfigured":      fmt.Sprintf("%t", stripeCredentials.ProdSecretConfigured),
+		"StripeProdPublishableConfigured": fmt.Sprintf("%t", stripeCredentials.ProdPublishableConfigured),
+		"StripeProdWebhookConfigured":     fmt.Sprintf("%t", stripeCredentials.ProdWebhookConfigured),
+	}
+	for key, value := range stripeStatusOptions {
+		options = append(options, &model.Option{Key: key, Value: value})
+	}
 	options = append(options, &model.Option{
 		Key:   "CompletionRatioMeta",
 		Value: buildCompletionRatioMetaValue(optionValues),
@@ -143,18 +141,6 @@ func UpdateOption(c *gin.Context) {
 	default:
 		option.Value = fmt.Sprintf("%v", option.Value)
 	}
-	switch option.Key {
-	case "QuotaForInviter", "QuotaForInvitee":
-		if isPositiveOptionValue(option.Value.(string)) && !operation_setting.IsPaymentComplianceConfirmed() {
-			common.ApiErrorI18n(c, i18n.MsgPaymentComplianceRequired)
-			return
-		}
-	default:
-		if isPaymentComplianceOptionKey(option.Key) {
-			common.ApiErrorMsg(c, "合规确认字段不允许通过通用设置接口修改")
-			return
-		}
-	}
 	if common.IsEnvManagedSecretOptionKey(option.Key) {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
@@ -163,6 +149,12 @@ func UpdateOption(c *gin.Context) {
 		return
 	}
 	switch option.Key {
+	case "EmailProvider":
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "Use the transactional email provider switch so readiness is verified before activation.",
+		})
+		return
 	case "GitHubOAuthEnabled":
 		if option.Value == "true" && !common.GitHubOAuthReady() {
 			c.JSON(http.StatusOK, gin.H{

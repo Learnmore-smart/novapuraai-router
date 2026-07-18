@@ -1,21 +1,3 @@
-/*
-Copyright (C) 2023-2026 QuantumNous
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For commercial licensing, please contact support@quantumnous.com
-*/
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -44,6 +26,8 @@ import { SettingsPageFormActions } from '../components/settings-page-context'
 import { SettingsSection } from '../components/settings-section'
 import { useResetForm } from '../hooks/use-reset-form'
 import { useUpdateOption } from '../hooks/use-update-option'
+import { EmailProviderHealthCard } from './email-provider-health-card'
+import { isValidEmailSender } from './email-sender'
 
 const createEmailSchema = (t: (key: string) => string) =>
   z.object({
@@ -54,11 +38,12 @@ const createEmailSchema = (t: (key: string) => string) =>
       return /^\d+$/.test(trimmed)
     }, t('Port must be a positive integer')),
     SMTPAccount: z.string(),
-    SMTPFrom: z.string().refine((value) => {
-      const trimmed = value.trim()
-      if (!trimmed) return true
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)
-    }, t('Enter a valid email or leave blank')),
+    SMTPFrom: z
+      .string()
+      .refine(
+        isValidEmailSender,
+        t('Enter a valid sender address or leave blank')
+      ),
     SMTPSSLEnabled: z.boolean(),
     SMTPStartTLSEnabled: z.boolean(),
     SMTPInsecureSkipVerify: z.boolean(),
@@ -185,7 +170,18 @@ export function EmailSettingsSection({
   }
 
   return (
-    <SettingsSection title={t('SMTP Email')}>
+    <SettingsSection title={t('Transactional Email')}>
+      <EmailProviderHealthCard />
+      <div className='border-border border-t pt-4'>
+        <h4 className='text-sm font-semibold'>
+          {t('Legacy SMTP compatibility')}
+        </h4>
+        <p className='text-muted-foreground mt-1 text-xs'>
+          {t(
+            'These settings remain available for compatibility. Configure Amazon SES credentials in the provider card above or use environment overrides.'
+          )}
+        </p>
+      </div>
       <Form {...form}>
         <SettingsForm onSubmit={form.handleSubmit(onSubmit)} autoComplete='off'>
           <SettingsPageFormActions
@@ -360,7 +356,9 @@ export function EmailSettingsSection({
                   />
                 </FormControl>
                 <FormDescription>
-                  {t('Account used when authenticating with the SMTP server')}
+                  {t(
+                    'Login name issued by your SMTP provider. For Amazon SES SMTP, use the generated SMTP username, not an AWS access key ID.'
+                  )}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -382,7 +380,9 @@ export function EmailSettingsSection({
                   />
                 </FormControl>
                 <FormDescription>
-                  {t('Display name and email used in outgoing messages')}
+                  {t(
+                    'Email used in outgoing messages. You may enter noreply@example.com or a display form such as NovaPuraAI <noreply@novapuraai.com>.'
+                  )}
                 </FormDescription>
                 <FormMessage />
               </FormItem>

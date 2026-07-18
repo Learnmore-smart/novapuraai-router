@@ -50,15 +50,29 @@ func checkoutCompletedEvent(eventID, orderID string, includeAmount bool) stripe.
 
 func setupStripeTestDB(t *testing.T) {
 	t.Helper()
+	originalDB := model.DB
+	originalLogDB := model.LOG_DB
+	originalRedisEnabled := common.RedisEnabled
 	common.RedisEnabled = false
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		model.DB = originalDB
+		model.LOG_DB = originalLogDB
+		common.RedisEnabled = originalRedisEnabled
+		require.NoError(t, sqlDB.Close())
+	})
 	require.NoError(t, db.AutoMigrate(
 		&model.User{},
 		&model.StripeTopupOrder{},
 		&model.BalanceLedger{},
+		&model.BalanceCreditLot{},
 		&model.StripeWebhookEvent{},
 		&model.TopupPromoTier{},
+		&model.TopupPromotionCampaign{},
+		&model.TopupPromoRedemption{},
 		&model.TopUp{},
 		&model.Log{},
 	))
@@ -120,6 +134,64 @@ func TestWebhookDuplicateEventDoesNotDoubleCredit(t *testing.T) {
 	// ProcessVerifiedEvent with livemode=true under test policy fails before credit
 	err = ProcessVerifiedEvent(context.Background(), stripe.Event{ID: "evt_live", Livemode: true, Type: stripe.EventTypeCheckoutSessionCompleted})
 	require.Error(t, err)
+}
+
+func TestWebhookDuplicateEventIssuesExactlyOnePromotionalBonus(t *testing.T) {
+	setupStripeTestDB(t)
+	originalRequireTest := setting.StripeRequireTestKeys
+	originalAccountID := setting.StripeAccountID
+	t.Cleanup(func() {
+		setting.StripeRequireTestKeys = originalRequireTest
+		setting.StripeAccountID = originalAccountID
+	})
+	setting.StripeRequireTestKeys = true
+	setting.StripeAccountID = ""
+
+	user := &model.User{Username: "promo-webhook-user", Password: "password123"}
+	require.NoError(t, model.DB.Create(user).Error)
+	campaign := &model.TopupPromotionCampaign{Id: 1, Name: "webhook promo", Enabled: true, DefaultPromoExpiryDays: 30}
+	require.NoError(t, model.DB.Create(campaign).Error)
+	tier := &model.TopupPromoTier{CampaignID: campaign.Id, Code: "webhook-usd-10", Name: "USD 10", Currency: "usd", PaymentAmountMinor: 1000, BonusAmountMinor: 2000, TotalCreditAmountMinor: 3000, Enabled: true}
+	require.NoError(t, model.DB.Create(tier).Error)
+	order := &model.StripeTopupOrder{
+		OrderID:                "np_webhook_promo",
+		UserId:                 user.Id,
+		Status:                 model.StripeOrderCheckoutCreated,
+		PresentmentCurrency:    "usd",
+		PresentmentAmountMinor: 1000,
+		PaidCreditAmountMinor:  1000,
+		PromoCreditAmountMinor: 2000,
+		TotalCreditAmountMinor: 3000,
+		FxRateSnapshot:         1,
+		PaidCreditMicroUSD:     10_000_000,
+		PromoCreditMicroUSD:    20_000_000,
+		TotalCreditMicroUSD:    30_000_000,
+		PaidQuota:              5_000_000,
+		PromoQuota:             10_000_000,
+		PromotionTierID:        tier.Id,
+		PromotionSnapshotJSON:  `{"applied":true}`,
+		PromoExpiryDays:        30,
+	}
+	require.NoError(t, model.DB.Create(order).Error)
+	require.NoError(t, model.ReserveTopupPromotion(order.OrderID, user.Id, tier.Id, order.PromoCreditMicroUSD))
+
+	event := checkoutCompletedEvent("evt_promo_once", order.OrderID, true)
+	require.NoError(t, ProcessVerifiedEvent(context.Background(), event))
+	require.NoError(t, ProcessVerifiedEvent(context.Background(), event))
+
+	var refreshed model.User
+	require.NoError(t, model.DB.First(&refreshed, user.Id).Error)
+	assert.Equal(t, 15_000_000, refreshed.Quota)
+	assert.Equal(t, 10_000_000, refreshed.PromoQuota)
+	var promoLots int64
+	require.NoError(t, model.DB.Model(&model.BalanceCreditLot{}).Where("order_id = ? AND balance_type = ?", order.OrderID, model.BalanceTypePromotional).Count(&promoLots).Error)
+	assert.EqualValues(t, 1, promoLots)
+	var promoEntries int64
+	require.NoError(t, model.DB.Model(&model.BalanceLedger{}).Where("order_id = ? AND entry_type = ?", order.OrderID, model.LedgerTypeTopupPromotionalBonus).Count(&promoEntries).Error)
+	assert.EqualValues(t, 1, promoEntries)
+	var redemption model.TopupPromoRedemption
+	require.NoError(t, model.DB.Where("order_id = ?", order.OrderID).First(&redemption).Error)
+	assert.Equal(t, model.TopupPromoRedemptionIssued, redemption.Status)
 }
 
 func TestWebhookProcessingFailureCanBeRetried(t *testing.T) {

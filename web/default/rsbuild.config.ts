@@ -79,10 +79,10 @@ export default defineConfig(({ envMode }) => {
     html: {
       template: './index.html',
     },
-    // Explicit HMR + liveReload fallback when a module cannot hot-replace.
+    // Keep the browser stable during development; refresh manually when needed.
     dev: {
-      hmr: true,
-      liveReload: true,
+      hmr: false,
+      liveReload: false,
     },
     server: {
       host: '0.0.0.0',

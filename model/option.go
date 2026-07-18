@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/QuantumNous/new-api/setting/system_setting"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type Option struct {
@@ -67,6 +69,11 @@ func InitOptionMap() {
 	common.OptionMap["SMTPStartTLSEnabled"] = strconv.FormatBool(common.SMTPStartTLSEnabled)
 	common.OptionMap["SMTPInsecureSkipVerify"] = strconv.FormatBool(common.SMTPInsecureSkipVerify)
 	common.OptionMap["SMTPForceAuthLogin"] = strconv.FormatBool(common.SMTPForceAuthLogin)
+	emailProvider := strings.ToLower(strings.TrimSpace(os.Getenv("EMAIL_PROVIDER")))
+	if emailProvider != EmailProviderSES {
+		emailProvider = EmailProviderBrevo
+	}
+	common.OptionMap["EmailProvider"] = emailProvider
 	common.OptionMap["Notice"] = ""
 	common.OptionMap["About"] = ""
 	common.OptionMap["HomePageContent"] = ""
@@ -85,11 +92,14 @@ func InitOptionMap() {
 	common.OptionMap["USDExchangeRate"] = strconv.FormatFloat(operation_setting.USDExchangeRate, 'f', -1, 64)
 	common.OptionMap["MinTopUp"] = strconv.Itoa(operation_setting.MinTopUp)
 	common.OptionMap["StripeMinTopUp"] = strconv.Itoa(setting.StripeMinTopUp)
-	common.OptionMap["StripeApiSecret"] = setting.StripeApiSecret
-	common.OptionMap["StripeWebhookSecret"] = setting.StripeWebhookSecret
 	common.OptionMap["StripePriceId"] = setting.StripePriceId
 	common.OptionMap["StripeTopupProductID"] = setting.StripeTopupProductID
+	common.OptionMap["StripeTestTopupProductID"] = setting.StripeTestTopupProductID
+	common.OptionMap["StripeProdTopupProductID"] = setting.StripeProdTopupProductID
+	common.OptionMap["StripeTestAccountID"] = setting.StripeTestAccountID
+	common.OptionMap["StripeProdAccountID"] = setting.StripeProdAccountID
 	common.OptionMap["StripeTopupEnabled"] = strconv.FormatBool(setting.StripeTopupEnabled)
+	common.OptionMap["BillingCurrencyConfig"] = setting.BillingCurrencyConfigJSON()
 	common.OptionMap["StripeUnitPrice"] = strconv.FormatFloat(setting.StripeUnitPrice, 'f', -1, 64)
 	common.OptionMap["StripePromotionCodesEnabled"] = strconv.FormatBool(setting.StripePromotionCodesEnabled)
 	common.OptionMap["CreemApiKey"] = setting.CreemApiKey
@@ -226,19 +236,44 @@ func UpdateOption(key string, value string) error {
 	if common.IsEnvManagedSecretOptionKey(key) {
 		return fmt.Errorf("%s is configured through environment / Secret Manager and cannot be saved via the settings API", key)
 	}
+	if key == "BillingCurrencyConfig" {
+		if err := setting.ValidateBillingCurrencyConfigJSON(value); err != nil {
+			return err
+		}
+	}
 	// Save to database first
 	option := Option{
 		Key: key,
 	}
 	// https://gorm.io/docs/update.html#Save-All-Fields
-	DB.FirstOrCreate(&option, Option{Key: key})
+	if err := DB.FirstOrCreate(&option, Option{Key: key}).Error; err != nil {
+		return err
+	}
 	option.Value = value
 	// Save is a combination function.
 	// If save value does not contain primary key, it will execute Create,
 	// otherwise it will execute Update (with all fields).
-	DB.Save(&option)
+	if err := DB.Save(&option).Error; err != nil {
+		return err
+	}
 	// Update OptionMap
 	return updateOptionMap(key, value)
+}
+
+func UpdateEmailProvider(provider string) error {
+	provider = strings.ToLower(strings.TrimSpace(provider))
+	if provider != EmailProviderBrevo && provider != EmailProviderSES {
+		return fmt.Errorf("unsupported email provider")
+	}
+
+	option := Option{Key: "EmailProvider", Value: provider}
+	if err := DB.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "key"}},
+		DoUpdates: clause.AssignmentColumns([]string{"value"}),
+	}).Create(&option).Error; err != nil {
+		return err
+	}
+	return updateOptionMap(option.Key, option.Value)
 }
 
 // UpdateOptionsBulk persists multiple key/value pairs in a single database
@@ -249,6 +284,11 @@ func UpdateOption(key string, value string) error {
 func UpdateOptionsBulk(values map[string]string) error {
 	if len(values) == 0 {
 		return nil
+	}
+	if value, ok := values["BillingCurrencyConfig"]; ok {
+		if err := setting.ValidateBillingCurrencyConfigJSON(value); err != nil {
+			return err
+		}
 	}
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		for k, v := range values {
@@ -277,6 +317,11 @@ func UpdateOptionsBulk(values map[string]string) error {
 func updateOptionMap(key string, value string) (err error) {
 	common.OptionMapRWMutex.Lock()
 	defer common.OptionMapRWMutex.Unlock()
+	if key == "BillingCurrencyConfig" {
+		if err := setting.UpdateBillingCurrencyConfigByJSON(value); err != nil {
+			return err
+		}
+	}
 	common.OptionMap[key] = value
 
 	// 检查是否是模型配置 - 使用更规范的方式处理
@@ -434,7 +479,24 @@ func updateOptionMap(key string, value string) (err error) {
 	case "StripePriceId":
 		setting.StripePriceId = value
 	case "StripeTopupProductID":
-		setting.StripeTopupProductID = value
+		if setting.StripeRuntimeEnvironment == setting.StripeRuntimeProduction {
+			setting.StripeProdTopupProductID = value
+		} else {
+			setting.StripeTestTopupProductID = value
+		}
+		setting.ApplyStripeRuntimeProfile()
+	case "StripeTestTopupProductID":
+		setting.StripeTestTopupProductID = value
+		setting.ApplyStripeRuntimeProfile()
+	case "StripeProdTopupProductID":
+		setting.StripeProdTopupProductID = value
+		setting.ApplyStripeRuntimeProfile()
+	case "StripeTestAccountID":
+		setting.StripeTestAccountID = value
+		setting.ApplyStripeRuntimeProfile()
+	case "StripeProdAccountID":
+		setting.StripeProdAccountID = value
+		setting.ApplyStripeRuntimeProfile()
 	case "StripeTopupEnabled":
 		setting.StripeTopupEnabled = value == "true"
 	case "StripeUnitPrice":

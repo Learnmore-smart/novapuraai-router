@@ -1,9 +1,12 @@
 package controller
 
 import (
+	"strings"
+
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
 	"github.com/gin-gonic/gin"
@@ -42,10 +45,12 @@ func GetPricing(c *gin.Context) {
 		groupRatio[s] = f
 	}
 	var group string
+	savedCurrency := ""
 	if exists {
 		user, err := model.GetUserCache(userId.(int))
 		if err == nil {
 			group = user.Group
+			savedCurrency = user.GetSetting().BillingCurrency
 			for g := range groupRatio {
 				ratio, ok := ratio_setting.GetGroupGroupRatio(group, g)
 				if ok {
@@ -57,6 +62,17 @@ func GetPricing(c *gin.Context) {
 
 	usableGroup = service.GetUserUsableGroups(group)
 	pricing = filterPricingByUsableGroups(pricing, usableGroup)
+	requestedCurrency := strings.ToLower(strings.TrimSpace(c.Query("currency")))
+	billingCurrency := requestedCurrency
+	if !setting.IsBillingCurrencyEnabled(billingCurrency) {
+		billingCurrency = setting.ResolveBillingCurrency(
+			savedCurrency,
+			pickFirstNonEmpty(c.GetHeader("CF-IPCountry"), c.GetHeader("X-Vercel-IP-Country"), c.GetHeader("CloudFront-Viewer-Country")),
+			pickFirstNonEmpty(c.GetHeader("Accept-Language"), c.Query("locale")),
+		)
+	}
+	billingFX := setting.BillingCurrencyFXRate(billingCurrency)
+	applyBillingCurrencyPrices(pricing, billingCurrency, billingFX)
 	// check groupRatio contains usableGroup
 	for group := range ratio_setting.GetGroupRatioCopy() {
 		if _, ok := usableGroup[group]; !ok {
@@ -73,6 +89,8 @@ func GetPricing(c *gin.Context) {
 		"supported_endpoint": model.GetSupportedEndpointMap(),
 		"auto_groups":        service.GetUserAutoGroup(group),
 		"pricing_version":    "a42d372ccf0b5dd13ecf71203521f9d2",
+		"billing_currency":   billingCurrency,
+		"billing_fx_rate":    billingFX,
 	})
 }
 

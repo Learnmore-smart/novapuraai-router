@@ -1,22 +1,5 @@
-/*
-Copyright (C) 2023-2026 QuantumNous
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For commercial licensing, please contact support@quantumnous.com
-*/
 import { api } from '@/lib/api'
+import type { BillingCurrency } from '@/lib/billing-currency'
 
 import type {
   RedemptionRequest,
@@ -41,6 +24,9 @@ import type {
   WaffoPancakePaymentResponse,
   ShareSubmission,
   ShareSubmissionRequest,
+  BillingTopupConfig,
+  BillingTopupCheckoutResult,
+  BillingTopupQuote,
 } from './types'
 
 // ============================================================================
@@ -253,5 +239,35 @@ export async function submitShareReward(
       ? { 'X-Turnstile-Token': turnstileToken }
       : undefined,
   })
+  return res.data
+}
+
+export async function getBillingTopupConfig(): Promise<
+  ApiResponse<BillingTopupConfig>
+> {
+  const res = await api.get('/api/billing/top-up/config')
+  return res.data
+}
+
+export async function saveBillingCurrency(
+  currency: BillingCurrency
+): Promise<ApiResponse<{ currency: BillingCurrency }>> {
+  const res = await api.put('/api/billing/currency', { currency })
+  return res.data
+}
+
+export async function createBillingTopupCheckout(request: {
+  currency: BillingCurrency
+  amount_minor: number
+}): Promise<ApiResponse<BillingTopupCheckoutResult>> {
+  const res = await api.post('/api/billing/top-up/checkout', request)
+  return res.data
+}
+
+export async function getBillingTopupQuote(request: {
+  currency: BillingCurrency
+  amount_minor: number
+}): Promise<ApiResponse<BillingTopupQuote>> {
+  const res = await api.post('/api/billing/top-up/quote', request)
   return res.data
 }

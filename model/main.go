@@ -304,10 +304,18 @@ func migrateDB() error {
 		&ShareSubmission{},
 		&StripeTopupOrder{},
 		&BalanceLedger{},
+		&BalanceCreditLot{},
 		&StripeWebhookEvent{},
+		&TopupPromotionCampaign{},
 		&TopupPromoTier{},
+		&TopupPromoRedemption{},
+		&EmailDelivery{},
+		&EmailProviderCredential{},
 	)
 	if err != nil {
+		return err
+	}
+	if err := SeedLaunchTopupPromotion(DB); err != nil {
 		return err
 	}
 	if err := ensureShareSubmissionIndexes(); err != nil {

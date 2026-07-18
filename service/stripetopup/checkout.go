@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v85"
 	"github.com/stripe/stripe-go/v85/checkout/session"
+	"gorm.io/gorm"
 )
 
 // CheckoutResult returned to the client after Session creation.
@@ -67,25 +68,8 @@ func CreateCheckout(user *model.User, req QuoteRequest, successURL, cancelURL st
 	orderID := "np_" + strings.ReplaceAll(uuid.NewString(), "-", "")
 	idem := fmt.Sprintf("topup_%d_%s_%d_%d", user.Id, quote.Currency, quote.AmountMinor, time.Now().UnixNano())
 
-	order := &model.StripeTopupOrder{
-		OrderID:                orderID,
-		UserId:                 user.Id,
-		StripeCustomerID:       user.StripeCustomer,
-		Status:                 model.StripeOrderPending,
-		PresentmentCurrency:    quote.Currency,
-		PresentmentAmountMinor: quote.AmountMinor,
-		FxRateSnapshot:         quote.FxRateSnapshot,
-		PaidCreditMicroUSD:     quote.PaidCreditMicroUSD,
-		PromoCreditMicroUSD:    quote.PromoCreditMicroUSD,
-		TotalCreditMicroUSD:    quote.TotalCreditMicroUSD,
-		PaidQuota:              quote.PaidQuota,
-		PromoQuota:             quote.PromoQuota,
-		PromotionSnapshotJSON:  quote.PromotionSnapshotJSON,
-		PromotionTierID:        quote.PromotionTierID,
-		IdempotencyKey:         idem,
-		CreatedAt:              common.GetTimestamp(),
-	}
-	if err := model.CreateStripeTopupOrder(order); err != nil {
+	order, err := createReservedOrder(user, quote, orderID, idem)
+	if err != nil {
 		return nil, fmt.Errorf("create order: %w", err)
 	}
 
@@ -187,4 +171,45 @@ func CreateCheckout(user *model.User, req QuoteRequest, successURL, cancelURL st
 		ExpiresAt:   order.CheckoutExpiresAt,
 		Quote:       quote,
 	}, nil
+}
+
+func createReservedOrder(user *model.User, quote *QuoteResult, orderID, idempotencyKey string) (*model.StripeTopupOrder, error) {
+	if user == nil || user.Id <= 0 || quote == nil || orderID == "" || idempotencyKey == "" {
+		return nil, fmt.Errorf("invalid reserved order")
+	}
+	order := &model.StripeTopupOrder{
+		OrderID:                orderID,
+		UserId:                 user.Id,
+		StripeCustomerID:       user.StripeCustomer,
+		Status:                 model.StripeOrderPending,
+		PresentmentCurrency:    quote.Currency,
+		PresentmentAmountMinor: quote.AmountMinor,
+		PaidCreditAmountMinor:  quote.PaidCreditAmountMinor,
+		PromoCreditAmountMinor: quote.PromoCreditAmountMinor,
+		TotalCreditAmountMinor: quote.TotalCreditAmountMinor,
+		FxRateSnapshot:         quote.FxRateSnapshot,
+		PaidCreditMicroUSD:     quote.PaidCreditMicroUSD,
+		PromoCreditMicroUSD:    quote.PromoCreditMicroUSD,
+		TotalCreditMicroUSD:    quote.TotalCreditMicroUSD,
+		PaidQuota:              quote.PaidQuota,
+		PromoQuota:             quote.PromoQuota,
+		PromotionSnapshotJSON:  quote.PromotionSnapshotJSON,
+		PromotionTierID:        quote.PromotionTierID,
+		PromoExpiryDays:        quote.PromoExpiryDays,
+		IdempotencyKey:         idempotencyKey,
+		CreatedAt:              common.GetTimestamp(),
+	}
+	err := model.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(order).Error; err != nil {
+			return err
+		}
+		if order.PromoCreditMicroUSD <= 0 {
+			return nil
+		}
+		return model.ReserveTopupPromotionWithTx(tx, order.OrderID, order.UserId, order.PromotionTierID, order.PromoCreditMicroUSD)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return order, nil
 }

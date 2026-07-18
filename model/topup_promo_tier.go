@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"strings"
 	"time"
 
@@ -9,20 +10,28 @@ import (
 
 // TopupPromoTier is an admin-configurable bonus tier for Stripe top-ups.
 type TopupPromoTier struct {
-	Id                 int     `json:"id" gorm:"primaryKey"`
-	Name               string  `json:"name" gorm:"type:varchar(128);default:''"`
-	Currency           string  `json:"currency" gorm:"type:varchar(8);index;default:'*'" ` // * = all
-	MinPresentmentMajor int    `json:"min_presentment_major" gorm:"default:0"`
-	MaxPresentmentMajor int    `json:"max_presentment_major" gorm:"default:0"` // 0 = no upper bound
-	FixedBonusMajor    int     `json:"fixed_bonus_major" gorm:"default:0"`     // fixed promo in major units of same currency
-	PercentBonusBps    int     `json:"percent_bonus_bps" gorm:"default:0"`     // 1000 = 10.00%
-	FirstTopupOnly     bool    `json:"first_topup_only" gorm:"default:false"`
-	PerUserLimit       int     `json:"per_user_limit" gorm:"default:0"` // 0 = unlimited redemptions
-	Enabled            bool    `json:"enabled" gorm:"default:true"`
-	StartAt            int64   `json:"start_at" gorm:"default:0"`
-	EndAt              int64   `json:"end_at" gorm:"default:0"`
-	CreatedAt          int64   `json:"created_at"`
-	UpdatedAt          int64   `json:"updated_at"`
+	Id                     int    `json:"id" gorm:"primaryKey"`
+	CampaignID             int    `json:"campaign_id" gorm:"index;not null;default:1"`
+	Code                   string `json:"code" gorm:"type:varchar(64);uniqueIndex"`
+	Name                   string `json:"name" gorm:"type:varchar(128);default:''"`
+	Currency               string `json:"currency" gorm:"type:varchar(8);index;default:'*'"` // * = all for legacy range tiers
+	PaymentAmountMinor     int64  `json:"payment_amount_minor" gorm:"not null;default:0"`
+	BonusAmountMinor       int64  `json:"bonus_amount_minor" gorm:"not null;default:0"`
+	TotalCreditAmountMinor int64  `json:"total_credit_amount_minor" gorm:"not null;default:0"`
+	Recommended            bool   `json:"recommended" gorm:"not null"`
+	SortOrder              int    `json:"sort_order" gorm:"not null;default:0"`
+	PromoExpiryDays        int    `json:"promo_expiry_days" gorm:"not null;default:0"`
+	MinPresentmentMajor    int    `json:"min_presentment_major" gorm:"default:0"`
+	MaxPresentmentMajor    int    `json:"max_presentment_major" gorm:"default:0"` // 0 = no upper bound
+	FixedBonusMajor        int    `json:"fixed_bonus_major" gorm:"default:0"`     // legacy fixed bonus in major units
+	PercentBonusBps        int    `json:"percent_bonus_bps" gorm:"default:0"`     // 1000 = 10.00%
+	FirstTopupOnly         bool   `json:"first_topup_only" gorm:"default:false"`
+	PerUserLimit           int    `json:"per_user_limit" gorm:"default:0"` // 0 = unlimited redemptions
+	Enabled                bool   `json:"enabled" gorm:"default:true"`
+	StartAt                int64  `json:"start_at" gorm:"default:0"`
+	EndAt                  int64  `json:"end_at" gorm:"default:0"`
+	CreatedAt              int64  `json:"created_at"`
+	UpdatedAt              int64  `json:"updated_at"`
 }
 
 // TableName uses TopupPromoTier naming expected by admin.
@@ -44,11 +53,21 @@ func ListEnabledPromoTiers() ([]*TopupPromoTier, error) {
 
 func ListAllPromoTiers() ([]*TopupPromoTier, error) {
 	var list []*TopupPromoTier
-	err := DB.Order("id desc").Find(&list).Error
+	err := DB.Order("currency asc, sort_order asc, id asc").Find(&list).Error
+	return list, err
+}
+
+func ListPromoTiersByCurrency(currency string) ([]*TopupPromoTier, error) {
+	var list []*TopupPromoTier
+	err := DB.Where("currency = ? AND payment_amount_minor > ?", strings.ToLower(strings.TrimSpace(currency)), 0).
+		Order("sort_order asc, id asc").Find(&list).Error
 	return list, err
 }
 
 func SavePromoTier(t *TopupPromoTier) error {
+	if err := ValidateTopupPromoTier(t); err != nil {
+		return err
+	}
 	now := common.GetTimestamp()
 	if t.Id == 0 {
 		t.CreatedAt = now
@@ -59,15 +78,61 @@ func SavePromoTier(t *TopupPromoTier) error {
 	return DB.Save(t).Error
 }
 
+func (t *TopupPromoTier) ActiveAt(now int64) bool {
+	if t == nil || !t.Enabled {
+		return false
+	}
+	if t.StartAt > 0 && now < t.StartAt {
+		return false
+	}
+	return t.EndAt <= 0 || now <= t.EndAt
+}
+
+func ValidateTopupPromoTier(t *TopupPromoTier) error {
+	if t == nil {
+		return errors.New("top-up tier is required")
+	}
+	t.Code = strings.ToLower(strings.TrimSpace(t.Code))
+	t.Name = strings.TrimSpace(t.Name)
+	t.Currency = strings.ToLower(strings.TrimSpace(t.Currency))
+	if t.Name == "" {
+		return errors.New("top-up tier name is required")
+	}
+	if t.Currency == "" {
+		return errors.New("top-up tier currency is required")
+	}
+	if t.PerUserLimit < 0 {
+		return errors.New("per-user redemption limit cannot be negative")
+	}
+	if t.StartAt > 0 && t.EndAt > 0 && t.EndAt <= t.StartAt {
+		return errors.New("tier end time must be after start time")
+	}
+	if t.PromoExpiryDays < 0 || t.PromoExpiryDays > 3650 {
+		return errors.New("promotional expiry days must be between 0 and 3650")
+	}
+	if t.PaymentAmountMinor > 0 {
+		if t.Code == "" {
+			return errors.New("exact top-up tier code is required")
+		}
+		if t.BonusAmountMinor < 0 {
+			return errors.New("top-up bonus cannot be negative")
+		}
+		if t.TotalCreditAmountMinor != t.PaymentAmountMinor+t.BonusAmountMinor {
+			return errors.New("total credits must equal payment plus bonus")
+		}
+	}
+	return nil
+}
+
 // PromoCalcResult is a server-side bonus snapshot.
 type PromoCalcResult struct {
-	TierID              int     `json:"tier_id"`
-	TierName            string  `json:"tier_name"`
-	PercentBonusBps     int     `json:"percent_bonus_bps"`
-	FixedBonusMajor     int     `json:"fixed_bonus_major"`
-	PromoCreditMicroUSD int64   `json:"promo_credit_micro_usd"`
-	PromoQuota          int     `json:"promo_quota"`
-	SnapshotJSON        string  `json:"snapshot_json"`
+	TierID              int    `json:"tier_id"`
+	TierName            string `json:"tier_name"`
+	PercentBonusBps     int    `json:"percent_bonus_bps"`
+	FixedBonusMajor     int    `json:"fixed_bonus_major"`
+	PromoCreditMicroUSD int64  `json:"promo_credit_micro_usd"`
+	PromoQuota          int    `json:"promo_quota"`
+	SnapshotJSON        string `json:"snapshot_json"`
 }
 
 // CalculateTopupPromo selects the best applicable tier and returns promo micro-USD + quota.
@@ -152,15 +217,15 @@ func CalculateTopupPromo(userId int, currency string, presentmentMajor int, paid
 		promoQuota = int(int64(paidQuota) * bestPromoMicro / paidMicro)
 	}
 	snap, _ := common.Marshal(map[string]any{
-		"applied":            true,
-		"tier_id":            best.Id,
-		"tier_name":          best.Name,
-		"percent_bonus_bps":  best.PercentBonusBps,
-		"fixed_bonus_major":  best.FixedBonusMajor,
-		"promo_micro_usd":    bestPromoMicro,
-		"promo_quota":        promoQuota,
-		"currency":           currency,
-		"presentment_major":  presentmentMajor,
+		"applied":           true,
+		"tier_id":           best.Id,
+		"tier_name":         best.Name,
+		"percent_bonus_bps": best.PercentBonusBps,
+		"fixed_bonus_major": best.FixedBonusMajor,
+		"promo_micro_usd":   bestPromoMicro,
+		"promo_quota":       promoQuota,
+		"currency":          currency,
+		"presentment_major": presentmentMajor,
 	})
 	return &PromoCalcResult{
 		TierID:              best.Id,

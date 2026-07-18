@@ -1,283 +1,371 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { CreditCard, Sparkles } from 'lucide-react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty'
+import {
+  Field,
+  FieldDescription,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+  FieldTitle,
+} from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { api } from '@/lib/api'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Spinner } from '@/components/ui/spinner'
+import type { BillingCurrency } from '@/lib/billing-currency'
 
-type Quote = {
-  currency: string
-  amount_major: number
-  amount_minor: number
-  paid_quota: number
-  promo_quota: number
-  total_quota: number
-  paid_credit_micro_usd: number
-  promo_credit_micro_usd: number
-  display_label: string
-  promotion_name?: string
-}
+import { getBillingTopupQuote } from '../api'
+import { useStripeTopup } from '../hooks/use-stripe-topup'
+import type { BillingTopupOffer } from '../types'
 
-type ConfigResp = {
-  default_currency: string
-  payment_methods_note: string
-  sandbox: boolean
-  api_balance: {
-    total_quota: number
-    promo_quota: number
-    cash_quota: number
-    label: string
-    label_zh: string
-  }
-  config: {
-    enabled: boolean
-    presets: Record<string, number[]>
-    min_max_major: Record<string, [number, number]>
-    currencies: string[]
+const CURRENCY_ITEMS: Array<{ label: string; value: BillingCurrency }> = [
+  { label: 'CNY', value: 'cny' },
+  { label: 'USD', value: 'usd' },
+  { label: 'CAD', value: 'cad' },
+]
+
+function unavailableMessage(
+  offer: BillingTopupOffer,
+  translate: (key: string) => string
+) {
+  switch (offer.unavailable_reason) {
+    case 'currency_unavailable':
+      return translate('This currency is currently unavailable.')
+    case 'campaign_unavailable':
+      return translate('The promotion is not active right now.')
+    case 'limit_reached':
+      return translate('Your promotional redemption limit has been reached.')
+    case 'budget_reached':
+      return translate('The promotional budget has been fully allocated.')
+    default:
+      return translate('This tier is currently unavailable.')
   }
 }
 
-const LS_CURRENCY = 'novapura.topup.currency'
+function TopupCardSkeleton() {
+  return (
+    <Card aria-live='polite'>
+      <CardHeader>
+        <Skeleton className='h-5 w-44' />
+        <Skeleton className='h-4 w-72 max-w-full' />
+      </CardHeader>
+      <CardContent className='grid gap-3 sm:grid-cols-2 xl:grid-cols-4'>
+        {[0, 1, 2, 3].map((item) => (
+          <Skeleton key={item} className='h-36 w-full rounded-xl' />
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
 
 export function StripeTopupCard() {
   const { t } = useTranslation()
-  const [loading, setLoading] = useState(true)
-  const [quoting, setQuoting] = useState(false)
-  const [checkingOut, setCheckingOut] = useState(false)
-  const [cfg, setCfg] = useState<ConfigResp | null>(null)
-  const [currency, setCurrency] = useState('usd')
-  const [amountMajor, setAmountMajor] = useState(10)
-  const [custom, setCustom] = useState('')
-  const [quote, setQuote] = useState<Quote | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      try {
-        const res = await api.get('/api/billing/top-up/config')
-        if (cancelled) return
-        const data = res.data?.data as ConfigResp
-        setCfg(data)
-        const saved =
-          localStorage.getItem(LS_CURRENCY) || data?.default_currency || 'usd'
-        setCurrency(saved)
-        const presets = data?.config?.presets?.[saved] || [10]
-        setAmountMajor(presets[0] ?? 10)
-      } catch {
-        // Stripe path may be disabled
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  const presets = useMemo(
-    () => cfg?.config?.presets?.[currency] || [],
-    [cfg, currency]
-  )
-  const minMax = cfg?.config?.min_max_major?.[currency] || [1, 2000]
-
-  const refreshQuote = useCallback(
-    async (cur: string, major: number) => {
-      setQuoting(true)
-      try {
-        const res = await api.post('/api/billing/top-up/quote', {
-          currency: cur,
-          amount_major: major,
-        })
-        if (res.data?.success) {
-          setQuote(res.data.data as Quote)
-        } else {
-          setQuote(null)
-          toast.error(res.data?.message || t('Unable to quote top-up'))
-        }
-      } catch (e: unknown) {
-        setQuote(null)
-        const msg =
-          e && typeof e === 'object' && 'response' in e
-            ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              (e as any).response?.data?.message
-            : null
-        toast.error(msg || t('Unable to quote top-up'))
-      } finally {
-        setQuoting(false)
-      }
-    },
-    [t]
+  const topup = useStripeTopup()
+  const [customAmount, setCustomAmount] = useState('')
+  const [customSelected, setCustomSelected] = useState(false)
+  const [quotedAmountMinor, setQuotedAmountMinor] = useState<number | null>(
+    null
   )
 
   useEffect(() => {
-    if (!cfg?.config?.enabled) return
-    if (amountMajor > 0) {
-      void refreshQuote(currency, amountMajor)
-    }
-  }, [cfg, currency, amountMajor, refreshQuote])
+    setCustomAmount('')
+    setCustomSelected(false)
+    setQuotedAmountMinor(null)
+  }, [topup.selectedCurrency])
 
-  const onCurrency = (v: string) => {
-    setCurrency(v)
-    localStorage.setItem(LS_CURRENCY, v)
-    const p = cfg?.config?.presets?.[v] || [10]
-    setAmountMajor(p[0] ?? 10)
-    setCustom('')
-  }
-
-  const onCheckout = async () => {
-    setCheckingOut(true)
-    try {
-      const res = await api.post('/api/billing/top-up/checkout', {
-        currency,
-        amount_major: amountMajor,
-      })
-      if (res.data?.success && res.data?.data?.checkout_url) {
-        window.location.href = res.data.data.checkout_url
-        return
-      }
-      toast.error(res.data?.message || t('Checkout failed'))
-    } catch (e: unknown) {
-      const msg =
-        e && typeof e === 'object' && 'response' in e
-          ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (e as any).response?.data?.message
-          : null
-      toast.error(msg || t('Checkout failed'))
-    } finally {
-      setCheckingOut(false)
+  const enabledCurrencyItems = CURRENCY_ITEMS.filter((item) =>
+    topup.config?.config.currencies.includes(item.value)
+  )
+  const selectedOffer = topup.offers.find(
+    (offer) => offer.payment_amount_minor === topup.selectedAmountMinor
+  )
+  const [minimumMajor, maximumMajor] = topup.config?.config.min_max_major[
+    topup.selectedCurrency
+  ] ?? [0, 0]
+  const customAmountMatch = customAmount.trim().match(/^(\d+)(?:\.(\d{1,2}))?$/)
+  let customAmountMinor: number | null = null
+  if (customAmountMatch) {
+    const whole = Number(customAmountMatch[1])
+    const fraction = Number((customAmountMatch[2] ?? '').padEnd(2, '0'))
+    if (Number.isSafeInteger(whole) && Number.isSafeInteger(fraction)) {
+      const minor = whole * 100 + fraction
+      if (Number.isSafeInteger(minor)) customAmountMinor = minor
     }
   }
-
-  if (loading) {
-    return null
-  }
-  if (!cfg?.config?.enabled) {
-    return null
+  const customAmountValid =
+    customAmountMinor != null &&
+    customAmountMinor >= minimumMajor * 100 &&
+    customAmountMinor <= maximumMajor * 100
+  useEffect(() => {
+    if (!customSelected || !customAmountValid || customAmountMinor == null) {
+      setQuotedAmountMinor(null)
+      return
+    }
+    const timer = window.setTimeout(
+      () => setQuotedAmountMinor(customAmountMinor),
+      300
+    )
+    return () => window.clearTimeout(timer)
+  }, [customAmountMinor, customAmountValid, customSelected])
+  const customQuoteQuery = useQuery({
+    queryKey: [
+      'billing-topup-quote',
+      topup.selectedCurrency,
+      quotedAmountMinor,
+    ],
+    queryFn: () =>
+      getBillingTopupQuote({
+        currency: topup.selectedCurrency,
+        amount_minor: quotedAmountMinor as number,
+      }),
+    enabled: quotedAmountMinor != null,
+    staleTime: 30_000,
+  })
+  const customQuote = customQuoteQuery.data?.data
+  if (topup.isLoading) return <TopupCardSkeleton />
+  if (!topup.config?.config.enabled) return null
+  const checkoutAmountMinor = customSelected
+    ? customAmountMinor
+    : topup.selectedAmountMinor
+  let selectionSummary: ReactNode = t('Select an available offer')
+  if (customSelected) {
+    if (customQuote) {
+      selectionSummary = (
+        <>
+          {t('Pay')} {customQuote.payment_display} · {t('Bonus')} +
+          {customQuote.bonus_display} · {t('Receive')}{' '}
+          <strong>{customQuote.total_display}</strong>
+        </>
+      )
+    } else if (customAmountValid) {
+      selectionSummary = t('Calculating bonus')
+    } else {
+      selectionSummary = t('Please enter a valid number')
+    }
+  } else if (selectedOffer) {
+    selectionSummary = (
+      <>
+        {t('Pay')} {selectedOffer.payment_display} · {t('Receive')}{' '}
+        <strong>{selectedOffer.total_display}</strong>
+      </>
+    )
   }
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>
-          {t('API Credits top-up')}
-          {cfg.sandbox ? (
-            <span className="ml-2 text-xs font-normal text-amber-600">
-              Sandbox
-            </span>
+      <CardHeader className='border-b'>
+        <CardTitle className='flex flex-wrap items-center gap-2'>
+          <Sparkles aria-hidden='true' />
+          {t('Launch API credit boost')}
+          <Badge variant='secondary'>{t('Every eligible top-up')}</Badge>
+          {topup.config.sandbox ? (
+            <Badge variant='outline'>{t('Sandbox')}</Badge>
           ) : null}
         </CardTitle>
         <CardDescription>
-          {t('Prepaid platform API credits. Non-withdrawable and non-transferable.')}
+          {t('Choose an amount and payment method')}
         </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="text-sm text-muted-foreground">
-          {t('Current API balance')}:{' '}
-          <span className="font-medium text-foreground">
-            {cfg.api_balance?.total_quota ?? 0}
-          </span>{' '}
-          ({cfg.api_balance?.label_zh || cfg.api_balance?.label})
-        </div>
-
-        <div className="space-y-2">
-          <Label>{t('Currency')}</Label>
-          <Select value={currency} onValueChange={onCurrency}>
-            <SelectTrigger>
+        <CardAction>
+          <Select
+            items={enabledCurrencyItems}
+            value={topup.selectedCurrency}
+            onValueChange={(value) => {
+              if (value) topup.changeCurrency(value)
+            }}
+            disabled={topup.isCurrencyChanging}
+          >
+            <SelectTrigger aria-label={t('Billing currency')}>
+              {topup.isCurrencyChanging ? (
+                <Spinner data-icon='inline-start' />
+              ) : null}
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {(cfg.config.currencies || ['usd', 'cny', 'cad']).map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c.toUpperCase()}
-                </SelectItem>
-              ))}
+              <SelectGroup>
+                {enabledCurrencyItems.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
-        </div>
+        </CardAction>
+      </CardHeader>
 
-        <div className="flex flex-wrap gap-2">
-          {presets.map((p) => (
-            <Button
-              key={p}
-              type="button"
-              size="sm"
-              variant={amountMajor === p && !custom ? 'default' : 'outline'}
-              onClick={() => {
-                setCustom('')
-                setAmountMajor(p)
-              }}
-            >
-              {p}
-            </Button>
-          ))}
-        </div>
-
-        <div className="space-y-2">
-          <Label>{t('Custom amount')}</Label>
-          <Input
-            type="number"
-            min={minMax[0]}
-            max={minMax[1]}
-            value={custom}
-            placeholder={`${minMax[0]} – ${minMax[1]}`}
-            onChange={(e) => {
-              setCustom(e.target.value)
-              const n = parseInt(e.target.value, 10)
-              if (!Number.isNaN(n)) setAmountMajor(n)
-            }}
-          />
-        </div>
-
-        {quote ? (
-          <div className="rounded-md border p-3 text-sm space-y-1">
-            <div>
-              {t('You pay')}: <strong>{quote.display_label}</strong>
-            </div>
-            <div>
-              {t('Base API credits')}: {quote.paid_quota}
-            </div>
-            <div>
-              {t('Promotional credits')}: {quote.promo_quota}
-              {quote.promotion_name ? ` (${quote.promotion_name})` : ''}
-            </div>
-            <div>
-              {t('Total credits after payment')}:{' '}
-              <strong>{quote.total_quota}</strong>
-            </div>
+      <CardContent className='flex flex-col gap-4'>
+        <div className='bg-muted/40 grid gap-1 rounded-xl p-4 sm:grid-cols-[1fr_auto] sm:items-end'>
+          <div>
+            <p className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>
+              {t('Current API balance')} ·{' '}
+              {topup.selectedCurrency.toUpperCase()}
+            </p>
+            <p className='mt-1 font-mono text-2xl font-semibold tabular-nums'>
+              {topup.config.api_balance.total_display}
+            </p>
           </div>
-        ) : null}
+          <p className='text-muted-foreground text-sm'>
+            {t('Includes {{amount}} promotional credits', {
+              amount: topup.config.api_balance.promo_display,
+            })}
+          </p>
+        </div>
 
-        <p className="text-xs text-muted-foreground">
-          {cfg.payment_methods_note ||
-            t(
-              'Payment methods shown at secure checkout vary by region and device.'
-            )}
+        {topup.offers.length === 0 ? (
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant='icon'>
+                <CreditCard aria-hidden='true' />
+              </EmptyMedia>
+              <EmptyTitle>{t('No offers in this currency')}</EmptyTitle>
+              <EmptyDescription>
+                {t(
+                  'Select another enabled billing currency or try again later.'
+                )}
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          <FieldSet>
+            <FieldLegend>{t('Choose your top-up')}</FieldLegend>
+            <FieldDescription>
+              {topup.config.repeatable
+                ? t(
+                    'The matching bonus applies on every eligible successful top-up while the campaign is active.'
+                  )
+                : t('Campaign redemption limits currently apply.')}
+            </FieldDescription>
+            <RadioGroup
+              value={
+                customSelected
+                  ? ''
+                  : (topup.selectedAmountMinor?.toString() ?? '')
+              }
+              onValueChange={(value) => {
+                setCustomSelected(false)
+                topup.setSelectedAmountMinor(Number(value))
+              }}
+              className='grid gap-3 sm:grid-cols-2 xl:grid-cols-4'
+            >
+              {topup.offers.map((offer) => (
+                <FieldLabel
+                  key={offer.code}
+                  htmlFor={`topup-${offer.payment_amount_minor}`}
+                >
+                  <Field data-disabled={!offer.available} className='min-h-36'>
+                    <div className='flex items-start justify-between gap-2'>
+                      <FieldTitle>{offer.payment_display}</FieldTitle>
+                      <RadioGroupItem
+                        id={`topup-${offer.payment_amount_minor}`}
+                        value={offer.payment_amount_minor.toString()}
+                        disabled={!offer.available}
+                      />
+                    </div>
+                    <div className='mt-2 flex flex-col gap-1 font-mono tabular-nums'>
+                      <span className='text-muted-foreground text-xs'>
+                        {t('Bonus')} +{offer.bonus_display}
+                      </span>
+                      <span className='text-lg font-semibold'>
+                        {offer.total_display} {t('total')}
+                      </span>
+                    </div>
+                    {offer.recommended ? (
+                      <Badge variant='secondary'>{t('Recommended')}</Badge>
+                    ) : null}
+                    {!offer.available ? (
+                      <FieldDescription>
+                        {unavailableMessage(offer, t)}
+                      </FieldDescription>
+                    ) : null}
+                  </Field>
+                </FieldLabel>
+              ))}
+            </RadioGroup>
+          </FieldSet>
+        )}
+
+        <Field>
+          <FieldLabel htmlFor='stripe-custom-topup'>
+            {t('Custom Amount')}
+          </FieldLabel>
+          <div className='flex flex-col gap-2 sm:flex-row sm:items-center'>
+            <Input
+              id='stripe-custom-topup'
+              type='number'
+              inputMode='decimal'
+              min={minimumMajor}
+              max={maximumMajor}
+              step='0.01'
+              value={customAmount}
+              onFocus={() => setCustomSelected(true)}
+              onChange={(event) => {
+                setCustomSelected(true)
+                setCustomAmount(event.target.value)
+              }}
+              placeholder={`${minimumMajor}–${maximumMajor} ${topup.selectedCurrency.toUpperCase()}`}
+              aria-invalid={customSelected && !customAmountValid}
+            />
+            <span className='text-muted-foreground text-xs'>
+              {t('Minimum:')} {minimumMajor}{' '}
+              {topup.selectedCurrency.toUpperCase()} · {maximumMajor}{' '}
+              {topup.selectedCurrency.toUpperCase()}
+            </span>
+          </div>
+        </Field>
+
+        <p className='text-muted-foreground text-xs leading-relaxed'>
+          {t(
+            'Promotional credits cannot be withdrawn or transferred. Future campaign rules may change, but completed payments and issued credits are not changed retroactively.'
+          )}
         </p>
-
-        <Button
-          className="w-full"
-          disabled={checkingOut || quoting || !quote}
-          onClick={() => void onCheckout()}
-        >
-          {checkingOut ? t('Redirecting…') : t('Pay with Stripe')}
-        </Button>
       </CardContent>
+
+      <CardFooter className='justify-between gap-3'>
+        <div className='text-sm'>{selectionSummary}</div>
+        <Button
+          disabled={
+            topup.isCheckingOut ||
+            (customSelected ? !customAmountValid : !selectedOffer?.available)
+          }
+          onClick={() => {
+            if (checkoutAmountMinor != null) topup.checkout(checkoutAmountMinor)
+          }}
+        >
+          {topup.isCheckingOut ? <Spinner data-icon='inline-start' /> : null}
+          {topup.isCheckingOut
+            ? t('Opening secure checkout')
+            : t('Pay with Stripe')}
+        </Button>
+      </CardFooter>
     </Card>
   )
 }

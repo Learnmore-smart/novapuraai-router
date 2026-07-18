@@ -1,21 +1,5 @@
-/*
-Copyright (C) 2023-2026 QuantumNous
+import type { BillingCurrency } from '@/lib/billing-currency'
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For commercial licensing, please contact support@quantumnous.com
-*/
 // ----------------------------------------------------------------------------
 // Pricing Types
 // ----------------------------------------------------------------------------
@@ -58,6 +42,11 @@ export type PricingModel = {
   billing_expr?: string
   /** Pricing version returned by backend, useful for cache busting */
   pricing_version?: string
+  billing_currency?: BillingCurrency
+  billing_fx_rate?: number
+  billing_input_per_million?: number
+  billing_output_per_million?: number
+  billing_per_request?: number
   /**
    * Optional model metadata fields reserved for backend-provided catalog data.
    * Keep them data-driven; do not synthesize display values on the client.
@@ -99,6 +88,8 @@ export type PricingData = {
   usable_group: Record<string, { desc: string; ratio: number }>
   supported_endpoint: Record<string, string>
   auto_groups: string[]
+  billing_currency: BillingCurrency
+  billing_fx_rate: number
 }
 
 export type TokenUnit = 'M' | 'K'

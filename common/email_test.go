@@ -295,6 +295,31 @@ func TestSendEmailUsesExplicitStartTLSWithInsecureCertificate(t *testing.T) {
 	}
 }
 
+func TestSendEmailNormalizesDisplayAddress(t *testing.T) {
+	server := newFakeSMTPServerWithSTARTTLSAdvertisement(t, false)
+	defer server.close()
+	withSMTPSettings(t)
+
+	SMTPServer = server.host
+	SMTPPort = server.port
+	SMTPSSLEnabled = false
+	SMTPStartTLSEnabled = false
+	SMTPAccount = "smtp-login"
+	SMTPFrom = "NovaPuraAI <noreply@novapuraai.com>"
+	SMTPToken = ""
+	SystemName = "Fallback Name"
+
+	require.NoError(t, SendEmail("Verification", "receiver@example.com", "<p>123456</p>"))
+
+	select {
+	case message := <-server.messages:
+		require.Regexp(t, `From: "?NovaPuraAI"? <noreply@novapuraai\.com>`, message)
+		require.Regexp(t, `Message-ID: <[^>]+@novapuraai\.com>`, message)
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for SMTP DATA")
+	}
+}
+
 func TestSendEmailExplicitStartTLSRequiresServerSupport(t *testing.T) {
 	server := newFakeSMTPServerWithSTARTTLSAdvertisement(t, false)
 	defer server.close()

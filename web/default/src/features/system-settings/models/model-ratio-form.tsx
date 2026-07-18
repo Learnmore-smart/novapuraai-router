@@ -1,21 +1,3 @@
-/*
-Copyright (C) 2023-2026 QuantumNous
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For commercial licensing, please contact support@quantumnous.com
-*/
 import { useQuery } from '@tanstack/react-query'
 import { Braces, Code2, Eye, RotateCcw, Save } from 'lucide-react'
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -48,6 +30,10 @@ import {
   type BulkPricingMaps,
 } from './model-pricing-bulk-json'
 import { ModelPricingBulkJsonDialog } from './model-pricing-bulk-json-dialog'
+import {
+  ModelPricingFieldsJsonEditor,
+  type ModelPricingFieldsJsonEditorHandle,
+} from './model-pricing-fields-json-editor'
 import {
   ModelPricingUnifiedJsonEditor,
   type ModelPricingUnifiedJsonEditorHandle,
@@ -94,9 +80,11 @@ export const ModelRatioForm = memo(function ModelRatioForm({
   const { t } = useTranslation()
   const isUnsetVariant = variant === 'unset'
   const [editMode, setEditMode] = useState<'visual' | 'json'>('visual')
+  const [jsonView, setJsonView] = useState<'fields' | 'unified'>('fields')
   const [bulkJsonOpen, setBulkJsonOpen] = useState(false)
   const [globalDiscountRate, setGlobalDiscountRate] = useState('0.8')
   const visualEditorRef = useRef<ModelRatioVisualEditorHandle>(null)
+  const fieldsEditorRef = useRef<ModelPricingFieldsJsonEditorHandle>(null)
   const unifiedEditorRef = useRef<ModelPricingUnifiedJsonEditorHandle>(null)
 
   const enabledModelsQuery = useQuery({
@@ -233,25 +221,34 @@ export const ModelRatioForm = memo(function ModelRatioForm({
     [form, handleFieldChange, t]
   )
 
-  const toggleEditMode = useCallback(async () => {
-    if (editMode === 'json') {
-      const committed = unifiedEditorRef.current?.commitDraft()
-      if (committed !== true) return
+  const commitActiveJsonEditor = useCallback(() => {
+    if (jsonView === 'unified') {
+      return unifiedEditorRef.current?.commitDraft() === true
     }
+    return fieldsEditorRef.current?.commitDraft() === true
+  }, [jsonView])
+
+  const toggleEditMode = useCallback(() => {
+    if (editMode === 'json' && !commitActiveJsonEditor()) return
     setEditMode((prev) => (prev === 'visual' ? 'json' : 'visual'))
-  }, [editMode])
+  }, [commitActiveJsonEditor, editMode])
+
+  const handleJsonViewChange = useCallback(
+    (nextView: 'fields' | 'unified') => {
+      if (nextView === jsonView || !commitActiveJsonEditor()) return
+      setJsonView(nextView)
+    },
+    [commitActiveJsonEditor, jsonView]
+  )
 
   const handleSave = useCallback(async () => {
     if (editMode === 'visual') {
       const committed = await visualEditorRef.current?.commitOpenEditor()
       if (committed === false) return
-    } else {
-      const committed = unifiedEditorRef.current?.commitDraft()
-      if (committed !== true) return
-    }
+    } else if (!commitActiveJsonEditor()) return
 
     await form.handleSubmit(onSave)()
-  }, [editMode, form, onSave])
+  }, [commitActiveJsonEditor, editMode, form, onSave])
 
   const handleBulkApply = useCallback(
     (updates: Record<string, string>) => {
@@ -283,15 +280,43 @@ export const ModelRatioForm = memo(function ModelRatioForm({
           </Button>
         )}
         {editMode === 'json' && (
-          <Button
-            type='button'
-            size='sm'
-            onClick={handleSave}
-            disabled={isSaving}
-          >
-            <Save data-icon='inline-start' />
-            {isSaving ? t('Saving...') : t('Save model prices')}
-          </Button>
+          <>
+            <div
+              role='group'
+              aria-label={t('JSON editor layout')}
+              className='bg-muted/30 inline-flex items-center rounded-lg border p-0.5'
+            >
+              <Button
+                type='button'
+                variant={jsonView === 'fields' ? 'secondary' : 'ghost'}
+                size='sm'
+                className='h-7 px-2.5 shadow-none'
+                aria-pressed={jsonView === 'fields'}
+                onClick={() => handleJsonViewChange('fields')}
+              >
+                {t('Field JSON')}
+              </Button>
+              <Button
+                type='button'
+                variant={jsonView === 'unified' ? 'secondary' : 'ghost'}
+                size='sm'
+                className='h-7 px-2.5 shadow-none'
+                aria-pressed={jsonView === 'unified'}
+                onClick={() => handleJsonViewChange('unified')}
+              >
+                {t('Unified JSON')}
+              </Button>
+            </div>
+            <Button
+              type='button'
+              size='sm'
+              onClick={handleSave}
+              disabled={isSaving}
+            >
+              <Save data-icon='inline-start' />
+              {isSaving ? t('Saving...') : t('Save model prices')}
+            </Button>
+          </>
         )}
         {!isUnsetVariant && (
           <Button
@@ -436,13 +461,23 @@ export const ModelRatioForm = memo(function ModelRatioForm({
           </div>
         ) : (
           <div className='space-y-6'>
-            <ModelPricingUnifiedJsonEditor
-              ref={unifiedEditorRef}
-              maps={currentMaps}
-              modelNames={unifiedModelNames}
-              candidateModelsOnly={isUnsetVariant}
-              onApply={handleBulkApply}
-            />
+            {jsonView === 'fields' ? (
+              <ModelPricingFieldsJsonEditor
+                ref={fieldsEditorRef}
+                maps={currentMaps}
+                modelNames={unifiedModelNames}
+                candidateModelsOnly={isUnsetVariant}
+                onApply={handleBulkApply}
+              />
+            ) : (
+              <ModelPricingUnifiedJsonEditor
+                ref={unifiedEditorRef}
+                maps={currentMaps}
+                modelNames={unifiedModelNames}
+                candidateModelsOnly={isUnsetVariant}
+                onApply={handleBulkApply}
+              />
+            )}
 
             {!isUnsetVariant && (
               <FormField

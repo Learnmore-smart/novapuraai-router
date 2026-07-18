@@ -61,6 +61,7 @@ func (w *WalletFunding) Settle(delta int) error {
 		w.consumed += delta
 		w.split.Promo += split.Promo
 		w.split.Cash += split.Cash
+		w.split.Allocations = append(w.split.Allocations, split.Allocations...)
 		return nil
 	}
 	// Refund delta (negative): restore cash first then promo proportionally to last split is hard;
@@ -69,23 +70,54 @@ func (w *WalletFunding) Settle(delta int) error {
 	if refund > w.consumed {
 		refund = w.consumed
 	}
-	// Prefer restoring cash portion first from recorded split.
-	cashRest := w.split.Cash
-	if cashRest > refund {
-		cashRest = refund
-	}
-	promoRest := refund - cashRest
-	if promoRest > w.split.Promo {
-		promoRest = w.split.Promo
-		cashRest = refund - promoRest
-	}
-	if err := model.RestoreUserQuotaSplit(w.userId, model.QuotaWalletSplit{Promo: promoRest, Cash: cashRest}); err != nil {
+	refundSplit, remainingSplit := takeWalletRefund(w.split, refund)
+	if err := model.RestoreUserQuotaSplit(w.userId, refundSplit); err != nil {
 		return err
 	}
 	w.consumed -= refund
-	w.split.Promo -= promoRest
-	w.split.Cash -= cashRest
+	w.split = remainingSplit
 	return nil
+}
+
+func takeWalletRefund(split model.QuotaWalletSplit, amount int) (model.QuotaWalletSplit, model.QuotaWalletSplit) {
+	refund := model.QuotaWalletSplit{}
+	if amount <= 0 {
+		return refund, split
+	}
+	split.Allocations = append([]model.BalanceLotAllocation(nil), split.Allocations...)
+	remaining := amount
+	for _, balanceType := range []string{model.BalanceTypePaid, model.BalanceTypePromotional} {
+		for i := len(split.Allocations) - 1; i >= 0 && remaining > 0; i-- {
+			allocation := &split.Allocations[i]
+			if allocation.BalanceType != balanceType || allocation.Amount <= 0 {
+				continue
+			}
+			take := allocation.Amount
+			if take > remaining {
+				take = remaining
+			}
+			refundedAllocation := *allocation
+			refundedAllocation.Amount = take
+			refund.Allocations = append(refund.Allocations, refundedAllocation)
+			allocation.Amount -= take
+			remaining -= take
+			if balanceType == model.BalanceTypePaid {
+				refund.Cash += take
+				split.Cash -= take
+			} else {
+				refund.Promo += take
+				split.Promo -= take
+			}
+		}
+	}
+	compacted := split.Allocations[:0]
+	for _, allocation := range split.Allocations {
+		if allocation.Amount > 0 {
+			compacted = append(compacted, allocation)
+		}
+	}
+	split.Allocations = compacted
+	return refund, split
 }
 
 func (w *WalletFunding) Refund() error {

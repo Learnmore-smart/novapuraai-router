@@ -1,29 +1,31 @@
+import { Link, useSearch } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useSearch } from '@tanstack/react-router'
 
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Spinner } from '@/components/ui/spinner'
 import { api } from '@/lib/api'
 
 type OrderStatus = {
   order_id: string
   status: string
-  paid_quota: number
-  promo_quota: number
-  total_quota: number
+  presentment_currency: string
+  paid_display: string
+  promo_display: string
+  total_display: string
+  promo_expires_at: number
   failure_reason?: string
 }
 
-/**
- * Success redirect does NOT prove payment. Poll server until credited/failed.
- */
 export function StripeTopupSuccess() {
   const { t } = useTranslation()
   const search = useSearch({ strict: false }) as { order_id?: string }
@@ -33,7 +35,7 @@ export function StripeTopupSuccess() {
 
   useEffect(() => {
     if (!orderId) {
-      setError('missing order_id')
+      setError(t('Missing order ID'))
       return
     }
     let stopped = false
@@ -46,17 +48,19 @@ export function StripeTopupSuccess() {
           const data = res.data.data as OrderStatus
           setOrder(data)
           if (
-            data.status === 'credited' ||
-            data.status === 'failed' ||
-            data.status === 'expired' ||
-            data.status === 'manual_review' ||
-            data.status === 'refunded'
+            [
+              'credited',
+              'failed',
+              'expired',
+              'manual_review',
+              'refunded',
+            ].includes(data.status)
           ) {
             return
           }
         }
       } catch {
-        // keep polling briefly
+        // Stripe redirects can arrive just before webhook fulfillment.
       }
       tries += 1
       if (!stopped && tries < 40) {
@@ -67,49 +71,81 @@ export function StripeTopupSuccess() {
     return () => {
       stopped = true
     }
-  }, [orderId])
+  }, [orderId, t])
 
   const pending =
     !error &&
-    (!order ||
-      order.status === 'pending' ||
-      order.status === 'checkout_created' ||
-      order.status === 'paid')
+    (!order || ['pending', 'checkout_created', 'paid'].includes(order.status))
 
   return (
-    <Card className="max-w-lg mx-auto mt-8">
+    <Card className='mx-auto mt-8 max-w-lg'>
       <CardHeader>
         <CardTitle>{t('Top-up status')}</CardTitle>
         <CardDescription>
-          {t('Confirming payment with the server. Do not close this page.')}
+          {t('The server is confirming the signed payment result.')}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {error ? <p className="text-destructive text-sm">{error}</p> : null}
+      <CardContent className='flex flex-col gap-4' aria-live='polite'>
+        {error ? <p className='text-destructive text-sm'>{error}</p> : null}
         {pending ? (
-          <p className="text-sm">{t('Confirming payment…')}</p>
+          <div className='flex items-center gap-2 text-sm'>
+            <Spinner />
+            {t('Confirming payment')}
+          </div>
         ) : null}
         {order?.status === 'credited' ? (
-          <div className="text-sm space-y-1">
-            <p className="text-green-600 font-medium">{t('Credits added')}</p>
-            <p>
-              {t('Total credits')}: {order.total_quota}
-            </p>
-            <p>
-              {t('Paid')}: {order.paid_quota} / {t('Promo')}: {order.promo_quota}
+          <div className='bg-muted/40 flex flex-col gap-3 rounded-xl p-4'>
+            <div className='flex items-center justify-between gap-3'>
+              <p className='font-medium'>{t('Credits added')}</p>
+              <Badge>{order.presentment_currency.toUpperCase()}</Badge>
+            </div>
+            <dl className='grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 text-sm'>
+              <dt className='text-muted-foreground'>{t('Paid credits')}</dt>
+              <dd className='font-mono tabular-nums'>{order.paid_display}</dd>
+              <dt className='text-muted-foreground'>
+                {t('Promotional bonus')}
+              </dt>
+              <dd className='font-mono tabular-nums'>+{order.promo_display}</dd>
+              <dt className='font-medium'>{t('Total credits')}</dt>
+              <dd className='font-mono font-semibold tabular-nums'>
+                {order.total_display}
+              </dd>
+            </dl>
+            <p className='text-muted-foreground text-xs'>
+              {order.promo_expires_at > 0
+                ? t('Promotional credits expire on {{date}}.', {
+                    date: new Date(
+                      order.promo_expires_at * 1000
+                    ).toLocaleDateString(),
+                  })
+                : t('Promotional credits do not expire.')}{' '}
+              {t('They cannot be withdrawn or transferred.')}
             </p>
           </div>
         ) : null}
         {order &&
         ['failed', 'expired', 'manual_review'].includes(order.status) ? (
-          <p className="text-sm text-destructive">
-            {order.failure_reason || order.status}
+          <p className='text-destructive text-sm'>
+            {order.failure_reason || t('Payment was not credited.')}
           </p>
         ) : null}
-        <Button asChild variant="outline">
-          <Link to="/wallet">{t('Back to wallet')}</Link>
-        </Button>
+        {order?.status === 'refunded' ? (
+          <p className='text-muted-foreground text-sm'>
+            {t(
+              'This payment was refunded and its remaining source credits were reversed.'
+            )}
+          </p>
+        ) : null}
       </CardContent>
+      <CardFooter>
+        <Button
+          render={<Link to='/wallet' />}
+          nativeButton={false}
+          variant='outline'
+        >
+          {t('Back to wallet')}
+        </Button>
+      </CardFooter>
     </Card>
   )
 }

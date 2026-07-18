@@ -72,7 +72,24 @@ func resolveChannelTestUserID(c *gin.Context) (int, error) {
 	return rootUser.Id, nil
 }
 
-func testChannel(ctx context.Context, channel *model.Channel, testUserID int, testModel string, endpointType string, isStream bool) testResult {
+func selectChannelTestKey(channel *model.Channel, keyIndex *int) (*model.Channel, error) {
+	if keyIndex == nil {
+		return channel, nil
+	}
+	keys := channel.GetKeys()
+	if *keyIndex < 0 || *keyIndex >= len(keys) {
+		return nil, fmt.Errorf("key index %d is out of range", *keyIndex)
+	}
+	selectedChannel := *channel
+	selectedChannel.Key = keys[*keyIndex]
+	selectedChannel.Keys = nil
+	selectedChannel.ChannelInfo.IsMultiKey = false
+	selectedChannel.ChannelInfo.MultiKeySize = 1
+	selectedChannel.ChannelInfo.MultiKeyStatusList = nil
+	return &selectedChannel, nil
+}
+
+func testChannel(ctx context.Context, channel *model.Channel, testUserID int, testModel string, endpointType string, isStream bool, keyIndex *int) testResult {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -173,13 +190,25 @@ func testChannel(ctx context.Context, channel *model.Channel, testUserID int, te
 	group, _ := model.GetUserGroup(testUserID, false)
 	c.Set("group", group)
 
-	newAPIError := middleware.SetupContextForSelectedChannel(c, channel, testModel)
+	selectedChannel, err := selectChannelTestKey(channel, keyIndex)
+	if err != nil {
+		return testResult{
+			context:     c,
+			localErr:    err,
+			newAPIError: types.NewError(err, types.ErrorCodeInvalidRequest),
+		}
+	}
+	newAPIError := middleware.SetupContextForSelectedChannel(c, selectedChannel, testModel)
 	if newAPIError != nil {
 		return testResult{
 			context:     c,
 			localErr:    newAPIError,
 			newAPIError: newAPIError,
 		}
+	}
+	if keyIndex != nil {
+		common.SetContextKey(c, constant.ContextKeyChannelIsMultiKey, len(channel.GetKeys()) > 1)
+		common.SetContextKey(c, constant.ContextKeyChannelMultiKeyIndex, *keyIndex)
 	}
 
 	// Determine relay format based on endpoint type or request path
@@ -839,6 +868,13 @@ func TestChannel(c *gin.Context) {
 			return
 		}
 	}
+	if reconcileChannelMultiKeyMetadata(channel) {
+		if err := channel.SaveChannelInfo(); err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		model.InitChannelCache()
+	}
 	//defer func() {
 	//	if channel.ChannelInfo.IsMultiKey {
 	//		go func() { _ = channel.SaveChannelInfo() }()
@@ -847,6 +883,15 @@ func TestChannel(c *gin.Context) {
 	testModel := c.Query("model")
 	endpointType := c.Query("endpoint_type")
 	isStream, _ := strconv.ParseBool(c.Query("stream"))
+	var keyIndex *int
+	if rawKeyIndex, ok := c.GetQuery("key_index"); ok {
+		parsedKeyIndex, parseErr := strconv.Atoi(rawKeyIndex)
+		if parseErr != nil {
+			common.ApiError(c, fmt.Errorf("invalid key index: %w", parseErr))
+			return
+		}
+		keyIndex = &parsedKeyIndex
+	}
 	testUserID, err := resolveChannelTestUserID(c)
 	if err != nil {
 		common.ApiError(c, err)
@@ -857,7 +902,7 @@ func TestChannel(c *gin.Context) {
 	if c.Request != nil {
 		requestCtx = c.Request.Context()
 	}
-	result := testChannel(requestCtx, channel, testUserID, testModel, endpointType, isStream)
+	result := testChannel(requestCtx, channel, testUserID, testModel, endpointType, isStream, keyIndex)
 	if result.localErr != nil {
 		resp := gin.H{
 			"success": false,
@@ -924,7 +969,7 @@ func performChannelTests(ctx context.Context, channels []*model.Channel, testUse
 		}
 		isChannelEnabled := channel.Status == common.ChannelStatusEnabled
 		tik := time.Now()
-		result := testChannel(ctx, channel, testUserID, "", "", shouldUseStreamForAutomaticChannelTest(channel))
+		result := testChannel(ctx, channel, testUserID, "", "", shouldUseStreamForAutomaticChannelTest(channel), nil)
 		tok := time.Now()
 		milliseconds := tok.Sub(tik).Milliseconds()
 		if ctx != nil && ctx.Err() != nil {

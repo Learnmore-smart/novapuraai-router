@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/service/emaildelivery"
 	"github.com/QuantumNous/new-api/setting"
 
 	"github.com/stripe/stripe-go/v85"
@@ -131,6 +133,7 @@ func handleCheckoutPaid(ctx context.Context, event stripe.Event, async bool) err
 	pi := event.GetObjectValue("payment_intent")
 
 	// Mark paid then credit (credit is idempotent to credited)
+	paidAt := common.GetTimestamp()
 	_ = model.DB.Model(&model.StripeTopupOrder{}).Where("order_id = ? AND status IN ?", orderID,
 		[]string{model.StripeOrderPending, model.StripeOrderCheckoutCreated}).
 		Updates(map[string]interface{}{
@@ -138,7 +141,7 @@ func handleCheckoutPaid(ctx context.Context, event stripe.Event, async bool) err
 			"stripe_customer_id":         customerID,
 			"stripe_checkout_session_id": sessionID,
 			"stripe_payment_intent_id":   pi,
-			"paid_at":                    common.GetTimestamp(),
+			"paid_at":                    paidAt,
 		})
 
 	already, err := model.CreditStripeTopupOrder(orderID, customerID, pi, sessionID)
@@ -150,6 +153,29 @@ func handleCheckoutPaid(ctx context.Context, event stripe.Event, async bool) err
 		logger.LogInfo(ctx, fmt.Sprintf("credit already applied order=%s", orderID))
 	} else {
 		logger.LogInfo(ctx, fmt.Sprintf("credit success order=%s async=%v", orderID, async))
+	}
+
+	recipient, emailErr := model.GetUserEmail(order.UserId)
+	if emailErr != nil || strings.TrimSpace(recipient) == "" {
+		logger.LogWarn(ctx, fmt.Sprintf("receipt email skipped order=%s reason=recipient_unavailable", orderID))
+		return nil
+	}
+	receipt, buildErr := emaildelivery.BuildReceiptMessage(emaildelivery.ReceiptTemplateData{
+		SystemName: common.SystemName,
+		Recipient:  recipient,
+		ReceiptID:  orderID,
+		Amount:     fmt.Sprintf("%.2f %s", float64(order.PresentmentAmountMinor)/100, strings.ToUpper(order.PresentmentCurrency)),
+		PaidAt:     time.Unix(paidAt, 0).UTC().Format(time.RFC3339),
+	})
+	if buildErr != nil {
+		logger.LogWarn(ctx, fmt.Sprintf("receipt email failed order=%s reason=template", orderID))
+		return nil
+	}
+	if _, emailErr = emaildelivery.SendTransactionalEmail(ctx, emaildelivery.SendRequest{
+		BusinessKey: "stripe-receipt:" + orderID,
+		Message:     receipt,
+	}); emailErr != nil {
+		logger.LogWarn(ctx, fmt.Sprintf("receipt email failed order=%s reason=%s", orderID, emailErr.Error()))
 	}
 	return nil
 }

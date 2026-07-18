@@ -28,6 +28,7 @@ import (
 	"github.com/QuantumNous/new-api/router"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/service/authz"
+	"github.com/QuantumNous/new-api/service/emaildelivery"
 	"github.com/QuantumNous/new-api/setting"
 	_ "github.com/QuantumNous/new-api/setting/performance_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
@@ -123,6 +124,13 @@ func main() {
 
 	// Subscription quota reset task (daily/weekly/monthly/custom)
 	service.StartSubscriptionQuotaResetTask()
+
+	// Keep display-currency conversion on the latest published ECB reference
+	// rates while preserving the persisted last-known-good values on failure.
+	service.StartBillingFXRefreshTask()
+
+	// Retry only provider-idempotent Brevo sends that returned an ambiguous timeout.
+	emaildelivery.StartSafeRetryWorker()
 
 	// Report this process as a system instance so the System Info page can show
 	// all currently alive nodes in multi-instance deployments.

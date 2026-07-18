@@ -246,9 +246,13 @@ func initGitHubOAuthEnv() {
 // the admin settings UI is used. It is still scrubbed from OptionMap so the
 // settings API never echoes it back.
 var EnvManagedSecretOptionKeys = map[string]struct{}{
-	"SMTPToken":           {},
-	"StripeApiSecret":     {},
-	"StripeWebhookSecret": {},
+	"SMTPToken":                 {},
+	"StripeApiSecret":           {},
+	"StripeWebhookSecret":       {},
+	"BREVO_API_KEY":             {},
+	"AWS_SES_ACCESS_KEY_ID":     {},
+	"AWS_SES_SECRET_ACCESS_KEY": {},
+	"AWS_SES_SESSION_TOKEN":     {},
 }
 
 func IsEnvManagedSecretOptionKey(key string) bool {

@@ -1,30 +1,17 @@
-/*
-Copyright (C) 2023-2026 QuantumNous
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For commercial licensing, please contact support@quantumnous.com
-*/
 import { api } from '@/lib/api'
 
 import type {
-  ConfirmPaymentComplianceResponse,
   FetchUpstreamRatiosRequest,
   LogCleanupTask,
+  RetryTransactionalEmailResponse,
+  SESCredentialStatusResponse,
+  SESCredentialUpdateRequest,
+  SwitchTransactionalEmailProviderResponse,
   SystemOptionsResponse,
   SystemTaskListResponse,
   SystemTaskResponse,
+  TransactionalEmailHealthResponse,
+  TransactionalEmailProvider,
   UpdateOptionRequest,
   UpdateOptionResponse,
   UpstreamChannelsResponse,
@@ -41,10 +28,50 @@ export async function updateSystemOption(request: UpdateOptionRequest) {
   return res.data
 }
 
-export async function confirmPaymentCompliance() {
-  const res = await api.post<ConfirmPaymentComplianceResponse>(
-    '/api/option/payment_compliance',
-    { confirmed: true }
+export async function getTransactionalEmailHealth() {
+  const res = await api.get<TransactionalEmailHealthResponse>(
+    '/api/option/email-provider/health'
+  )
+  return res.data
+}
+
+export async function switchTransactionalEmailProvider(
+  provider: TransactionalEmailProvider
+) {
+  const res = await api.put<SwitchTransactionalEmailProviderResponse>(
+    '/api/option/email-provider',
+    { provider }
+  )
+  return res.data
+}
+
+export async function retryTransactionalEmailQueue() {
+  const res = await api.post<RetryTransactionalEmailResponse>(
+    '/api/option/email-provider/retry-safe'
+  )
+  return res.data
+}
+
+export async function getTransactionalEmailSESCredentials() {
+  const res = await api.get<SESCredentialStatusResponse>(
+    '/api/option/email-provider/ses/credentials'
+  )
+  return res.data
+}
+
+export async function updateTransactionalEmailSESCredentials(
+  request: SESCredentialUpdateRequest
+) {
+  const res = await api.put<SESCredentialStatusResponse>(
+    '/api/option/email-provider/ses/credentials',
+    request
+  )
+  return res.data
+}
+
+export async function deleteTransactionalEmailSESCredentials() {
+  const res = await api.delete<SESCredentialStatusResponse>(
+    '/api/option/email-provider/ses/credentials'
   )
   return res.data
 }

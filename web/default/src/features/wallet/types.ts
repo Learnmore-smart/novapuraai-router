@@ -1,21 +1,5 @@
-/*
-Copyright (C) 2023-2026 QuantumNous
+import type { BillingCurrency } from '@/lib/billing-currency'
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For commercial licensing, please contact support@quantumnous.com
-*/
 // ============================================================================
 // Wallet Type Definitions
 // ============================================================================
@@ -152,10 +136,6 @@ export interface TopupInfo {
   waffo_pancake_min_topup?: number
   /** Whether redemption code usage is enabled */
   enable_redemption?: boolean
-  /** Whether compliance confirmation has been completed */
-  payment_compliance_confirmed?: boolean
-  /** Current compliance terms version */
-  payment_compliance_terms_version?: string
 }
 
 /**
@@ -313,4 +293,86 @@ export interface ShareSubmissionRequest {
   url: string
   platform: string
   note: string
+}
+
+export interface BillingTopupOffer {
+  tier_id: number
+  code: string
+  name: string
+  currency: BillingCurrency
+  payment_amount_minor: number
+  bonus_amount_minor: number
+  total_credit_amount_minor: number
+  payment_display: string
+  bonus_display: string
+  total_display: string
+  available: boolean
+  unavailable_reason?:
+    | 'currency_unavailable'
+    | 'tier_unavailable'
+    | 'campaign_unavailable'
+    | 'limit_reached'
+    | 'budget_reached'
+  recommended: boolean
+  promo_expiry_days: number
+  start_at: number
+  end_at: number
+}
+
+export interface BillingTopupCampaign {
+  id: number
+  name: string
+  enabled: boolean
+  start_at: number
+  end_at: number
+  global_budget_micro_usd: number
+  reserved_promo_micro_usd: number
+  issued_promo_micro_usd: number
+  per_user_limit: number
+  default_promo_expiry_days: number
+}
+
+export interface BillingTopupConfig {
+  selected_currency: BillingCurrency
+  default_currency: BillingCurrency
+  payment_methods_note: string
+  sandbox: boolean
+  campaign?: BillingTopupCampaign
+  campaign_active: boolean
+  repeatable: boolean
+  offers: BillingTopupOffer[]
+  api_balance: {
+    total_quota: number
+    promo_quota: number
+    cash_quota: number
+    currency: BillingCurrency
+    total_amount_minor: number
+    promo_amount_minor: number
+    cash_amount_minor: number
+    total_display: string
+    promo_display: string
+  }
+  config: {
+    enabled: boolean
+    currencies: BillingCurrency[]
+    default_currency: BillingCurrency
+    min_max_major: Record<BillingCurrency, [number, number]>
+  }
+}
+
+export interface BillingTopupCheckoutResult {
+  order_id: string
+  checkout_url: string
+}
+
+export interface BillingTopupQuote {
+  tier_id: number
+  currency: BillingCurrency
+  amount_minor: number
+  paid_credit_amount_minor: number
+  promo_credit_amount_minor: number
+  total_credit_amount_minor: number
+  payment_display: string
+  bonus_display: string
+  total_display: string
 }

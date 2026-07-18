@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
+import { parseQuotaFromDollars, quotaUnitsToDollars } from '@/lib/format'
 
 import { updateSystemOption } from '../api'
 import {
@@ -44,12 +45,15 @@ import {
 import { SettingsPageFormActions } from '../components/settings-page-context'
 import { SettingsSection } from '../components/settings-section'
 import type { UpdateOptionRequest } from '../types'
-import { saveCheckinOptionUpdates } from './checkin-settings'
+import {
+  buildCheckinQuotaOptionUpdates,
+  saveCheckinOptionUpdates,
+} from './checkin-settings'
 
 const schema = z.object({
   enabled: z.boolean(),
-  minQuota: z.coerce.number().int().min(0),
-  maxQuota: z.coerce.number().int().min(0),
+  minQuota: z.coerce.number().min(0),
+  maxQuota: z.coerce.number().min(0),
 })
 
 type Values = z.infer<typeof schema>
@@ -81,8 +85,8 @@ export function CheckinSettingsSection({
     resolver: zodResolver(schema) as unknown as Resolver<Values>,
     defaultValues: {
       enabled: defaultValues.enabled,
-      minQuota: defaultValues.minQuota,
-      maxQuota: defaultValues.maxQuota,
+      minQuota: quotaUnitsToDollars(defaultValues.minQuota),
+      maxQuota: quotaUnitsToDollars(defaultValues.maxQuota),
     },
   })
 
@@ -99,19 +103,13 @@ export function CheckinSettingsSection({
       })
     }
 
-    if (values.minQuota !== defaultValues.minQuota) {
-      updates.push({
-        key: 'checkin_setting.min_quota',
-        value: String(values.minQuota),
-      })
-    }
-
-    if (values.maxQuota !== defaultValues.maxQuota) {
-      updates.push({
-        key: 'checkin_setting.max_quota',
-        value: String(values.maxQuota),
-      })
-    }
+    updates.push(
+      ...buildCheckinQuotaOptionUpdates(
+        values,
+        defaultValues,
+        parseQuotaFromDollars
+      )
+    )
 
     if (updates.length === 0) {
       toast.info(t('No changes to save'))
@@ -168,7 +166,8 @@ export function CheckinSettingsSection({
                       <Input
                         type='number'
                         min={0}
-                        placeholder={t('1000')}
+                        step='any'
+                        placeholder='0'
                         {...field}
                       />
                     </FormControl>
@@ -190,7 +189,8 @@ export function CheckinSettingsSection({
                       <Input
                         type='number'
                         min={0}
-                        placeholder={t('10000')}
+                        step='any'
+                        placeholder='0'
                         {...field}
                       />
                     </FormControl>

@@ -469,7 +469,7 @@ func SetupContextForSelectedChannel(c *gin.Context, channel *model.Channel, mode
 	if newAPIError != nil {
 		return newAPIError
 	}
-	if channel.ChannelInfo.IsMultiKey {
+	if channel.IsMultiKeyPool() {
 		common.SetContextKey(c, constant.ContextKeyChannelIsMultiKey, true)
 		common.SetContextKey(c, constant.ContextKeyChannelMultiKeyIndex, index)
 	} else {

@@ -20,6 +20,7 @@ const (
 
 var verificationMutex sync.Mutex
 var verificationMap map[string]verificationValue
+
 // Larger map so concurrent registrations don't evict fresh codes (MVP email verify).
 var verificationMapMaxSize = 10000
 var VerificationValidMinutes = 10
@@ -43,6 +44,24 @@ func RegisterVerificationCodeWithKey(key string, code string, purpose string) {
 	if len(verificationMap) > verificationMapMaxSize {
 		removeExpiredPairs()
 	}
+}
+
+func GetOrCreateVerificationCodeWithKey(key string, purpose string, length int) (string, bool) {
+	verificationMutex.Lock()
+	defer verificationMutex.Unlock()
+
+	mapKey := purpose + key
+	now := time.Now()
+	if value, exists := verificationMap[mapKey]; exists && int(now.Sub(value.time).Seconds()) < VerificationValidMinutes*60 {
+		return value.code, false
+	}
+
+	code := GenerateVerificationCode(length)
+	verificationMap[mapKey] = verificationValue{code: code, time: now}
+	if len(verificationMap) > verificationMapMaxSize {
+		removeExpiredPairs()
+	}
+	return code, true
 }
 
 func VerifyCodeWithKey(key string, code string, purpose string) bool {

@@ -7,20 +7,22 @@ import (
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 )
 
-func isPaymentComplianceConfirmed() bool {
-	return operation_setting.IsPaymentComplianceConfirmed()
-}
-
 func isStripeTopUpEnabled() bool {
-	if !isPaymentComplianceConfirmed() {
-		return false
-	}
 	if strings.TrimSpace(setting.StripeApiSecret) == "" || strings.TrimSpace(setting.StripeWebhookSecret) == "" {
 		return false
 	}
-	newTopupConfigured := setting.StripeTopupEnabled && strings.TrimSpace(setting.StripeTopupProductID) != ""
-	legacyTopupConfigured := strings.TrimSpace(setting.StripePriceId) != ""
-	return newTopupConfigured || legacyTopupConfigured
+	return isProductStripeTopUpEnabled() || strings.TrimSpace(setting.StripePriceId) != ""
+}
+
+func isProductStripeTopUpEnabled() bool {
+	return setting.StripeTopupEnabled && strings.TrimSpace(setting.StripeTopupProductID) != ""
+}
+
+func isLegacyStripeTopUpEnabled() bool {
+	if strings.TrimSpace(setting.StripeApiSecret) == "" || strings.TrimSpace(setting.StripeWebhookSecret) == "" {
+		return false
+	}
+	return !isProductStripeTopUpEnabled() && strings.TrimSpace(setting.StripePriceId) != ""
 }
 
 func isStripeWebhookConfigured() bool {
@@ -32,9 +34,6 @@ func isStripeWebhookEnabled() bool {
 }
 
 func isCreemTopUpEnabled() bool {
-	if !isPaymentComplianceConfirmed() {
-		return false
-	}
 	products := strings.TrimSpace(setting.CreemProducts)
 	return strings.TrimSpace(setting.CreemApiKey) != "" &&
 		products != "" &&
@@ -50,9 +49,6 @@ func isCreemWebhookEnabled() bool {
 }
 
 func isWaffoTopUpEnabled() bool {
-	if !isPaymentComplianceConfirmed() {
-		return false
-	}
 	if !setting.WaffoEnabled {
 		return false
 	}
@@ -77,9 +73,6 @@ func isWaffoWebhookEnabled() bool {
 }
 
 func isWaffoPancakeTopUpEnabled() bool {
-	if !isPaymentComplianceConfirmed() {
-		return false
-	}
 	// Presence-of-credentials = enabled. Webhook public keys ship inside
 	// the SDK; mode (test/prod) is read from each event.
 	return strings.TrimSpace(setting.WaffoPancakeMerchantID) != "" &&
@@ -96,9 +89,6 @@ func isWaffoPancakeWebhookEnabled() bool {
 }
 
 func isEpayTopUpEnabled() bool {
-	if !isPaymentComplianceConfirmed() {
-		return false
-	}
 	return isEpayWebhookConfigured() && len(operation_setting.PayMethods) > 0
 }
 

@@ -1,3 +1,4 @@
+import { formatBillingAmount, isBillingCurrency } from '@/lib/billing-currency'
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -65,13 +66,21 @@ function calculateTokenPrice(
   type: PriceType,
   ratio: number
 ): number {
-  const base = model.model_ratio * 2 * ratio
+  const localizedInput = Number(model.billing_input_per_million)
+  const localizedOutput = Number(model.billing_output_per_million)
+  const hasLocalizedInput = Number.isFinite(localizedInput)
+  const hasLocalizedOutput = Number.isFinite(localizedOutput)
+  const base = hasLocalizedInput
+    ? localizedInput * ratio
+    : model.model_ratio * 2 * ratio
 
   switch (type) {
     case 'input':
       return base
     case 'output':
-      return base * model.completion_ratio
+      return hasLocalizedOutput
+        ? localizedOutput * ratio
+        : base * model.completion_ratio
     case 'cache':
       return hasRatio(model.cache_ratio)
         ? base * Number(model.cache_ratio)
@@ -96,6 +105,25 @@ function calculateTokenPrice(
             Number(model.audio_completion_ratio)
         : Number.NaN
   }
+}
+
+function hasLocalizedTokenPrice(model: PricingModel): boolean {
+  return (
+    Boolean(model.billing_currency) &&
+    Number.isFinite(Number(model.billing_input_per_million)) &&
+    Number.isFinite(Number(model.billing_output_per_million))
+  )
+}
+
+function formatModelBillingAmount(
+  model: PricingModel,
+  amount: number,
+  digits: number
+): string | null {
+  if (!model.billing_currency || !isBillingCurrency(model.billing_currency)) {
+    return null
+  }
+  return formatBillingAmount(amount, model.billing_currency, digits)
 }
 
 function hasRatio(value: number | null | undefined): boolean {
@@ -177,14 +205,18 @@ export function formatPrice(
   if (variant === 'discounted') {
     priceInUSD *= getModelDiscount(model)
   }
-  priceInUSD = applyRechargeRate(
-    priceInUSD,
-    showWithRecharge,
-    priceRate,
-    usdExchangeRate
-  )
+  if (!hasLocalizedTokenPrice(model)) {
+    priceInUSD = applyRechargeRate(
+      priceInUSD,
+      showWithRecharge,
+      priceRate,
+      usdExchangeRate
+    )
+  }
 
   const price = priceInUSD / TOKEN_UNIT_DIVISORS[tokenUnit]
+  const localized = formatModelBillingAmount(model, price, 6)
+  if (localized) return localized
   return formatCurrencyFromUSD(price, {
     digitsLarge: 4,
     digitsSmall: 6,
@@ -216,14 +248,18 @@ export function formatGroupPrice(
     priceInUSD *= getModelDiscount(model)
   }
 
-  priceInUSD = applyRechargeRate(
-    priceInUSD,
-    showWithRecharge,
-    priceRate,
-    usdExchangeRate
-  )
+  if (!hasLocalizedTokenPrice(model)) {
+    priceInUSD = applyRechargeRate(
+      priceInUSD,
+      showWithRecharge,
+      priceRate,
+      usdExchangeRate
+    )
+  }
 
   const price = priceInUSD / TOKEN_UNIT_DIVISORS[tokenUnit]
+  const localized = formatModelBillingAmount(model, price, 6)
+  if (localized) return localized
   return formatCurrencyFromUSD(price, {
     digitsLarge: 4,
     digitsSmall: 6,
@@ -248,17 +284,25 @@ export function formatFixedPrice(
   }
 
   const ratio = getConfiguredGroupRatio(groupRatio, group)
-  let priceInUSD = (model.model_price || 0) * ratio
+  const localizedRequest = Number(model.billing_per_request)
+  const hasLocalizedRequest =
+    Boolean(model.billing_currency) && Number.isFinite(localizedRequest)
+  let priceInUSD =
+    (hasLocalizedRequest ? localizedRequest : model.model_price || 0) * ratio
   if (variant === 'discounted') {
     priceInUSD *= getModelDiscount(model)
   }
 
-  priceInUSD = applyRechargeRate(
-    priceInUSD,
-    showWithRecharge,
-    priceRate,
-    usdExchangeRate
-  )
+  if (!hasLocalizedRequest) {
+    priceInUSD = applyRechargeRate(
+      priceInUSD,
+      showWithRecharge,
+      priceRate,
+      usdExchangeRate
+    )
+  }
+  const localized = formatModelBillingAmount(model, priceInUSD, 4)
+  if (localized) return localized
 
   return formatCurrencyFromUSD(priceInUSD, {
     digitsLarge: 4,
@@ -284,17 +328,26 @@ export function formatRequestPrice(
 
   const displayGroupRatio = getDisplayGroupRatio(model, selectedGroup)
 
-  let priceInUSD = (model.model_price || 0) * displayGroupRatio
+  const localizedRequest = Number(model.billing_per_request)
+  const hasLocalizedRequest =
+    Boolean(model.billing_currency) && Number.isFinite(localizedRequest)
+  let priceInUSD =
+    (hasLocalizedRequest ? localizedRequest : model.model_price || 0) *
+    displayGroupRatio
   if (variant === 'discounted') {
     priceInUSD *= getModelDiscount(model)
   }
 
-  priceInUSD = applyRechargeRate(
-    priceInUSD,
-    showWithRecharge,
-    priceRate,
-    usdExchangeRate
-  )
+  if (!hasLocalizedRequest) {
+    priceInUSD = applyRechargeRate(
+      priceInUSD,
+      showWithRecharge,
+      priceRate,
+      usdExchangeRate
+    )
+  }
+  const localized = formatModelBillingAmount(model, priceInUSD, 4)
+  if (localized) return localized
 
   return formatCurrencyFromUSD(priceInUSD, {
     digitsLarge: 4,

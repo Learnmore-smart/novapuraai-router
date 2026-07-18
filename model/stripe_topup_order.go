@@ -12,45 +12,50 @@ import (
 
 // Stripe top-up order statuses (one-time Checkout only).
 const (
-	StripeOrderPending        = "pending"
+	StripeOrderPending         = "pending"
 	StripeOrderCheckoutCreated = "checkout_created"
-	StripeOrderPaid           = "paid"
-	StripeOrderCredited       = "credited"
-	StripeOrderFailed         = "failed"
-	StripeOrderExpired        = "expired"
-	StripeOrderRefundPending  = "refund_pending"
-	StripeOrderRefunded       = "refunded"
-	StripeOrderManualReview   = "manual_review"
+	StripeOrderPaid            = "paid"
+	StripeOrderCredited        = "credited"
+	StripeOrderFailed          = "failed"
+	StripeOrderExpired         = "expired"
+	StripeOrderRefundPending   = "refund_pending"
+	StripeOrderRefunded        = "refunded"
+	StripeOrderManualReview    = "manual_review"
 )
 
 // StripeTopupOrder is the durable one-time top-up order for NovaPura Stripe Checkout.
 type StripeTopupOrder struct {
-	Id                       int    `json:"id" gorm:"primaryKey"`
-	OrderID                  string `json:"order_id" gorm:"type:varchar(64);uniqueIndex;not null"`
-	UserId                   int    `json:"user_id" gorm:"index;not null"`
-	StripeCustomerID         string `json:"stripe_customer_id" gorm:"type:varchar(64);index;default:''"`
-	StripeCheckoutSessionID  string `json:"stripe_checkout_session_id" gorm:"type:varchar(128);uniqueIndex;default:''"`
-	StripePaymentIntentID    string `json:"stripe_payment_intent_id" gorm:"type:varchar(128);index;default:''"`
-	Status                   string `json:"status" gorm:"type:varchar(32);index;not null;default:'pending'"`
-	PresentmentCurrency      string `json:"presentment_currency" gorm:"type:varchar(8);not null"`
-	PresentmentAmountMinor   int64  `json:"presentment_amount_minor" gorm:"not null"`
+	Id                      int    `json:"id" gorm:"primaryKey"`
+	OrderID                 string `json:"order_id" gorm:"type:varchar(64);uniqueIndex;not null"`
+	UserId                  int    `json:"user_id" gorm:"index;not null"`
+	StripeCustomerID        string `json:"stripe_customer_id" gorm:"type:varchar(64);index;default:''"`
+	StripeCheckoutSessionID string `json:"stripe_checkout_session_id" gorm:"type:varchar(128);uniqueIndex;default:''"`
+	StripePaymentIntentID   string `json:"stripe_payment_intent_id" gorm:"type:varchar(128);index;default:''"`
+	Status                  string `json:"status" gorm:"type:varchar(32);index;not null;default:'pending'"`
+	PresentmentCurrency     string `json:"presentment_currency" gorm:"type:varchar(8);not null"`
+	PresentmentAmountMinor  int64  `json:"presentment_amount_minor" gorm:"not null"`
+	PaidCreditAmountMinor   int64  `json:"paid_credit_amount_minor" gorm:"not null;default:0"`
+	PromoCreditAmountMinor  int64  `json:"promo_credit_amount_minor" gorm:"not null;default:0"`
+	TotalCreditAmountMinor  int64  `json:"total_credit_amount_minor" gorm:"not null;default:0"`
 	// FxRateSnapshot: presentment currency units per 1 USD, locked at order creation.
-	FxRateSnapshot           float64 `json:"fx_rate_snapshot" gorm:"type:decimal(18,8);not null"`
-	PaidCreditMicroUSD       int64   `json:"paid_credit_micro_usd" gorm:"not null"`
-	PromoCreditMicroUSD      int64   `json:"promo_credit_micro_usd" gorm:"not null;default:0"`
-	TotalCreditMicroUSD      int64   `json:"total_credit_micro_usd" gorm:"not null"`
-	PaidQuota                int     `json:"paid_quota" gorm:"not null;default:0"`
-	PromoQuota               int     `json:"promo_quota" gorm:"not null;default:0"`
-	PromotionSnapshotJSON    string  `json:"promotion_snapshot_json" gorm:"type:text"`
-	PromotionTierID          int     `json:"promotion_tier_id" gorm:"default:0"`
-	IdempotencyKey           string  `json:"idempotency_key" gorm:"type:varchar(128);uniqueIndex;default:''"`
-	FailureReason            string  `json:"failure_reason" gorm:"type:varchar(512);default:''"`
-	CheckoutExpiresAt        int64   `json:"checkout_expires_at" gorm:"default:0"`
-	PaidAt                   int64   `json:"paid_at" gorm:"default:0"`
-	CreditedAt               int64   `json:"credited_at" gorm:"default:0"`
-	RefundedAt               int64   `json:"refunded_at" gorm:"default:0"`
-	CreatedAt                int64   `json:"created_at" gorm:"index"`
-	UpdatedAt                int64   `json:"updated_at"`
+	FxRateSnapshot        float64 `json:"fx_rate_snapshot" gorm:"type:decimal(18,8);not null"`
+	PaidCreditMicroUSD    int64   `json:"paid_credit_micro_usd" gorm:"not null"`
+	PromoCreditMicroUSD   int64   `json:"promo_credit_micro_usd" gorm:"not null;default:0"`
+	TotalCreditMicroUSD   int64   `json:"total_credit_micro_usd" gorm:"not null"`
+	PaidQuota             int     `json:"paid_quota" gorm:"not null;default:0"`
+	PromoQuota            int     `json:"promo_quota" gorm:"not null;default:0"`
+	PromotionSnapshotJSON string  `json:"promotion_snapshot_json" gorm:"type:text"`
+	PromotionTierID       int     `json:"promotion_tier_id" gorm:"default:0"`
+	PromoExpiryDays       int     `json:"promo_expiry_days" gorm:"not null;default:0"`
+	PromoExpiresAt        int64   `json:"promo_expires_at" gorm:"not null;default:0"`
+	IdempotencyKey        string  `json:"idempotency_key" gorm:"type:varchar(128);uniqueIndex;default:''"`
+	FailureReason         string  `json:"failure_reason" gorm:"type:varchar(512);default:''"`
+	CheckoutExpiresAt     int64   `json:"checkout_expires_at" gorm:"default:0"`
+	PaidAt                int64   `json:"paid_at" gorm:"default:0"`
+	CreditedAt            int64   `json:"credited_at" gorm:"default:0"`
+	RefundedAt            int64   `json:"refunded_at" gorm:"default:0"`
+	CreatedAt             int64   `json:"created_at" gorm:"index"`
+	UpdatedAt             int64   `json:"updated_at"`
 }
 
 func (StripeTopupOrder) TableName() string {
@@ -159,10 +164,13 @@ func CreditStripeTopupOrder(orderID string, customerID, paymentIntentID, session
 		promoQ = o.PromoQuota
 		if paidQ <= 0 && o.PaidCreditMicroUSD > 0 {
 			// fallback if not precomputed
-			paidQ = int(float64(o.PaidCreditMicroUSD) / 1e6 * common.QuotaPerUnit)
+			paidQ = common.QuotaFromFloat(float64(o.PaidCreditMicroUSD) / 1e6 * common.QuotaPerUnit)
 		}
 		if promoQ < 0 {
 			promoQ = 0
+		}
+		if paidQ > common.MaxQuota-promoQ {
+			return errors.New("quota overflow")
 		}
 		totalAdd := paidQ + promoQ
 		if totalAdd <= 0 {
@@ -187,8 +195,16 @@ func CreditStripeTopupOrder(orderID string, customerID, paymentIntentID, session
 		}
 		o.PaidQuota = paidQ
 		o.PromoQuota = promoQ
+		if promoQ > 0 && o.PromoExpiryDays > 0 && o.PromoExpiresAt == 0 {
+			o.PromoExpiresAt = now + int64(o.PromoExpiryDays)*24*60*60
+		}
 		if err := tx.Save(o).Error; err != nil {
 			return err
+		}
+		if promoQ > 0 {
+			if err := IssueTopupPromotionWithTx(tx, o.OrderID); err != nil {
+				return err
+			}
 		}
 
 		// Cash (paid): Quota only. Promo: both Quota and PromoQuota.
@@ -205,12 +221,25 @@ func CreditStripeTopupOrder(orderID string, customerID, paymentIntentID, session
 			return err
 		}
 
-		// Ledger entries (immutable)
+		// Credit lots and immutable ledger entries retain source/order terms.
 		if paidQ > 0 {
+			paidLot := &BalanceCreditLot{
+				UserId:              o.UserId,
+				OrderID:             o.OrderID,
+				BalanceType:         BalanceTypePaid,
+				OriginalQuota:       paidQ,
+				Currency:            o.PresentmentCurrency,
+				OriginalAmountMinor: o.PaidCreditAmountMinor,
+			}
+			if err := createTopupCreditLotWithTx(tx, paidLot); err != nil {
+				return err
+			}
 			if err := tx.Create(&BalanceLedger{
 				UserId:      o.UserId,
 				OrderID:     o.OrderID,
-				EntryType:   LedgerTypeTopupPaid,
+				LotID:       paidLot.Id,
+				BalanceType: BalanceTypePaid,
+				EntryType:   LedgerTypeTopupPaidCredit,
 				AmountQuota: paidQ,
 				AmountMicro: o.PaidCreditMicroUSD,
 				Currency:    o.PresentmentCurrency,
@@ -221,10 +250,24 @@ func CreditStripeTopupOrder(orderID string, customerID, paymentIntentID, session
 			}
 		}
 		if promoQ > 0 {
+			promoLot := &BalanceCreditLot{
+				UserId:              o.UserId,
+				OrderID:             o.OrderID,
+				BalanceType:         BalanceTypePromotional,
+				OriginalQuota:       promoQ,
+				Currency:            o.PresentmentCurrency,
+				OriginalAmountMinor: o.PromoCreditAmountMinor,
+				ExpiresAt:           o.PromoExpiresAt,
+			}
+			if err := createTopupCreditLotWithTx(tx, promoLot); err != nil {
+				return err
+			}
 			if err := tx.Create(&BalanceLedger{
 				UserId:      o.UserId,
 				OrderID:     o.OrderID,
-				EntryType:   LedgerTypeTopupPromo,
+				LotID:       promoLot.Id,
+				BalanceType: BalanceTypePromotional,
+				EntryType:   LedgerTypeTopupPromotionalBonus,
 				AmountQuota: promoQ,
 				AmountMicro: o.PromoCreditMicroUSD,
 				Currency:    o.PresentmentCurrency,
@@ -294,7 +337,9 @@ func MarkStripeTopupOrderStatus(orderID, fromStatus, toStatus, reason string) er
 			o.FailureReason = reason
 		}
 		if toStatus == StripeOrderExpired || toStatus == StripeOrderFailed {
-			// keep
+			if err := ReleaseTopupPromotionWithTx(tx, o.OrderID); err != nil {
+				return err
+			}
 		}
 		return tx.Save(o).Error
 	})

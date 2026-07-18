@@ -10,7 +10,6 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/logger"
-	"github.com/QuantumNous/new-api/setting/operation_setting"
 
 	"github.com/bytedance/gopkg/util/gopool"
 	"gorm.io/gorm"
@@ -21,28 +20,28 @@ const UserNameMaxLength = 20
 // User if you add sensitive fields, don't forget to clean them in setupLogin function.
 // Otherwise, the sensitive information will be saved on local storage in plain text!
 type User struct {
-	Id               int                        `json:"id"`
-	Username         string                     `json:"username" gorm:"unique;index" validate:"max=20"`
-	Password         string                     `json:"password" gorm:"not null;" validate:"min=8,max=20"`
-	OriginalPassword string                     `json:"original_password" gorm:"-:all"` // this field is only for Password change verification, don't save it to database!
-	DisplayName      string                     `json:"display_name" gorm:"index" validate:"max=20"`
-	Role             int                        `json:"role" gorm:"type:int;default:1"`   // admin, common
-	Status           int                        `json:"status" gorm:"type:int;default:1"` // enabled, disabled
-	Email            string                     `json:"email" gorm:"index" validate:"max=50"`
-	GitHubId         string                     `json:"github_id" gorm:"column:github_id;index"`
-	DiscordId        string                     `json:"discord_id" gorm:"column:discord_id;index"`
-	OidcId           string                     `json:"oidc_id" gorm:"column:oidc_id;index"`
-	WeChatId         string                     `json:"wechat_id" gorm:"column:wechat_id;index"`
-	TelegramId       string                     `json:"telegram_id" gorm:"column:telegram_id;index"`
-	VerificationCode string                     `json:"verification_code" gorm:"-:all"`                         // this field is only for Email verification, don't save it to database!
-	AccessToken      *string                    `json:"-" gorm:"type:char(32);column:access_token;uniqueIndex"` // this token is for system management
+	Id               int     `json:"id"`
+	Username         string  `json:"username" gorm:"unique;index" validate:"max=20"`
+	Password         string  `json:"password" gorm:"not null;" validate:"min=8,max=20"`
+	OriginalPassword string  `json:"original_password" gorm:"-:all"` // this field is only for Password change verification, don't save it to database!
+	DisplayName      string  `json:"display_name" gorm:"index" validate:"max=20"`
+	Role             int     `json:"role" gorm:"type:int;default:1"`   // admin, common
+	Status           int     `json:"status" gorm:"type:int;default:1"` // enabled, disabled
+	Email            string  `json:"email" gorm:"index" validate:"max=50"`
+	GitHubId         string  `json:"github_id" gorm:"column:github_id;index"`
+	DiscordId        string  `json:"discord_id" gorm:"column:discord_id;index"`
+	OidcId           string  `json:"oidc_id" gorm:"column:oidc_id;index"`
+	WeChatId         string  `json:"wechat_id" gorm:"column:wechat_id;index"`
+	TelegramId       string  `json:"telegram_id" gorm:"column:telegram_id;index"`
+	VerificationCode string  `json:"verification_code" gorm:"-:all"`                         // this field is only for Email verification, don't save it to database!
+	AccessToken      *string `json:"-" gorm:"type:char(32);column:access_token;uniqueIndex"` // this token is for system management
 	// Quota is total spendable balance (cash + promo). Always maintained as sum.
 	Quota int `json:"quota" gorm:"type:int;default:0"`
 	// PromoQuota is gift/campaign balance (register, invite, share). Deducted before cash.
 	// Cash = Quota - PromoQuota (derived). Top-ups credit cash only (Quota increases, PromoQuota unchanged).
-	PromoQuota int `json:"promo_quota" gorm:"type:int;default:0;column:promo_quota"`
-	UsedQuota  int `json:"used_quota" gorm:"type:int;default:0;column:used_quota"` // used quota
-	RequestCount int `json:"request_count" gorm:"type:int;default:0;"`             // request number
+	PromoQuota   int    `json:"promo_quota" gorm:"type:int;default:0;column:promo_quota"`
+	UsedQuota    int    `json:"used_quota" gorm:"type:int;default:0;column:used_quota"` // used quota
+	RequestCount int    `json:"request_count" gorm:"type:int;default:0;"`               // request number
 	Group        string `json:"group" gorm:"type:varchar(64);default:'default'"`
 	AffCode      string `json:"aff_code" gorm:"type:varchar(32);column:aff_code;uniqueIndex"`
 	AffCount     int    `json:"aff_count" gorm:"type:int;default:0;column:aff_count"`
@@ -53,15 +52,15 @@ type User struct {
 	InviterId           int `json:"inviter_id" gorm:"type:int;column:inviter_id;index"`
 	// InviteRewardPending: invitee not yet qualified for delayed invite rewards.
 	// Set in code on register when DelayedInviteReward; avoid gorm boolean default tags (cross-DB AutoMigrate churn).
-	InviteRewardPending bool `json:"invite_reward_pending" gorm:"column:invite_reward_pending"`
-	DeletedAt        gorm.DeletedAt             `gorm:"index"`
-	LinuxDOId        string                     `json:"linux_do_id" gorm:"column:linux_do_id;index"`
-	Setting          string                     `json:"setting" gorm:"type:text;column:setting"`
-	Remark           string                     `json:"remark,omitempty" gorm:"type:varchar(255)" validate:"max=255"`
-	StripeCustomer   string                     `json:"stripe_customer" gorm:"type:varchar(64);column:stripe_customer;index"`
-	CreatedAt        int64                      `json:"created_at" gorm:"autoCreateTime;column:created_at"`
-	LastLoginAt      int64                      `json:"last_login_at" gorm:"default:0;column:last_login_at"`
-	AdminPermissions map[string]map[string]bool `json:"admin_permissions,omitempty" gorm:"-:all"`
+	InviteRewardPending bool                       `json:"invite_reward_pending" gorm:"column:invite_reward_pending"`
+	DeletedAt           gorm.DeletedAt             `gorm:"index"`
+	LinuxDOId           string                     `json:"linux_do_id" gorm:"column:linux_do_id;index"`
+	Setting             string                     `json:"setting" gorm:"type:text;column:setting"`
+	Remark              string                     `json:"remark,omitempty" gorm:"type:varchar(255)" validate:"max=255"`
+	StripeCustomer      string                     `json:"stripe_customer" gorm:"type:varchar(64);column:stripe_customer;index"`
+	CreatedAt           int64                      `json:"created_at" gorm:"autoCreateTime;column:created_at"`
+	LastLoginAt         int64                      `json:"last_login_at" gorm:"default:0;column:last_login_at"`
+	AdminPermissions    map[string]map[string]bool `json:"admin_permissions,omitempty" gorm:"-:all"`
 }
 
 func (user *User) ToBaseUser() *UserBase {
@@ -628,7 +627,7 @@ func (user *User) finishInsert(inviterId int) {
 			}).Error
 			return
 		}
-		if operation_setting.IsPaymentComplianceConfirmed() {
+		if inviterId != 0 {
 			if common.QuotaForInvitee > 0 {
 				_ = IncreaseUserPromoQuota(user.Id, common.QuotaForInvitee, true)
 				RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("使用邀请码赠送 %s", logger.LogQuota(common.QuotaForInvitee)))
@@ -686,7 +685,7 @@ func (user *User) FinalizeOAuthUserCreation(inviterId int) {
 	if common.QuotaForNewUser > 0 {
 		RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("新用户注册赠送 %s", logger.LogQuota(common.QuotaForNewUser)))
 	}
-	if inviterId != 0 && operation_setting.IsPaymentComplianceConfirmed() {
+	if inviterId != 0 {
 		if common.QuotaForInvitee > 0 {
 			_ = IncreaseUserQuota(user.Id, common.QuotaForInvitee, true)
 			RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("使用邀请码赠送 %s", logger.LogQuota(common.QuotaForInvitee)))
@@ -1136,8 +1135,10 @@ func GetUserSetting(id int, fromDB bool) (settingMap dto.UserSetting, err error)
 
 // QuotaWalletSplit records how much came from promo vs cash on a deduct.
 type QuotaWalletSplit struct {
-	Promo int `json:"promo"`
-	Cash  int `json:"cash"`
+	Promo       int                    `json:"promo"`
+	Cash        int                    `json:"cash"`
+	Allocations []BalanceLotAllocation `json:"allocations,omitempty"`
+	Expired     int                    `json:"-"`
 }
 
 // IncreaseUserQuota credits cash balance (top-up / admin cash). Increases total Quota only.
@@ -1218,7 +1219,7 @@ func DecreaseUserQuotaWithSplit(id int, amount int, db bool) (split QuotaWalletS
 		return split, err
 	}
 	gopool.Go(func() {
-		if e := cacheDecrUserQuota(id, int64(amount)); e != nil {
+		if e := cacheDecrUserQuota(id, int64(amount+split.Expired)); e != nil {
 			common.SysLog("failed to decrease user quota cache: " + e.Error())
 		}
 	})
@@ -1231,36 +1232,7 @@ func decreaseUserQuota(id int, quota int) (err error) {
 }
 
 func decreaseUserQuotaWithSplit(id int, amount int) (split QuotaWalletSplit, err error) {
-	err = DB.Transaction(func(tx *gorm.DB) error {
-		var u User
-		if e := lockForUpdate(tx).Select("id", "quota", "promo_quota").First(&u, id).Error; e != nil {
-			return e
-		}
-		if u.Quota < amount {
-			return fmt.Errorf("insufficient quota: have %d need %d", u.Quota, amount)
-		}
-		promoPart := u.PromoQuota
-		if promoPart > amount {
-			promoPart = amount
-		}
-		if promoPart < 0 {
-			promoPart = 0
-		}
-		cashPart := amount - promoPart
-		res := tx.Model(&User{}).Where("id = ? AND quota >= ?", id, amount).Updates(map[string]any{
-			"promo_quota": gorm.Expr("promo_quota - ?", promoPart),
-			"quota":       gorm.Expr("quota - ?", amount),
-		})
-		if res.Error != nil {
-			return res.Error
-		}
-		if res.RowsAffected == 0 {
-			return fmt.Errorf("insufficient quota: concurrent update")
-		}
-		split = QuotaWalletSplit{Promo: promoPart, Cash: cashPart}
-		return nil
-	})
-	return split, err
+	return decreaseUserQuotaWithLots(id, amount)
 }
 
 // RestoreUserQuotaSplit restores a prior dual-balance deduct (refund path).
@@ -1272,10 +1244,7 @@ func RestoreUserQuotaSplit(id int, split QuotaWalletSplit) error {
 	if total == 0 {
 		return nil
 	}
-	err := DB.Model(&User{}).Where("id = ?", id).Updates(map[string]any{
-		"quota":       gorm.Expr("quota + ?", total),
-		"promo_quota": gorm.Expr("promo_quota + ?", split.Promo),
-	}).Error
+	err := restoreUserQuotaSplitWithLots(id, split)
 	if err != nil {
 		return err
 	}

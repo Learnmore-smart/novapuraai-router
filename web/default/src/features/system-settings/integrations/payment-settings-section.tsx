@@ -1,38 +1,29 @@
-/*
-Copyright (C) 2023-2026 QuantumNous
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For commercial licensing, please contact support@quantumnous.com
-*/
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Code2, Eye, ShieldAlert } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import {
+  CheckCircle2,
+  CircleAlert,
+  Code2,
+  Eye,
+  ShieldAlert,
+} from 'lucide-react'
 import * as React from 'react'
-import { useForm, type Resolver } from 'react-hook-form'
+import { useForm, useWatch, type Control, type Resolver } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import * as z from 'zod'
 
-import { RiskAcknowledgementDialog } from '@/components/risk-acknowledgement-dialog'
-import {
-  Alert,
-  AlertAction,
-  AlertDescription,
-  AlertTitle,
-} from '@/components/ui/alert'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Form,
   FormControl,
@@ -46,9 +37,7 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { cn } from '@/lib/utils'
 
-import { confirmPaymentCompliance } from '../api'
 import {
   SettingsForm,
   SettingsSwitchContent,
@@ -62,6 +51,11 @@ import { AmountDiscountVisualEditor } from './amount-discount-visual-editor'
 import { AmountOptionsVisualEditor } from './amount-options-visual-editor'
 import { CreemProductsVisualEditor } from './creem-products-visual-editor'
 import { PaymentMethodsVisualEditor } from './payment-methods-visual-editor'
+import { getStripeEnvironmentReadiness } from './stripe-environment-status'
+import {
+  TopupPromotionSettings,
+  type TopupPromotionSettingsHandle,
+} from './topup-promotion-settings'
 import {
   formatJsonForEditor,
   getJsonError,
@@ -141,10 +135,11 @@ const paymentSchema = z.object({
       })
     }
   }),
-  StripeApiSecret: z.string(),
-  StripeWebhookSecret: z.string(),
   StripePriceId: z.string(),
-  StripeTopupProductID: z.string(),
+  StripeTestTopupProductID: z.string(),
+  StripeProdTopupProductID: z.string(),
+  StripeTestAccountID: z.string(),
+  StripeProdAccountID: z.string(),
   StripeTopupEnabled: z.boolean(),
   StripeUnitPrice: z.coerce.number().min(0),
   StripeMinTopUp: z.coerce.number().min(0),
@@ -187,23 +182,145 @@ type PaymentBaseFormValues = Omit<
   keyof WaffoFormFieldValues | keyof WaffoPancakeSettingsValues
 >
 
-const CURRENT_COMPLIANCE_TERMS_VERSION = 'v1'
 const paymentTabContentClassName = 'mt-6 min-w-0'
-
-type PaymentComplianceDefaults = {
-  confirmed: boolean
-  termsVersion: string
-  confirmedAt: number
-  confirmedBy: number
-}
 
 type PaymentSettingsSectionProps = {
   defaultValues: PaymentBaseFormValues
+  stripeCredentialStatus: {
+    runtimeEnvironment: 'test' | 'production' | 'disabled'
+    test: StripeCredentialStatus
+    production: StripeCredentialStatus
+  }
   waffoDefaultValues: WaffoSettingsValues
   waffoPancakeDefaultValues: WaffoPancakeSettingsValues
   waffoPancakeProvisionedStoreID?: string
   waffoPancakeProvisionedProductID?: string
-  complianceDefaults: PaymentComplianceDefaults
+}
+
+type StripeCredentialStatus = {
+  secretConfigured: boolean
+  publishableConfigured: boolean
+  webhookConfigured: boolean
+}
+
+type StripeEnvironmentCardProps = {
+  control: Control<PaymentFormValues>
+  environment: 'test' | 'production'
+  isActive: boolean
+  status: StripeCredentialStatus
+  productField: 'StripeTestTopupProductID' | 'StripeProdTopupProductID'
+  accountField: 'StripeTestAccountID' | 'StripeProdAccountID'
+}
+
+function StripeEnvironmentCard({
+  control,
+  environment,
+  isActive,
+  status,
+  productField,
+  accountField,
+}: StripeEnvironmentCardProps) {
+  const { t } = useTranslation()
+  const productID = useWatch({ control, name: productField })
+  const accountID = useWatch({ control, name: accountField })
+  const readiness = getStripeEnvironmentReadiness({
+    ...status,
+    productID,
+    accountID,
+  })
+  const label = environment === 'test' ? t('Test') : t('Production')
+  const credentialRows = [
+    [t('Secret key'), status.secretConfigured],
+    [t('Publishable key'), status.publishableConfigured],
+    [t('Webhook signing secret'), status.webhookConfigured],
+  ] as const
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          {t('{{environment}} credentials', { environment: label })}
+        </CardTitle>
+        <CardDescription>
+          {environment === 'test'
+            ? t('Used automatically on localhost and non-release deployments.')
+            : t('Used automatically only on the trusted production domain.')}
+        </CardDescription>
+        <CardAction className='flex gap-2'>
+          {isActive && <Badge>{t('Active')}</Badge>}
+          <Badge variant={readiness.ready ? 'secondary' : 'destructive'}>
+            {readiness.ready ? t('Ready') : t('Incomplete')}
+          </Badge>
+        </CardAction>
+      </CardHeader>
+      <CardContent className='space-y-4'>
+        <div
+          className='space-y-2'
+          aria-label={t('{{environment}} credential status', {
+            environment: label,
+          })}
+        >
+          {credentialRows.map(([credentialLabel, configured]) => (
+            <div
+              key={credentialLabel}
+              className='bg-muted/50 flex items-center justify-between rounded-md px-3 py-2'
+            >
+              <span className='text-sm font-medium'>{credentialLabel}</span>
+              <span className='flex items-center gap-2'>
+                <span
+                  className='font-mono text-xs tracking-wider select-none'
+                  aria-hidden='true'
+                  onCopy={(event) => event.preventDefault()}
+                >
+                  {configured ? '••••••••••••' : '—'}
+                </span>
+                {configured ? (
+                  <CheckCircle2
+                    className='size-4 text-emerald-600'
+                    aria-label={t('Configured')}
+                  />
+                ) : (
+                  <CircleAlert
+                    className='text-destructive size-4'
+                    aria-label={t('Missing')}
+                  />
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div className='grid gap-4 sm:grid-cols-2'>
+          <FormField
+            control={control}
+            name={accountField}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('Account ID')}</FormLabel>
+                <FormControl>
+                  <Input placeholder='acct_xxx' {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={control}
+            name={productField}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('Wallet top-up product ID')}</FormLabel>
+                <FormControl>
+                  <Input placeholder='prod_xxx' {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      </CardContent>
+    </Card>
+  )
 }
 
 function parseWaffoPayMethods(value: string): PayMethod[] {
@@ -217,11 +334,11 @@ function parseWaffoPayMethods(value: string): PayMethod[] {
 
 export function PaymentSettingsSection({
   defaultValues,
+  stripeCredentialStatus,
   waffoDefaultValues,
   waffoPancakeDefaultValues,
   waffoPancakeProvisionedStoreID,
   waffoPancakeProvisionedProductID,
-  complianceDefaults,
 }: PaymentSettingsSectionProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
@@ -235,6 +352,8 @@ export function PaymentSettingsSection({
     [defaultValues, waffoDefaultValues, waffoPancakeDefaultValues]
   )
   const initialRef = React.useRef(initialFormValues)
+  const topupPromotionSettingsRef =
+    React.useRef<TopupPromotionSettingsHandle>(null)
   const defaultsSignature = React.useMemo(
     () => JSON.stringify(initialFormValues),
     [initialFormValues]
@@ -247,7 +366,6 @@ export function PaymentSettingsSection({
     React.useState(true)
   const [creemProductsVisualMode, setCreemProductsVisualMode] =
     React.useState(true)
-  const [showComplianceDialog, setShowComplianceDialog] = React.useState(false)
   const [waffoPayMethods, setWaffoPayMethods] = React.useState<PayMethod[]>(
     () => parseWaffoPayMethods(waffoDefaultValues.WaffoPayMethods)
   )
@@ -274,80 +392,6 @@ export function PaymentSettingsSection({
     setWaffoPancakeSelection(nextBinding)
     setWaffoPancakeSavedBinding(nextBinding)
   }, [waffoPancakeProvisionedProductID, waffoPancakeProvisionedStoreID])
-
-  const complianceStatements = React.useMemo(
-    () => [
-      t(
-        'You have legally obtained authorization for the connected model APIs, accounts, keys, and quotas.'
-      ),
-      t(
-        'You commit to using upstream APIs, accounts, keys, quotas, and service capabilities only within the scope of lawful authorization obtained from upstream service providers, model service providers, or relevant rights holders, and will not conduct unauthorized resale, trafficking, distribution, or other non-compliant commercialization.'
-      ),
-      t(
-        'If you provide generative AI services to the public in mainland China, you will fulfill legal obligations including filing, security assessment, content safety, complaint handling, generated content labeling, log retention, and personal information protection.'
-      ),
-      t(
-        'You commit not to use this system to implement, assist with, or indirectly implement acts that violate applicable laws and regulations, regulatory requirements, platform rules, public interests, or the lawful rights and interests of third parties.'
-      ),
-      t(
-        'You understand and independently bear legal responsibility arising from deployment, operation, and charging behavior.'
-      ),
-      t(
-        'You understand this compliance reminder is only for risk notice and does not constitute legal advice, a compliance review conclusion, or a guarantee of the legality of your use of this system; you should consult professional legal or compliance advisors based on your actual business scenario.'
-      ),
-    ],
-    [t]
-  )
-
-  const complianceRequiredText = t(
-    'I have read and understood the above compliance reminder, acknowledge the related legal risks, and confirm that I bear legal responsibility arising from deployment, operation, and charging behavior.'
-  )
-  const complianceRequiredTextParts = React.useMemo(
-    () => [
-      {
-        type: 'input' as const,
-        text: t('I have read and understood the above compliance reminder'),
-      },
-      { type: 'static' as const, text: t('，') },
-      {
-        type: 'input' as const,
-        text: t('acknowledge the related legal risks'),
-      },
-      { type: 'static' as const, text: t('，and ') },
-      {
-        type: 'input' as const,
-        text: t(
-          'confirm that I bear legal responsibility arising from deployment'
-        ),
-      },
-      { type: 'static' as const, text: t('、') },
-      {
-        type: 'input' as const,
-        text: t('operation and charging behavior'),
-      },
-    ],
-    [t]
-  )
-
-  const complianceConfirmed =
-    complianceDefaults.confirmed &&
-    complianceDefaults.termsVersion === CURRENT_COMPLIANCE_TERMS_VERSION
-
-  const confirmComplianceMutation = useMutation({
-    mutationFn: confirmPaymentCompliance,
-    onSuccess: (data) => {
-      if (data.success) {
-        toast.success(t('Compliance confirmed successfully'))
-        setShowComplianceDialog(false)
-        queryClient.invalidateQueries({ queryKey: ['system-options'] })
-      } else {
-        toast.error(data.message || t('Failed to confirm compliance'))
-      }
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || t('Failed to confirm compliance'))
-    },
-  })
 
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentSchema) as Resolver<PaymentFormValues>,
@@ -429,10 +473,11 @@ export function PaymentSettingsSection({
       PayMethods: values.PayMethods.trim(),
       AmountOptions: values.AmountOptions.trim(),
       AmountDiscount: values.AmountDiscount.trim(),
-      StripeApiSecret: values.StripeApiSecret.trim(),
-      StripeWebhookSecret: values.StripeWebhookSecret.trim(),
       StripePriceId: values.StripePriceId.trim(),
-      StripeTopupProductID: values.StripeTopupProductID.trim(),
+      StripeTestTopupProductID: values.StripeTestTopupProductID.trim(),
+      StripeProdTopupProductID: values.StripeProdTopupProductID.trim(),
+      StripeTestAccountID: values.StripeTestAccountID.trim(),
+      StripeProdAccountID: values.StripeProdAccountID.trim(),
       StripeTopupEnabled: values.StripeTopupEnabled,
       StripeUnitPrice: values.StripeUnitPrice,
       StripeMinTopUp: values.StripeMinTopUp,
@@ -475,10 +520,13 @@ export function PaymentSettingsSection({
       PayMethods: initialRef.current.PayMethods.trim(),
       AmountOptions: initialRef.current.AmountOptions.trim(),
       AmountDiscount: initialRef.current.AmountDiscount.trim(),
-      StripeApiSecret: initialRef.current.StripeApiSecret.trim(),
-      StripeWebhookSecret: initialRef.current.StripeWebhookSecret.trim(),
       StripePriceId: initialRef.current.StripePriceId.trim(),
-      StripeTopupProductID: initialRef.current.StripeTopupProductID.trim(),
+      StripeTestTopupProductID:
+        initialRef.current.StripeTestTopupProductID.trim(),
+      StripeProdTopupProductID:
+        initialRef.current.StripeProdTopupProductID.trim(),
+      StripeTestAccountID: initialRef.current.StripeTestAccountID.trim(),
+      StripeProdAccountID: initialRef.current.StripeProdAccountID.trim(),
       StripeTopupEnabled: initialRef.current.StripeTopupEnabled,
       StripeUnitPrice: initialRef.current.StripeUnitPrice,
       StripeMinTopUp: initialRef.current.StripeMinTopUp,
@@ -568,36 +616,47 @@ export function PaymentSettingsSection({
       })
     }
 
-    if (
-      sanitized.StripeApiSecret &&
-      sanitized.StripeApiSecret !== initial.StripeApiSecret
-    ) {
-      updates.push({ key: 'StripeApiSecret', value: sanitized.StripeApiSecret })
-    }
-
-    if (
-      sanitized.StripeWebhookSecret &&
-      sanitized.StripeWebhookSecret !== initial.StripeWebhookSecret
-    ) {
-      updates.push({
-        key: 'StripeWebhookSecret',
-        value: sanitized.StripeWebhookSecret,
-      })
-    }
-
     if (sanitized.StripePriceId !== initial.StripePriceId) {
       updates.push({ key: 'StripePriceId', value: sanitized.StripePriceId })
     }
 
-    if (sanitized.StripeTopupProductID !== initial.StripeTopupProductID) {
+    if (
+      sanitized.StripeTestTopupProductID !== initial.StripeTestTopupProductID
+    ) {
       updates.push({
-        key: 'StripeTopupProductID',
-        value: sanitized.StripeTopupProductID,
+        key: 'StripeTestTopupProductID',
+        value: sanitized.StripeTestTopupProductID,
+      })
+    }
+
+    if (
+      sanitized.StripeProdTopupProductID !== initial.StripeProdTopupProductID
+    ) {
+      updates.push({
+        key: 'StripeProdTopupProductID',
+        value: sanitized.StripeProdTopupProductID,
+      })
+    }
+
+    if (sanitized.StripeTestAccountID !== initial.StripeTestAccountID) {
+      updates.push({
+        key: 'StripeTestAccountID',
+        value: sanitized.StripeTestAccountID,
+      })
+    }
+
+    if (sanitized.StripeProdAccountID !== initial.StripeProdAccountID) {
+      updates.push({
+        key: 'StripeProdAccountID',
+        value: sanitized.StripeProdAccountID,
       })
     }
 
     if (sanitized.StripeTopupEnabled !== initial.StripeTopupEnabled) {
-      updates.push({ key: 'StripeTopupEnabled', value: sanitized.StripeTopupEnabled })
+      updates.push({
+        key: 'StripeTopupEnabled',
+        value: sanitized.StripeTopupEnabled,
+      })
     }
 
     if (sanitized.StripeUnitPrice !== initial.StripeUnitPrice) {
@@ -725,13 +784,27 @@ export function PaymentSettingsSection({
       waffoPancakeSelection.storeID !== waffoPancakeSavedBinding.storeID ||
       waffoPancakeSelection.productID !== waffoPancakeSavedBinding.productID
 
-    if (updates.length === 0 && !hasWaffoPancakeChanges) {
+    const hasTopupPromotionChanges =
+      topupPromotionSettingsRef.current?.isDirty() ?? false
+
+    if (
+      updates.length === 0 &&
+      !hasWaffoPancakeChanges &&
+      !hasTopupPromotionChanges
+    ) {
       toast.info(t('No changes to save'))
       return
     }
 
     for (const update of updates) {
       await updateOption.mutateAsync(update)
+    }
+
+    if (hasTopupPromotionChanges) {
+      const saved = await topupPromotionSettingsRef.current?.save()
+      if (!saved) {
+        return
+      }
     }
 
     if (!hasWaffoPancakeChanges) {
@@ -815,76 +888,10 @@ export function PaymentSettingsSection({
 
   return (
     <SettingsSection title={t('Payment Gateway')}>
-      {!complianceConfirmed ? (
-        <Alert variant='destructive' className='mb-6'>
-          <ShieldAlert className='h-4 w-4' />
-          <AlertTitle>{t('Compliance confirmation required')}</AlertTitle>
-          <AlertDescription>
-            <div className='space-y-3'>
-              <p>
-                {t(
-                  'Payment, redemption codes, subscription plans, and invitation rewards are locked until the root administrator confirms the compliance terms.'
-                )}
-              </p>
-              <ol className='list-decimal space-y-1 pl-5'>
-                {complianceStatements.map((statement) => (
-                  <li key={statement}>{statement}</li>
-                ))}
-              </ol>
-            </div>
-          </AlertDescription>
-          <AlertAction>
-            <Button
-              type='button'
-              size='sm'
-              variant='destructive'
-              onClick={() => setShowComplianceDialog(true)}
-            >
-              {t('Confirm compliance')}
-            </Button>
-          </AlertAction>
-        </Alert>
-      ) : (
-        <Alert className='mb-6'>
-          <AlertTitle>{t('Compliance confirmed')}</AlertTitle>
-          <AlertDescription>
-            {t('Confirmed at {{time}} by user #{{userId}}', {
-              time: complianceDefaults.confirmedAt
-                ? new Date(
-                    complianceDefaults.confirmedAt * 1000
-                  ).toLocaleString()
-                : '-',
-              userId: complianceDefaults.confirmedBy || '-',
-            })}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <RiskAcknowledgementDialog
-        open={showComplianceDialog}
-        onOpenChange={setShowComplianceDialog}
-        title={t('Confirm compliance terms')}
-        description={t(
-          'This confirmation unlocks payment, redemption code, subscription plan, and invitation reward features. Please read the statements carefully.'
-        )}
-        items={complianceStatements}
-        requiredText={complianceRequiredText}
-        requiredTextParts={complianceRequiredTextParts}
-        inputPrompt={t('Please type the following text to confirm:')}
-        inputPlaceholder={t('Type the confirmation text here')}
-        mismatchHint={t('The entered text does not match the required text.')}
-        confirmText={t('Confirm and enable')}
-        isLoading={confirmComplianceMutation.isPending}
-        onConfirm={() => confirmComplianceMutation.mutate()}
-      />
-
       <Form {...form}>
         <SettingsForm
           onSubmit={form.handleSubmit(onSubmit)}
-          className={cn(
-            'gap-y-8',
-            !complianceConfirmed && 'pointer-events-none opacity-40'
-          )}
+          className='gap-y-8'
           data-no-autosubmit='true'
         >
           <SettingsPageFormActions
@@ -915,55 +922,9 @@ export function PaymentSettingsSection({
                   </p>
                 </div>
 
-                <div className='grid gap-6 md:grid-cols-2'>
-                  <FormField
-                    control={form.control}
-                    name='Price'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {t('Price (local currency / USD)')}
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type='number'
-                            step='0.01'
-                            min={0}
-                            {...safeNumberFieldProps(field)}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t(
-                            'How much to charge for each US dollar of balance (Epay)'
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name='MinTopUp'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('Minimum top-up (USD)')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            type='number'
-                            step='0.01'
-                            min={0}
-                            {...safeNumberFieldProps(field)}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t('Smallest USD amount users can recharge (Epay)')}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <TopupPromotionSettings
+                  saveHandleRef={topupPromotionSettingsRef}
+                />
 
                 <FormField
                   control={form.control}
@@ -1211,6 +1172,55 @@ export function PaymentSettingsSection({
                 <div className='grid gap-6 md:grid-cols-2'>
                   <FormField
                     control={form.control}
+                    name='Price'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('Epay charge per USD credit')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type='number'
+                            step='0.01'
+                            min={0}
+                            {...safeNumberFieldProps(field)}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t(
+                            'Legacy Epay conversion only. It is not used by Stripe Product Checkout or billing-currency FX.'
+                          )}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name='MinTopUp'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('Epay minimum top-up (USD)')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type='number'
+                            step='0.01'
+                            min={0}
+                            {...safeNumberFieldProps(field)}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t(
+                            'Legacy Epay minimum only. Stripe uses the per-currency minimums in General.'
+                          )}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className='grid gap-6 md:grid-cols-2'>
+                  <FormField
+                    control={form.control}
                     name='EpayId'
                     render={({ field }) => (
                       <FormItem>
@@ -1275,7 +1285,14 @@ export function PaymentSettingsSection({
                     <li>
                       {t('Webhook URL:')}{' '}
                       <code className='rounded bg-blue-100 px-1 py-0.5 text-xs dark:bg-blue-900'>
-                        {'<ServerAddress>/api/stripe/webhook'}
+                        https://www.novapuraai.com/api/stripe/webhook
+                      </code>
+                    </li>
+                    <li>
+                      {t('Local test forwarding:')}{' '}
+                      <code className='rounded bg-blue-100 px-1 py-0.5 text-xs dark:bg-blue-900'>
+                        stripe listen --forward-to
+                        http://localhost:3000/api/stripe/webhook
                       </code>
                     </li>
                     <li>
@@ -1302,105 +1319,42 @@ export function PaymentSettingsSection({
                   </ul>
                 </div>
 
-                <div className='grid gap-6 md:grid-cols-3'>
-                  <FormField
-                    control={form.control}
-                    name='StripeApiSecret'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('API secret')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            type='password'
-                            placeholder={t('sk_xxx or rk_xxx')}
-                            autoComplete='new-password'
-                            {...field}
-                            onChange={(event) =>
-                              field.onChange(event.target.value)
-                            }
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t('Stripe API key (leave blank unless updating)')}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
+                <Alert>
+                  <ShieldAlert />
+                  <AlertTitle>
+                    {t('Stripe secrets are managed securely')}
+                  </AlertTitle>
+                  <AlertDescription>
+                    {t(
+                      'Update Stripe keys in Secret Manager or environment variables. This dashboard shows only whether each value is configured and never returns the secret.'
                     )}
-                  />
+                  </AlertDescription>
+                </Alert>
 
-                  <FormField
+                <div className='grid gap-4 xl:grid-cols-2'>
+                  <StripeEnvironmentCard
                     control={form.control}
-                    name='StripeWebhookSecret'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('Webhook secret')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            type='password'
-                            placeholder={t('whsec_xxx')}
-                            autoComplete='new-password'
-                            {...field}
-                            onChange={(event) =>
-                              field.onChange(event.target.value)
-                            }
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t(
-                            'Webhook signing secret (leave blank unless updating)'
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    environment='test'
+                    isActive={
+                      stripeCredentialStatus.runtimeEnvironment === 'test'
+                    }
+                    status={stripeCredentialStatus.test}
+                    accountField='StripeTestAccountID'
+                    productField='StripeTestTopupProductID'
                   />
-
-                  <FormField
+                  <StripeEnvironmentCard
                     control={form.control}
-                    name='StripePriceId'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('Price ID')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder={t('price_xxx')}
-                            {...field}
-                            onChange={(event) =>
-                              field.onChange(event.target.value)
-                            }
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t('Stripe product price ID')}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    environment='production'
+                    isActive={
+                      stripeCredentialStatus.runtimeEnvironment === 'production'
+                    }
+                    status={stripeCredentialStatus.production}
+                    accountField='StripeProdAccountID'
+                    productField='StripeProdTopupProductID'
                   />
                 </div>
 
                 <div className='grid gap-6 md:grid-cols-2'>
-                  <FormField
-                    control={form.control}
-                    name='StripeTopupProductID'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('Wallet top-up product ID')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder='prod_xxx'
-                            {...field}
-                            onChange={(event) => field.onChange(event.target.value)}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t('Stripe product ID used for dynamic wallet top-up prices.')}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
                   <FormField
                     control={form.control}
                     name='StripeTopupEnabled'
@@ -1409,7 +1363,9 @@ export function PaymentSettingsSection({
                         <SettingsSwitchContent>
                           <FormLabel>{t('Enable wallet top-ups')}</FormLabel>
                           <FormDescription>
-                            {t('Allow the multi-currency Stripe Checkout wallet top-up flow.')}
+                            {t(
+                              'Allow the multi-currency Stripe Checkout wallet top-up flow.'
+                            )}
                           </FormDescription>
                         </SettingsSwitchContent>
                         <FormControl>
@@ -1423,53 +1379,7 @@ export function PaymentSettingsSection({
                   />
                 </div>
 
-                <div className='grid gap-6 md:grid-cols-3'>
-                  <FormField
-                    control={form.control}
-                    name='StripeUnitPrice'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {t('Unit price (local currency / USD)')}
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type='number'
-                            step='0.01'
-                            min={0}
-                            {...safeNumberFieldProps(field)}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t('e.g., 8 means 8 local currency per USD')}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name='StripeMinTopUp'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('Minimum top-up (USD)')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            type='number'
-                            step='0.01'
-                            min={0}
-                            {...safeNumberFieldProps(field)}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t('Minimum recharge amount in USD')}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
+                <div className='grid gap-6 md:grid-cols-2'>
                   <FormField
                     control={form.control}
                     name='StripePromotionCodesEnabled'

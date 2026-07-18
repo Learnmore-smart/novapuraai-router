@@ -71,6 +71,32 @@ func clearChannelInfo(channel *model.Channel) {
 	}
 }
 
+func reconcileChannelMultiKeyMetadata(channel *model.Channel) bool {
+	if channel == nil {
+		return false
+	}
+	keys := channel.GetKeys()
+	if len(keys) <= 1 {
+		return false
+	}
+
+	changed := false
+	if !channel.ChannelInfo.IsMultiKey {
+		channel.ChannelInfo.IsMultiKey = true
+		changed = true
+	}
+	if channel.ChannelInfo.MultiKeySize != len(keys) {
+		channel.ChannelInfo.MultiKeySize = len(keys)
+		changed = true
+	}
+	if channel.ChannelInfo.MultiKeyMode != constant.MultiKeyModeRandom &&
+		channel.ChannelInfo.MultiKeyMode != constant.MultiKeyModePolling {
+		channel.ChannelInfo.MultiKeyMode = constant.MultiKeyModeRandom
+		changed = true
+	}
+	return changed
+}
+
 func applyChannelStatusFilter(query *gorm.DB, statusFilter int) *gorm.DB {
 	if statusFilter == common.ChannelStatusEnabled {
 		return query.Where("status = ?", common.ChannelStatusEnabled)
@@ -1044,6 +1070,15 @@ func UpdateChannel(c *gin.Context) {
 			}
 		case "replace":
 			// 覆盖模式：直接使用新密钥（默认行为，不需要特殊处理）
+		}
+	}
+	if channel.Key != "" {
+		reconcileChannelMultiKeyMetadata(&channel.Channel)
+	} else {
+		metadataSource := *originChannel
+		metadataSource.ChannelInfo = channel.ChannelInfo
+		if reconcileChannelMultiKeyMetadata(&metadataSource) {
+			channel.ChannelInfo = metadataSource.ChannelInfo
 		}
 	}
 	err = channel.Update()

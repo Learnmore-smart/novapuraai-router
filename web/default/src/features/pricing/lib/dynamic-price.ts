@@ -1,3 +1,8 @@
+import {
+  formatBillingAmount,
+  isBillingCurrency,
+  type BillingCurrency,
+} from '@/lib/billing-currency'
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -36,6 +41,8 @@ type DynamicPriceOptions = {
   priceRate?: number
   usdExchangeRate?: number
   groupRatioMultiplier?: number
+  billingCurrency?: BillingCurrency
+  billingFXRate?: number
 }
 
 export type DynamicPriceEntry = {
@@ -93,6 +100,18 @@ export function formatDynamicUnitPrice(
   const priceUSD =
     (valuePerMillionTokens * groupRatio) /
     TOKEN_UNIT_DIVISORS[options.tokenUnit]
+  if (
+    options.billingCurrency &&
+    isBillingCurrency(options.billingCurrency) &&
+    Number.isFinite(options.billingFXRate) &&
+    Number(options.billingFXRate) > 0
+  ) {
+    return formatBillingAmount(
+      priceUSD * Number(options.billingFXRate),
+      options.billingCurrency,
+      6
+    )
+  }
   const displayPrice = applyRechargeRate(
     priceUSD,
     options.showRechargePrice ?? false,
@@ -161,7 +180,11 @@ export function getDynamicPricingSummary(
 
   const tiers = getDynamicPricingTiers(model)
   const tier = tiers[0] || null
-  const entries = getDynamicPriceEntries(tier, options)
+  const entries = getDynamicPriceEntries(tier, {
+    ...options,
+    billingCurrency: model.billing_currency,
+    billingFXRate: model.billing_fx_rate,
+  })
   const rawExpression = model.billing_expr || ''
 
   return {

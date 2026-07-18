@@ -28,37 +28,88 @@ func GetBillingTopupConfig(c *gin.Context) {
 	if i := strings.Index(locale, ","); i > 0 {
 		locale = locale[:i]
 	}
-	def := stripetopup.DetectDefaultCurrency(country, locale)
-
-	// Optional user preference from setting JSON field is left to frontend localStorage;
-	// if logged in we can still return detected default.
 	userId := c.GetInt("id")
 	bal := 0
 	promo := 0
+	savedCurrency := ""
 	if userId > 0 {
+		_, _ = model.ExpireUserPromotionLots(userId)
 		if u, err := model.GetUserById(userId, false); err == nil && u != nil {
 			bal = u.Quota
 			promo = u.PromoQuota
+			savedCurrency = u.GetSetting().BillingCurrency
 		}
 	}
+	selectedCurrency := setting.ResolveBillingCurrency(savedCurrency, country, locale)
+	offers, err := stripetopup.ListTopupOffers(userId, selectedCurrency)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+		return
+	}
+	totalBalanceMinor := stripetopup.QuotaToPresentmentMinor(selectedCurrency, bal)
+	promoBalanceMinor := stripetopup.QuotaToPresentmentMinor(selectedCurrency, promo)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
-			"config":           setting.ExportTopupConfigJSON(),
-			"default_currency": def,
-			"country_hint":     country,
+			"config":            setting.ExportTopupConfigJSON(),
+			"selected_currency": selectedCurrency,
+			"default_currency":  setting.DefaultBillingCurrency(),
+			"country_hint":      country,
+			"offers":            offers.Offers,
+			"campaign":          offers.Campaign,
+			"campaign_active":   offers.CampaignActive,
+			"repeatable":        offers.Repeatable,
 			"api_balance": gin.H{
-				"total_quota": bal,
-				"promo_quota": promo,
-				"cash_quota":  bal - promo,
-				"label":       "API Credits",
-				"label_zh":    "平台调用额度",
+				"total_quota":        bal,
+				"promo_quota":        promo,
+				"cash_quota":         bal - promo,
+				"currency":           selectedCurrency,
+				"total_amount_minor": totalBalanceMinor,
+				"promo_amount_minor": promoBalanceMinor,
+				"cash_amount_minor":  totalBalanceMinor - promoBalanceMinor,
+				"total_display":      stripetopup.FormatMinor(selectedCurrency, totalBalanceMinor),
+				"promo_display":      stripetopup.FormatMinor(selectedCurrency, promoBalanceMinor),
+				"label":              "API Credits",
+				"label_zh":           "平台调用额度",
 			},
 			"payment_methods_note": "可用支付方式将在安全结账页面中根据您的地区和设备显示。",
 			"sandbox":              setting.StripeRequireTestKeys || strings.HasPrefix(setting.StripeApiSecret, "sk_test"),
 		},
 	})
+}
+
+// PutBillingCurrency persists a user's enabled billing-currency preference.
+func PutBillingCurrency(c *gin.Context) {
+	userId := c.GetInt("id")
+	if userId <= 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "unauthorized"})
+		return
+	}
+	var body struct {
+		Currency string `json:"currency"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "invalid request"})
+		return
+	}
+	currency := strings.ToLower(strings.TrimSpace(body.Currency))
+	if !setting.IsBillingCurrencyEnabled(currency) {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "currency is unavailable"})
+		return
+	}
+	user, err := model.GetUserById(userId, false)
+	if err != nil || user == nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "user not found"})
+		return
+	}
+	userSetting := user.GetSetting()
+	userSetting.BillingCurrency = currency
+	if err := model.UpdateUserSetting(userId, userSetting); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "failed to save currency"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"currency": currency}})
 }
 
 // PostBillingTopupQuote recalculates conversion + promo server-side.
@@ -69,7 +120,8 @@ func PostBillingTopupQuote(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "invalid request"})
 		return
 	}
-	// Ignore client bonus fields if any — only amount_major + currency
+	// Ignore client bonus fields if any; the selected tier and currency are the
+	// only inputs to the authoritative server-side quote.
 	q, err := stripetopup.BuildQuote(userId, req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
@@ -88,6 +140,8 @@ func PostBillingTopupCheckout(c *gin.Context) {
 	}
 	var body struct {
 		Currency    string `json:"currency"`
+		TierID      int    `json:"tier_id"`
+		AmountMinor int64  `json:"amount_minor"`
 		AmountMajor int    `json:"amount_major"`
 		SuccessURL  string `json:"success_url"`
 		CancelURL   string `json:"cancel_url"`
@@ -107,6 +161,8 @@ func PostBillingTopupCheckout(c *gin.Context) {
 
 	res, err := stripetopup.CreateCheckout(user, stripetopup.QuoteRequest{
 		Currency:    body.Currency,
+		TierID:      body.TierID,
+		AmountMinor: body.AmountMinor,
 		AmountMajor: body.AmountMajor,
 	}, body.SuccessURL, body.CancelURL)
 	if err != nil {
@@ -133,20 +189,30 @@ func GetBillingTopupOrder(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "forbidden"})
 		return
 	}
+	paidDisplay := stripetopup.FormatMinor(o.PresentmentCurrency, o.PaidCreditAmountMinor)
+	promoDisplay := stripetopup.FormatMinor(o.PresentmentCurrency, o.PromoCreditAmountMinor)
+	totalDisplay := stripetopup.FormatMinor(o.PresentmentCurrency, o.TotalCreditAmountMinor)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
-			"order_id":                 o.OrderID,
-			"status":                   o.Status,
-			"presentment_currency":     o.PresentmentCurrency,
-			"presentment_amount_minor": o.PresentmentAmountMinor,
-			"paid_quota":               o.PaidQuota,
-			"promo_quota":              o.PromoQuota,
-			"total_quota":              o.PaidQuota + o.PromoQuota,
-			"paid_credit_micro_usd":    o.PaidCreditMicroUSD,
-			"promo_credit_micro_usd":   o.PromoCreditMicroUSD,
-			"credited_at":              o.CreditedAt,
-			"failure_reason":           o.FailureReason,
+			"order_id":                  o.OrderID,
+			"status":                    o.Status,
+			"presentment_currency":      o.PresentmentCurrency,
+			"presentment_amount_minor":  o.PresentmentAmountMinor,
+			"paid_credit_amount_minor":  o.PaidCreditAmountMinor,
+			"promo_credit_amount_minor": o.PromoCreditAmountMinor,
+			"total_credit_amount_minor": o.TotalCreditAmountMinor,
+			"paid_display":              paidDisplay,
+			"promo_display":             promoDisplay,
+			"total_display":             totalDisplay,
+			"paid_quota":                o.PaidQuota,
+			"promo_quota":               o.PromoQuota,
+			"total_quota":               o.PaidQuota + o.PromoQuota,
+			"paid_credit_micro_usd":     o.PaidCreditMicroUSD,
+			"promo_credit_micro_usd":    o.PromoCreditMicroUSD,
+			"credited_at":               o.CreditedAt,
+			"promo_expires_at":          o.PromoExpiresAt,
+			"failure_reason":            o.FailureReason,
 		},
 	})
 }
@@ -183,8 +249,23 @@ func AdminBillingPromoTiers(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "invalid body"})
 		return
 	}
+	if !setting.IsSupportedBillingCurrency(t.Currency) {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "unsupported currency"})
+		return
+	}
+	if t.CampaignID == 0 {
+		t.CampaignID = model.LaunchTopupPromotionCampaignID
+	}
+	if t.Id > 0 {
+		var current model.TopupPromoTier
+		if err := model.DB.First(&current, t.Id).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "tier not found"})
+			return
+		}
+		t.CreatedAt = current.CreatedAt
+	}
 	if err := model.SavePromoTier(&t); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": t})
@@ -205,6 +286,74 @@ func AdminBillingTopupConfig(c *gin.Context) {
 			}(),
 		},
 	})
+}
+
+// AdminBillingCurrencyConfig persists the complete supported-currency policy.
+func AdminBillingCurrencyConfig(c *gin.Context) {
+	if c.Request.Method == http.MethodGet {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": setting.GetBillingCurrencyConfig()})
+		return
+	}
+	var config setting.BillingCurrencyConfig
+	if err := c.ShouldBindJSON(&config); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "invalid body"})
+		return
+	}
+	current := setting.GetBillingCurrencyConfig()
+	config.FXSource = current.FXSource
+	config.FXUpdatedAt = current.FXUpdatedAt
+	config.ReferenceCurrencies = current.ReferenceCurrencies
+	raw, err := common.Marshal(config)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+		return
+	}
+	if err := model.UpdateOption("BillingCurrencyConfig", string(raw)); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": setting.GetBillingCurrencyConfig()})
+}
+
+// AdminBillingTopupCampaign reads or updates mutable campaign policy while
+// preserving server-owned reservation/issuance counters and timestamps.
+func AdminBillingTopupCampaign(c *gin.Context) {
+	current, err := model.GetTopupPromotionCampaign()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+		return
+	}
+	if c.Request.Method == http.MethodGet {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": current})
+		return
+	}
+	var input model.TopupPromotionCampaign
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "invalid body"})
+		return
+	}
+	current.Name = input.Name
+	current.Enabled = input.Enabled
+	current.StartAt = input.StartAt
+	current.EndAt = input.EndAt
+	current.GlobalBudgetMicroUSD = input.GlobalBudgetMicroUSD
+	current.PerUserLimit = input.PerUserLimit
+	current.DefaultPromoExpiryDays = input.DefaultPromoExpiryDays
+	if err := model.SaveTopupPromotionCampaign(current); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": current})
+}
+
+func AdminBillingTopupPreview(c *gin.Context) {
+	currency := strings.ToLower(strings.TrimSpace(c.DefaultQuery("currency", setting.DefaultBillingCurrency())))
+	catalog, err := stripetopup.ListTopupOffers(0, currency)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": catalog})
 }
 
 // AdminRetryTopupCredit re-runs credit for paid orders stuck without credit (safe/idempotent).

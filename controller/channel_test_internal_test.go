@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
@@ -15,6 +16,46 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
+
+func TestReconcileChannelMultiKeyMetadataPromotesNewlinePool(t *testing.T) {
+	channel := &model.Channel{Key: "key-one\nkey-two"}
+
+	changed := reconcileChannelMultiKeyMetadata(channel)
+
+	require.True(t, changed)
+	require.True(t, channel.ChannelInfo.IsMultiKey)
+	require.Equal(t, 2, channel.ChannelInfo.MultiKeySize)
+	require.Equal(t, constant.MultiKeyModeRandom, channel.ChannelInfo.MultiKeyMode)
+}
+
+func TestSelectChannelTestKeyUsesRequestedCredential(t *testing.T) {
+	channel := &model.Channel{
+		Key: "key-one\nkey-two",
+		ChannelInfo: model.ChannelInfo{
+			IsMultiKey:   true,
+			MultiKeySize: 2,
+		},
+	}
+	keyIndex := 1
+
+	selectedChannel, err := selectChannelTestKey(channel, &keyIndex)
+
+	require.NoError(t, err)
+	require.Equal(t, "key-two", selectedChannel.Key)
+	require.False(t, selectedChannel.ChannelInfo.IsMultiKey)
+	require.Equal(t, "key-one\nkey-two", channel.Key)
+	require.True(t, channel.ChannelInfo.IsMultiKey)
+}
+
+func TestSelectChannelTestKeyRejectsOutOfRangeCredential(t *testing.T) {
+	channel := &model.Channel{Key: "key-one\nkey-two"}
+	keyIndex := 2
+
+	selectedChannel, err := selectChannelTestKey(channel, &keyIndex)
+
+	require.Nil(t, selectedChannel)
+	require.ErrorContains(t, err, "key index")
+}
 
 func TestSettleTestQuotaUsesTieredBilling(t *testing.T) {
 	info := &relaycommon.RelayInfo{

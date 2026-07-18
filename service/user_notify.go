@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -10,7 +11,9 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/service/emaildelivery"
 	"github.com/QuantumNous/new-api/setting/system_setting"
+	"github.com/google/uuid"
 )
 
 func NotifyRootUser(t string, subject string, content string) {
@@ -74,7 +77,7 @@ func NotifyUser(userId int, userEmail string, userSetting dto.UserSetting, data 
 			common.SysLog(fmt.Sprintf("user %d has no email, skip sending email", userId))
 			return nil
 		}
-		return sendEmailNotify(emailToUse, data)
+		return sendEmailNotify(userId, emailToUse, data)
 	case dto.NotifyTypeWebhook:
 		webhookURLStr := userSetting.WebhookUrl
 		if webhookURLStr == "" {
@@ -104,14 +107,21 @@ func NotifyUser(userId int, userEmail string, userSetting dto.UserSetting, data 
 	return nil
 }
 
-func sendEmailNotify(userEmail string, data dto.Notify) error {
-	// make email content
-	content := data.Content
-	// 处理占位符
-	for _, value := range data.Values {
-		content = strings.Replace(content, dto.ContentValueParam, fmt.Sprintf("%v", value), 1)
+func sendEmailNotify(userId int, userEmail string, data dto.Notify) error {
+	if data.EventID == "" {
+		data.EventID = uuid.NewString()
 	}
-	return common.SendEmail(data.Title, userEmail, content)
+	message := emaildelivery.BuildNotificationMessage(emaildelivery.NotificationTemplateData{
+		Recipient: userEmail,
+		Title:     data.Title,
+		Content:   data.Content,
+		Values:    data.Values,
+	})
+	_, err := emaildelivery.SendTransactionalEmail(context.Background(), emaildelivery.SendRequest{
+		BusinessKey: fmt.Sprintf("notification:%s:user:%d", data.EventID, userId),
+		Message:     message,
+	})
+	return err
 }
 
 func sendBarkNotify(barkURL string, data dto.Notify) error {

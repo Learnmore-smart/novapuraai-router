@@ -1,23 +1,5 @@
-/*
-Copyright (C) 2023-2026 QuantumNous
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For commercial licensing, please contact support@quantumnous.com
-*/
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Trash2, Save } from 'lucide-react'
+import { Braces, Plus, Save, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -54,12 +36,16 @@ import { Textarea } from '@/components/ui/textarea'
 import { SettingsSwitchField } from '../components/settings-form-layout'
 import { SettingsSection } from '../components/settings-section'
 import { useUpdateOption } from '../hooks/use-update-option'
+import {
+  FAQ_TRANSLATION_LANGUAGES,
+  getFAQEntryTranslation,
+  parseFAQBatch,
+  type FAQEntry,
+  type FAQTranslationLanguage,
+} from './faq-json'
 
-type FAQ = {
-  id: number
-  question: string
-  answer: string
-}
+type FAQ = FAQEntry
+type FAQFilterLanguage = 'all' | FAQTranslationLanguage
 
 type FAQSectionProps = {
   enabled: boolean
@@ -80,6 +66,52 @@ const faqSchema = z.object({
 type FAQFormValues = z.infer<typeof faqSchema>
 
 const FAQ_FORM_ID = 'faq-form'
+const FAQ_JSON_EXAMPLE = JSON.stringify(
+  [
+    {
+      translations: {
+        en: {
+          question: 'Do registrations receive credits?',
+          answer: 'Check the current welcome offer after registration.',
+        },
+        zh: {
+          question: '注册会赠送额度吗？',
+          answer: '注册后请查看当前的新用户活动说明。',
+        },
+        'zh-TW': {
+          question: '註冊會贈送額度嗎？',
+          answer: '註冊後請查看目前的新用戶活動說明。',
+        },
+        fr: {
+          question: 'L’inscription donne-t-elle des crédits ?',
+          answer: 'Consultez l’offre de bienvenue actuelle après votre inscription.',
+        },
+        ja: {
+          question: '登録するとクレジットは付与されますか？',
+          answer: '登録後に現在の新規登録特典をご確認ください。',
+        },
+        ru: {
+          question: 'Начисляются ли кредиты за регистрацию?',
+          answer: 'После регистрации ознакомьтесь с текущим приветственным предложением.',
+        },
+        vi: {
+          question: 'Đăng ký có được tặng hạn mức không?',
+          answer: 'Sau khi đăng ký, hãy xem ưu đãi chào mừng hiện tại.',
+        },
+      },
+    },
+  ],
+  null,
+  2
+)
+
+const FAQ_LANGUAGE_FILTERS: { value: FAQFilterLanguage; label: string }[] = [
+  { value: 'all', label: 'All' },
+  ...FAQ_TRANSLATION_LANGUAGES.map((language) => ({
+    value: language,
+    label: language.toUpperCase(),
+  })),
+]
 
 export function FAQSection({ enabled, data }: FAQSectionProps) {
   const { t } = useTranslation()
@@ -88,7 +120,11 @@ export function FAQSection({ enabled, data }: FAQSectionProps) {
   const [isEnabled, setIsEnabled] = useState(enabled)
   const [hasChanges, setHasChanges] = useState(false)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [languageFilter, setLanguageFilter] = useState<FAQFilterLanguage>('all')
   const [showDialog, setShowDialog] = useState(false)
+  const [showJSONDialog, setShowJSONDialog] = useState(false)
+  const [faqJSON, setFaqJSON] = useState(FAQ_JSON_EXAMPLE)
+  const [faqJSONError, setFaqJSONError] = useState('')
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [editingFaq, setEditingFaq] = useState<FAQ | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<'single' | 'batch'>('single')
@@ -145,9 +181,13 @@ export function FAQSection({ enabled, data }: FAQSectionProps) {
 
   const handleEdit = (faq: FAQ) => {
     setEditingFaq(faq)
+    const localized =
+      languageFilter === 'all'
+        ? { question: faq.question, answer: faq.answer }
+        : getFAQEntryTranslation(faq, languageFilter)
     form.reset({
-      question: faq.question,
-      answer: faq.answer,
+      question: localized?.question ?? faq.question,
+      answer: localized?.answer ?? faq.answer,
     })
     setShowDialog(true)
   }
@@ -191,9 +231,32 @@ export function FAQSection({ enabled, data }: FAQSectionProps) {
   const handleSubmitForm = (values: FAQFormValues) => {
     if (editingFaq) {
       setFaqList((prev) =>
-        prev.map((item) =>
-          item.id === editingFaq.id ? { ...item, ...values } : item
-        )
+        prev.map((item) => {
+          if (item.id !== editingFaq.id || !item.translations) {
+            return item.id === editingFaq.id ? { ...item, ...values } : item
+          }
+
+          const editedLanguage =
+            languageFilter === 'all'
+              ? FAQ_TRANSLATION_LANGUAGES.find(
+                  (language) => item.translations?.[language]
+                )
+              : languageFilter
+          if (!editedLanguage) return { ...item, ...values }
+
+          const translations = {
+            ...item.translations,
+            [editedLanguage]: values,
+          }
+          const fallback =
+            translations.en ?? translations[editedLanguage] ?? values
+          return {
+            ...item,
+            question: fallback.question,
+            answer: fallback.answer,
+            translations,
+          }
+        })
       )
       toast.success(t('FAQ updated. Click "Save Settings" to apply.'))
     } else {
@@ -203,6 +266,33 @@ export function FAQSection({ enabled, data }: FAQSectionProps) {
     }
     setHasChanges(true)
     setShowDialog(false)
+  }
+
+  const handleOpenJSONDialog = () => {
+    setFaqJSON(FAQ_JSON_EXAMPLE)
+    setFaqJSONError('')
+    setShowJSONDialog(true)
+  }
+
+  const handleImportJSON = () => {
+    const result = parseFAQBatch(
+      faqJSON,
+      faqList.map((item) => item.id)
+    )
+    if (!result.success) {
+      setFaqJSONError(t(result.error, result.values))
+      return
+    }
+
+    setFaqList((previous) => [...previous, ...result.entries])
+    setHasChanges(true)
+    setShowJSONDialog(false)
+    setFaqJSONError('')
+    toast.success(
+      t('{{count}} FAQ entries imported. Click "Save Settings" to apply.', {
+        count: result.entries.length,
+      })
+    )
   }
 
   const handleSaveAll = async () => {
@@ -218,15 +308,18 @@ export function FAQSection({ enabled, data }: FAQSectionProps) {
     }
   }
 
-  const toggleSelectAll = (checked: boolean) => {
-    setSelectedIds(checked ? faqList.map((item) => item.id) : [])
-  }
-
   const toggleSelectOne = (id: number, checked: boolean) => {
     setSelectedIds((prev) =>
       checked ? [...prev, id] : prev.filter((item) => item !== id)
     )
   }
+
+  const visibleFAQs =
+    languageFilter === 'all'
+      ? faqList
+      : faqList.filter((faq) =>
+          Boolean(getFAQEntryTranslation(faq, languageFilter))
+        )
 
   return (
     <SettingsSection title={t('FAQ')}>
@@ -236,6 +329,15 @@ export function FAQSection({ enabled, data }: FAQSectionProps) {
             <Button onClick={handleAdd} size='sm'>
               <Plus className='mr-2 h-4 w-4' />
               {t('Add FAQ')}
+            </Button>
+            <Button
+              type='button'
+              onClick={handleOpenJSONDialog}
+              size='sm'
+              variant='outline'
+            >
+              <Braces className='mr-2 h-4 w-4' aria-hidden='true' />
+              {t('Import JSON')}
             </Button>
             <Button
               onClick={handleBatchDelete}
@@ -257,6 +359,24 @@ export function FAQSection({ enabled, data }: FAQSectionProps) {
               {updateOption.isPending ? t('Saving...') : t('Save Settings')}
             </Button>
           </div>
+          <div className='flex flex-wrap items-center gap-1' role='group'>
+            {FAQ_LANGUAGE_FILTERS.map((filter) => (
+              <Button
+                key={filter.value}
+                type='button'
+                size='sm'
+                variant={
+                  languageFilter === filter.value ? 'secondary' : 'outline'
+                }
+                onClick={() => {
+                  setLanguageFilter(filter.value)
+                  setSelectedIds([])
+                }}
+              >
+                {filter.value === 'all' ? t(filter.label) : filter.label}
+              </Button>
+            ))}
+          </div>
           <SettingsSwitchField
             checked={isEnabled}
             onCheckedChange={handleToggleEnabled}
@@ -266,7 +386,7 @@ export function FAQSection({ enabled, data }: FAQSectionProps) {
         </div>
 
         <StaticDataTable
-          data={faqList}
+          data={visibleFAQs}
           getRowKey={(faq) => faq.id}
           emptyContent={t('No FAQ entries yet. Click "Add FAQ" to create one.')}
           columns={[
@@ -275,9 +395,14 @@ export function FAQSection({ enabled, data }: FAQSectionProps) {
               header: (
                 <Checkbox
                   checked={
-                    selectedIds.length === faqList.length && faqList.length > 0
+                    selectedIds.length === visibleFAQs.length &&
+                    visibleFAQs.length > 0
                   }
-                  onCheckedChange={toggleSelectAll}
+                  onCheckedChange={(checked) =>
+                    setSelectedIds(
+                      checked ? visibleFAQs.map((item) => item.id) : []
+                    )
+                  }
                 />
               ),
               className: 'w-12',
@@ -294,13 +419,19 @@ export function FAQSection({ enabled, data }: FAQSectionProps) {
               id: 'question',
               header: t('Question'),
               cellClassName: 'max-w-xs truncate font-medium',
-              cell: (faq) => faq.question,
+              cell: (faq) =>
+                languageFilter === 'all'
+                  ? faq.question
+                  : getFAQEntryTranslation(faq, languageFilter)?.question ?? '',
             },
             {
               id: 'answer',
               header: t('Answer'),
               cellClassName: 'text-muted-foreground max-w-md truncate',
-              cell: (faq) => faq.answer,
+              cell: (faq) =>
+                languageFilter === 'all'
+                  ? faq.answer
+                  : getFAQEntryTranslation(faq, languageFilter)?.answer ?? '',
             },
             {
               id: 'actions',
@@ -391,6 +522,57 @@ export function FAQSection({ enabled, data }: FAQSectionProps) {
             />
           </form>
         </Form>
+      </Dialog>
+
+      <Dialog
+        open={showJSONDialog}
+        onOpenChange={setShowJSONDialog}
+        title={t('Import FAQ JSON')}
+        description={t(
+          'Paste a JSON array of questions and answers. Imported entries are added to the current draft.'
+        )}
+        contentClassName='max-w-3xl'
+        contentHeight='auto'
+        bodyClassName='space-y-3'
+        footer={
+          <>
+            <Button
+              type='button'
+              variant='outline'
+              onClick={() => setShowJSONDialog(false)}
+            >
+              {t('Cancel')}
+            </Button>
+            <Button type='button' onClick={handleImportJSON}>
+              <Braces aria-hidden='true' />
+              {t('Import entries')}
+            </Button>
+          </>
+        }
+      >
+        <div className='space-y-2'>
+          <label className='text-sm font-medium' htmlFor='faq-json-import'>
+            {t('FAQ JSON')}
+          </label>
+          <Textarea
+            id='faq-json-import'
+            value={faqJSON}
+            onChange={(event) => {
+              setFaqJSON(event.target.value)
+              setFaqJSONError('')
+            }}
+            rows={16}
+            spellCheck={false}
+            className='font-mono text-xs'
+            aria-invalid={faqJSONError !== ''}
+            aria-describedby={faqJSONError ? 'faq-json-error' : undefined}
+          />
+          {faqJSONError && (
+            <p id='faq-json-error' className='text-destructive text-sm'>
+              {faqJSONError}
+            </p>
+          )}
+        </div>
       </Dialog>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

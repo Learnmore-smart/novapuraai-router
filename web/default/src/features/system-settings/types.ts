@@ -1,21 +1,3 @@
-/*
-Copyright (C) 2023-2026 QuantumNous
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For commercial licensing, please contact support@quantumnous.com
-*/
 export type SystemOption = {
   key: string
   value: string
@@ -39,15 +21,76 @@ export type UpdateOptionResponse = {
   message: string
 }
 
-export type ConfirmPaymentComplianceResponse = {
+export type TransactionalEmailProvider = 'brevo' | 'ses'
+
+export type EmailProviderHealth = {
+  provider: TransactionalEmailProvider
+  configured: boolean
+  reachable: boolean
+  ready: boolean
+  sending_enabled?: boolean
+  production_access?: boolean
+  failure_reason?: string
+}
+
+export type TransactionalEmailHealth = {
+  selected_provider: TransactionalEmailProvider
+  providers: EmailProviderHealth[]
+  safe_retry_count: number
+  manual_review_count: number
+  latest_delivery?: {
+    provider: TransactionalEmailProvider
+    message_type: 'verification' | 'password_reset' | 'receipt' | 'notification'
+    recipient_hash: string
+    provider_message_id?: string
+    status: 'sending' | 'sent' | 'failed' | 'retry_queued'
+    failure_reason?: string
+    created_at: string
+  }
+}
+
+export type TransactionalEmailHealthResponse = {
   success: boolean
   message: string
-  data?: {
-    confirmed: boolean
-    terms_version: string
-    confirmed_at: number
-    confirmed_by: number
+  data: TransactionalEmailHealth
+}
+
+export type SwitchTransactionalEmailProviderResponse = {
+  success: boolean
+  message: string
+  data?: { provider: TransactionalEmailProvider }
+}
+
+export type RetryTransactionalEmailResponse = {
+  success: boolean
+  message: string
+  data: {
+    processed: number
+    sent: number
+    queued: number
+    failed: number
   }
+}
+
+export type SESCredentialSource = 'none' | 'environment' | 'database'
+
+export type SESCredentialStatus = {
+  configured: boolean
+  source: SESCredentialSource
+  has_session_token: boolean
+}
+
+export type SESCredentialUpdateRequest = {
+  access_key_id?: string
+  secret_access_key?: string
+  session_token?: string
+  clear_session_token?: boolean
+}
+
+export type SESCredentialStatusResponse = {
+  success: boolean
+  message: string
+  data: SESCredentialStatus
 }
 
 export type SystemTaskStatus = 'pending' | 'running' | 'succeeded' | 'failed'
@@ -290,15 +333,19 @@ export type BillingSettings = {
   PayMethods: string
   'payment_setting.amount_options': string
   'payment_setting.amount_discount': string
-  'payment_setting.compliance_confirmed': boolean
-  'payment_setting.compliance_terms_version': string
-  'payment_setting.compliance_confirmed_at': number
-  'payment_setting.compliance_confirmed_by': number
-  'payment_setting.compliance_confirmed_ip': string
-  StripeApiSecret: string
-  StripeWebhookSecret: string
   StripePriceId: string
   StripeTopupProductID: string
+  StripeTestTopupProductID: string
+  StripeProdTopupProductID: string
+  StripeTestAccountID: string
+  StripeProdAccountID: string
+  StripeRuntimeEnvironment: 'test' | 'production' | 'disabled'
+  StripeTestSecretConfigured: boolean
+  StripeTestPublishableConfigured: boolean
+  StripeTestWebhookConfigured: boolean
+  StripeProdSecretConfigured: boolean
+  StripeProdPublishableConfigured: boolean
+  StripeProdWebhookConfigured: boolean
   StripeTopupEnabled: boolean
   StripeUnitPrice: number
   StripeMinTopUp: number

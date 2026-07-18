@@ -23,6 +23,37 @@ type UpdateOptionResult = {
   message?: string
 }
 
+type CheckinQuotaValues = {
+  minQuota: number
+  maxQuota: number
+}
+
+export function buildCheckinQuotaOptionUpdates(
+  displayValues: CheckinQuotaValues,
+  persistedQuotaUnits: CheckinQuotaValues,
+  toQuotaUnits: (amount: number) => number
+): UpdateOptionRequest[] {
+  const updates: UpdateOptionRequest[] = []
+  const minQuotaUnits = toQuotaUnits(displayValues.minQuota)
+  const maxQuotaUnits = toQuotaUnits(displayValues.maxQuota)
+
+  if (minQuotaUnits !== persistedQuotaUnits.minQuota) {
+    updates.push({
+      key: 'checkin_setting.min_quota',
+      value: String(minQuotaUnits),
+    })
+  }
+
+  if (maxQuotaUnits !== persistedQuotaUnits.maxQuota) {
+    updates.push({
+      key: 'checkin_setting.max_quota',
+      value: String(maxQuotaUnits),
+    })
+  }
+
+  return updates
+}
+
 export async function saveCheckinOptionUpdates(
   updates: UpdateOptionRequest[],
   persist: (update: UpdateOptionRequest) => Promise<UpdateOptionResult>

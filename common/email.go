@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
+	"net/mail"
 	"net/smtp"
 	"slices"
 	"strings"
@@ -11,11 +12,14 @@ import (
 )
 
 func generateMessageID() (string, error) {
-	split := strings.Split(SMTPFrom, "@")
-	if len(split) < 2 {
+	sender, err := mail.ParseAddress(strings.TrimSpace(SMTPFrom))
+	if err != nil {
 		return "", fmt.Errorf("invalid SMTP account")
 	}
-	domain := strings.Split(SMTPFrom, "@")[1]
+	_, domain, found := strings.Cut(sender.Address, "@")
+	if !found || domain == "" {
+		return "", fmt.Errorf("invalid SMTP account")
+	}
 	return fmt.Sprintf("<%d.%s@%s>", time.Now().UnixNano(), GetRandomString(12), domain), nil
 }
 
@@ -79,6 +83,15 @@ func SendEmail(subject string, receiver string, content string) error {
 	if SMTPFrom == "" { // for compatibility
 		SMTPFrom = SMTPAccount
 	}
+	sender, err := mail.ParseAddress(strings.TrimSpace(SMTPFrom))
+	if err != nil || !strings.Contains(sender.Address, "@") {
+		return fmt.Errorf("invalid SMTP account")
+	}
+	senderName := strings.TrimSpace(sender.Name)
+	if senderName == "" {
+		senderName = SystemName
+	}
+	fromHeader := (&mail.Address{Name: senderName, Address: sender.Address}).String()
 	id, err2 := generateMessageID()
 	if err2 != nil {
 		return err2
@@ -88,16 +101,15 @@ func SendEmail(subject string, receiver string, content string) error {
 	}
 	encodedSubject := fmt.Sprintf("=?UTF-8?B?%s?=", base64.StdEncoding.EncodeToString([]byte(subject)))
 	mail := []byte(fmt.Sprintf("To: %s\r\n"+
-		"From: %s <%s>\r\n"+
+		"From: %s\r\n"+
 		"Subject: %s\r\n"+
 		"Date: %s\r\n"+
 		"Message-ID: %s\r\n"+ // 添加 Message-ID 头
 		"Content-Type: text/html; charset=UTF-8\r\n\r\n%s\r\n",
-		receiver, SystemName, SMTPFrom, encodedSubject, time.Now().Format(time.RFC1123Z), id, content))
+		receiver, fromHeader, encodedSubject, time.Now().Format(time.RFC1123Z), id, content))
 	auth := getSMTPAuth()
 	addr := fmt.Sprintf("%s:%d", SMTPServer, SMTPPort)
 	to := strings.Split(receiver, ";")
-	var err error
 	client, err := newSMTPClient(addr)
 	if err != nil {
 		return err
@@ -108,7 +120,7 @@ func SendEmail(subject string, receiver string, content string) error {
 			return err
 		}
 	}
-	if err = client.Mail(SMTPFrom); err != nil {
+	if err = client.Mail(sender.Address); err != nil {
 		return err
 	}
 	for _, receiver := range to {
@@ -130,7 +142,7 @@ func SendEmail(subject string, receiver string, content string) error {
 	}
 	err = client.Quit()
 	if err != nil {
-		SysError(fmt.Sprintf("failed to send email to %s: %v", receiver, err))
+		SysError(fmt.Sprintf("legacy SMTP send failed during quit: %v", err))
 	}
 	return err
 }

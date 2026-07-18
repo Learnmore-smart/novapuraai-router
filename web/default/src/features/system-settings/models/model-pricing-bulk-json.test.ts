@@ -1,21 +1,3 @@
-/*
-Copyright (C) 2023-2026 QuantumNous
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For commercial licensing, please contact support@quantumnous.com
-*/
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 
@@ -118,6 +100,21 @@ describe('bulk pricing JSON', () => {
     assert.deepEqual(exported.configured, { input: 3, discount: 0.9 })
     assert.equal(exported['unset-model'], null)
     assert.equal(exported['*'], undefined)
+  })
+
+  test('defaults legacy zero discounts to 1 in generated JSON', () => {
+    const json = exportPricingJson({
+      ...emptyMaps,
+      modelRatio: '{"no-discount":1.5}',
+      modelDiscount: '{"no-discount":0}',
+    })
+    const exported = JSON.parse(json)
+
+    assert.equal(exported['no-discount'].discount, 1)
+
+    const applied = applyPricingJson(emptyMaps, json)
+    assert.ok(applied.ok)
+    assert.deepEqual(JSON.parse(applied.updates.ModelDiscount), {})
   })
 
   test('candidate-only export does not include configured models outside the requested scope', () => {

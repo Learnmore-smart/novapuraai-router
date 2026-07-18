@@ -14,11 +14,17 @@ func dualTestUserName(prefix string) string {
 	return fmt.Sprintf("%s_%d", prefix, time.Now().UnixNano()%1_000_000_000)
 }
 
+func requireDualBalanceTables(t *testing.T) {
+	t.Helper()
+	require.NoError(t, DB.AutoMigrate(&BalanceCreditLot{}, &BalanceLedger{}))
+}
+
 // These tests require DB initialized by package tests; skip if unavailable.
 func TestDecreaseUserQuotaPromoFirst(t *testing.T) {
 	if DB == nil {
 		t.Skip("DB not initialized")
 	}
+	requireDualBalanceTables(t)
 	u := User{
 		Username:   dualTestUserName("dual_bal"),
 		Password:   "hashed",
@@ -45,6 +51,7 @@ func TestDecreaseUserQuotaInsufficient(t *testing.T) {
 	if DB == nil {
 		t.Skip("DB not initialized")
 	}
+	requireDualBalanceTables(t)
 	u := User{
 		Username: dualTestUserName("dual_insuf"),
 		Password: "hashed",
@@ -63,6 +70,7 @@ func TestDecreaseUserQuotaConcurrentNoNegative(t *testing.T) {
 	if DB == nil {
 		t.Skip("DB not initialized")
 	}
+	requireDualBalanceTables(t)
 	u := User{
 		Username: dualTestUserName("dual_conc"),
 		Password: "hashed",

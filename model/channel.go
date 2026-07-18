@@ -221,9 +221,20 @@ func (channel *Channel) GetKeys() []string {
 			return res
 		}
 	}
-	// Otherwise, fall back to splitting by newline
-	keys := strings.Split(strings.Trim(trimmed, "\n"), "\n")
+	// Otherwise, fall back to splitting by newline. Normalize pasted CRLF input
+	// and blank lines so no control characters can reach an HTTP header.
+	keys := make([]string, 0)
+	for _, line := range strings.Split(trimmed, "\n") {
+		key := strings.TrimSpace(line)
+		if key != "" {
+			keys = append(keys, key)
+		}
+	}
 	return keys
+}
+
+func (channel *Channel) IsMultiKeyPool() bool {
+	return channel.ChannelInfo.IsMultiKey || len(channel.GetKeys()) > 1
 }
 
 // InCooldown returns true if channel is temporarily skipped after 429 etc.
@@ -263,13 +274,14 @@ func (channel *Channel) ClearCooldown() error {
 }
 
 func (channel *Channel) GetNextEnabledKey() (string, int, *types.NewAPIError) {
-	// If not in multi-key mode, return the original key string directly.
-	if !channel.ChannelInfo.IsMultiKey {
+	keys := channel.GetKeys()
+	// Legacy edits could store newline-separated credentials while leaving the
+	// metadata in single-key mode. The credential count is authoritative: never
+	// emit the whole newline-bearing value as one Authorization header.
+	if !channel.ChannelInfo.IsMultiKey && len(keys) <= 1 {
 		return channel.PlaintextKey(), 0, nil
 	}
 
-	// Obtain all keys (split by \n)
-	keys := channel.GetKeys()
 	if len(keys) == 0 {
 		// No keys available, return error, should disable the channel
 		return "", 0, types.NewError(errors.New("no keys available"), types.ErrorCodeChannelNoAvailableKey)
@@ -618,7 +630,12 @@ func (channel *Channel) Update() error {
 				}
 			}
 			if len(keys) == 0 { // fallback to newline split
-				keys = strings.Split(strings.Trim(keyStr, "\n"), "\n")
+				for _, line := range strings.Split(strings.TrimSpace(keyStr), "\n") {
+					key := strings.TrimSpace(line)
+					if key != "" {
+						keys = append(keys, key)
+					}
+				}
 			}
 		}
 		channel.ChannelInfo.MultiKeySize = len(keys)

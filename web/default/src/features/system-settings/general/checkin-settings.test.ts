@@ -19,11 +19,28 @@ For commercial licensing, please contact support@quantumnous.com
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 
-import { saveCheckinOptionUpdates } from './checkin-settings.ts'
+import {
+  buildCheckinQuotaOptionUpdates,
+  saveCheckinOptionUpdates,
+} from './checkin-settings.ts'
 
 type Response = { success: boolean; message?: string }
 
 describe('check-in option persistence', () => {
+  test('converts a 5-50 display-currency range to internal quota units', () => {
+    assert.deepEqual(
+      buildCheckinQuotaOptionUpdates(
+        { minQuota: 5, maxQuota: 50 },
+        { minQuota: 1000, maxQuota: 10000 },
+        (amount) => amount * 500000
+      ),
+      [
+        { key: 'checkin_setting.min_quota', value: '2500000' },
+        { key: 'checkin_setting.max_quota', value: '25000000' },
+      ]
+    )
+  })
+
   test('starts every changed option before completing the save', async () => {
     const started: string[] = []
     const resolvers = new Map<string, (response: Response) => void>()

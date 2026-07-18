@@ -1,21 +1,3 @@
-/*
-Copyright (C) 2023-2026 QuantumNous
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For commercial licensing, please contact support@quantumnous.com
-*/
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
@@ -39,7 +21,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { register, wechatLoginByCode } from '@/features/auth/api'
-import { LegalConsent } from '@/features/auth/components/legal-consent'
 import { OAuthProviders } from '@/features/auth/components/oauth-providers'
 import { registerFormSchema } from '@/features/auth/constants'
 import { useAuthRedirect } from '@/features/auth/hooks/use-auth-redirect'
@@ -52,6 +33,8 @@ import {
 import { useStatus } from '@/hooks/use-status'
 import { cn } from '@/lib/utils'
 
+import { getSignUpTurnstileAction } from '../lib/turnstile-action'
+
 export function SignUpForm({
   className,
   ...props
@@ -59,11 +42,10 @@ export function SignUpForm({
   const { t } = useTranslation()
   const [isLoading, setIsLoading] = useState(false)
   const [verificationCode, setVerificationCode] = useState('')
-  const [agreedToLegal, setAgreedToLegal] = useState(false)
+  const [emailVerificationSent, setEmailVerificationSent] = useState(false)
   const [wechatCode, setWeChatCode] = useState('')
   const [isWeChatDialogOpen, setIsWeChatDialogOpen] = useState(false)
   const [isWeChatSubmitting, setIsWeChatSubmitting] = useState(false)
-  const legalConsentErrorMessage = t('Please agree to the legal terms first')
 
   const { status } = useStatus()
   const {
@@ -75,7 +57,6 @@ export function SignUpForm({
     resetTurnstile,
     validateTurnstile,
   } = useTurnstile()
-  const emailTurnstile = useTurnstile()
   const { redirectToLogin, handleLoginSuccess } = useAuthRedirect()
   const {
     isSending: isSendingCode,
@@ -83,9 +64,9 @@ export function SignUpForm({
     isActive,
     sendCode,
   } = useEmailVerification({
-    turnstileToken: emailTurnstile.turnstileToken,
-    validateTurnstile: emailTurnstile.validateTurnstile,
-    onTurnstileConsumed: emailTurnstile.resetTurnstile,
+    turnstileToken,
+    validateTurnstile,
+    onTurnstileConsumed: resetTurnstile,
   })
 
   const form = useForm<z.infer<typeof registerFormSchema>>({
@@ -100,17 +81,16 @@ export function SignUpForm({
 
   const emailValue = form.watch('email')
   const emailVerificationRequired = !!status?.email_verification
-  const hasUserAgreement = Boolean(status?.user_agreement_enabled)
-  const hasPrivacyPolicy = Boolean(status?.privacy_policy_enabled)
-  const requiresLegalConsent = hasUserAgreement || hasPrivacyPolicy
   const oauthRegisterEnabled =
     status?.oauth_register_enabled ??
     status?.data?.oauth_register_enabled ??
     true
   const hasWeChatLogin = Boolean(status?.wechat_login)
   const turnstileReady = !isTurnstileEnabled || Boolean(turnstileToken)
-  const emailTurnstileReady =
-    !isTurnstileEnabled || Boolean(emailTurnstile.turnstileToken)
+  const turnstileAction = getSignUpTurnstileAction(
+    emailVerificationRequired,
+    emailVerificationSent
+  )
 
   const wechatQrCodeUrl = useMemo(() => {
     return (
@@ -127,14 +107,6 @@ export function SignUpForm({
   }, [status])
 
   useEffect(() => {
-    if (requiresLegalConsent) {
-      setAgreedToLegal(false)
-    } else {
-      setAgreedToLegal(true)
-    }
-  }, [requiresLegalConsent])
-
-  useEffect(() => {
     const aff = new URLSearchParams(window.location.search).get('aff')?.trim()
     if (aff) {
       saveAffiliateCode(aff)
@@ -142,11 +114,6 @@ export function SignUpForm({
   }, [])
 
   async function onSubmit(data: z.infer<typeof registerFormSchema>) {
-    if (requiresLegalConsent && !agreedToLegal) {
-      toast.error(legalConsentErrorMessage)
-      return
-    }
-
     // Validate email verification if required
     if (emailVerificationRequired) {
       if (!data.email) {
@@ -189,15 +156,19 @@ export function SignUpForm({
   }
 
   async function handleSendVerificationCode() {
-    await sendCode(emailValue || '')
-  }
-
-  const handleOpenWeChatDialog = () => {
-    if (requiresLegalConsent && !agreedToLegal) {
-      toast.error(legalConsentErrorMessage)
+    if (emailVerificationSent) {
+      setEmailVerificationSent(false)
+      resetTurnstile()
       return
     }
 
+    const sent = await sendCode(emailValue || '')
+    if (sent) {
+      setEmailVerificationSent(true)
+    }
+  }
+
+  const handleOpenWeChatDialog = () => {
     setIsWeChatDialogOpen(true)
   }
 
@@ -338,25 +309,13 @@ export function SignUpForm({
                   isSendingCode ||
                   isActive ||
                   !emailValue ||
-                  !emailTurnstileReady
+                  !turnstileReady
                 }
                 onClick={handleSendVerificationCode}
               >
                 {sendCodeButtonContent}
               </Button>
             </div>
-
-            {isTurnstileEnabled && (
-              <div className='mt-2'>
-                <Turnstile
-                  siteKey={turnstileSiteKey}
-                  action='email_verification'
-                  resetKey={emailTurnstile.turnstileResetKey}
-                  onVerify={emailTurnstile.setTurnstileToken}
-                  onExpire={emailTurnstile.resetTurnstile}
-                />
-              </div>
-            )}
           </>
         )}
 
@@ -365,7 +324,7 @@ export function SignUpForm({
           <div className='mt-2'>
             <Turnstile
               siteKey={turnstileSiteKey}
-              action='register'
+              action={turnstileAction}
               resetKey={turnstileResetKey}
               onVerify={setTurnstileToken}
               onExpire={resetTurnstile}
@@ -373,22 +332,11 @@ export function SignUpForm({
           </div>
         )}
 
-        <LegalConsent
-          status={status}
-          checked={agreedToLegal}
-          onCheckedChange={setAgreedToLegal}
-          className='mt-1'
-        />
-
         {/* Submit Button */}
         <Button
           type='submit'
           className='mt-2 w-full justify-center gap-2'
-          disabled={
-            isLoading ||
-            (requiresLegalConsent && !agreedToLegal) ||
-            !turnstileReady
-          }
+          disabled={isLoading || !turnstileReady}
         >
           {isLoading ? <Loader2 className='h-4 w-4 animate-spin' /> : null}
           {t('Create account')}
@@ -397,7 +345,7 @@ export function SignUpForm({
         {oauthRegisterEnabled && (
           <OAuthProviders
             status={status}
-            disabled={isLoading || (requiresLegalConsent && !agreedToLegal)}
+            disabled={isLoading}
             onWeChatLogin={hasWeChatLogin ? handleOpenWeChatDialog : undefined}
             isWeChatLoading={isWeChatSubmitting}
             className='pt-2'
@@ -432,8 +380,7 @@ export function SignUpForm({
                 onClick={handleWeChatLogin}
                 disabled={
                   isWeChatSubmitting ||
-                  !wechatCode.trim() ||
-                  (requiresLegalConsent && !agreedToLegal)
+                  !wechatCode.trim()
                 }
                 className='gap-2'
               >

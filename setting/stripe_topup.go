@@ -2,21 +2,24 @@ package setting
 
 import (
 	"encoding/json"
+	"math"
 	"strings"
 	"sync"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/shopspring/decimal"
 )
 
-// Stripe sandbox product for dynamic Checkout price_data (no per-amount Price objects).
-// Created in acct_1Tta8mPKe8UWYDw1 (NovaPuraAI 沙盒).
+// Stripe product for dynamic Checkout price_data (no per-amount Price objects).
+// The active value is selected from the Test or Production runtime profile.
 var StripeTopupProductID = ""
 
 // StripePublishableKey is optional (pk_test_…); never required for server credit path.
 var StripePublishableKey = ""
 
-// StripeAccountID expected webhook account (sandbox). Empty = skip account check.
-var StripeAccountID = "acct_1Tta8mPKe8UWYDw1"
+// StripeAccountID is the expected webhook account for the active profile.
+// Empty skips the optional account check.
+var StripeAccountID = ""
 
 // StripeTopupEnabled gates the new multi-currency Checkout path.
 var StripeTopupEnabled = false
@@ -35,19 +38,19 @@ var (
 
 // Preset amounts in major currency units (not minor).
 var (
-	StripePresetsCNY = []int{5, 10, 30, 50, 100, 200}
-	StripePresetsUSD = []int{1, 5, 10, 20, 50, 100}
-	StripePresetsCAD = []int{2, 5, 10, 20, 50, 100}
+	StripePresetsCNY = []int{10, 20, 50, 100, 200, 500}
+	StripePresetsUSD = []int{2, 5, 10, 20, 50, 100, 200, 500}
+	StripePresetsCAD = []int{2, 5, 10, 20, 50, 100, 200, 500}
 )
 
-// Min/max presentment major units per currency (~¥5 / ~$1 and ~¥2000 / ~$2000).
+// Min/max presentment major units per currency (¥10 / $2 minimums; 2000 maximums).
 var (
-	StripeMinMajorCNY = 5
-	StripeMaxMajorCNY = 2000
-	StripeMinMajorUSD = 1
-	StripeMaxMajorUSD = 2000
-	StripeMinMajorCAD = 2
-	StripeMaxMajorCAD = 2000
+	StripeMinMinorCNY int64 = 500
+	StripeMaxMinorCNY int64 = 50000
+	StripeMinMinorUSD int64 = 50
+	StripeMaxMinorUSD int64 = 50000
+	StripeMinMinorCAD int64 = 50
+	StripeMaxMinorCAD int64 = 50000
 )
 
 var (
@@ -65,16 +68,11 @@ func init() {
 
 // SupportedTopupCurrencies returns lowercase currency codes.
 func SupportedTopupCurrencies() []string {
-	return []string{"cny", "usd", "cad"}
+	return EnabledBillingCurrencies()
 }
 
 func IsSupportedTopupCurrency(cur string) bool {
-	switch strings.ToLower(strings.TrimSpace(cur)) {
-	case "cny", "usd", "cad":
-		return true
-	default:
-		return false
-	}
+	return IsBillingCurrencyEnabled(cur)
 }
 
 func GetTopupPresets(currency string) []int {
@@ -103,33 +101,24 @@ func SetTopupPresets(currency string, amounts []int) {
 	stripeTopupPresets[c] = cp
 }
 
-func TopupMinMaxMajor(currency string) (min, max int) {
+func TopupMinMaxMinor(currency string) (min, max int64) {
 	switch strings.ToLower(strings.TrimSpace(currency)) {
 	case "cny":
-		return StripeMinMajorCNY, StripeMaxMajorCNY
+		return StripeMinMinorCNY, StripeMaxMinorCNY
 	case "cad":
-		return StripeMinMajorCAD, StripeMaxMajorCAD
+		return StripeMinMinorCAD, StripeMaxMinorCAD
 	default:
-		return StripeMinMajorUSD, StripeMaxMajorUSD
+		return StripeMinMinorUSD, StripeMaxMinorUSD
 	}
 }
 
 // FXRatePresentmentPerUSD returns locked rate: presentment currency units per 1 USD.
 func FXRatePresentmentPerUSD(currency string) float64 {
-	switch strings.ToLower(strings.TrimSpace(currency)) {
-	case "cny":
-		if StripeFXCNYPerUSD <= 0 {
-			return 7.3
-		}
-		return StripeFXCNYPerUSD
-	case "cad":
-		if StripeFXCADPerUSD <= 0 {
-			return 1.37
-		}
-		return StripeFXCADPerUSD
-	default:
-		return 1.0
+	rate := BillingCurrencyFXRate(currency)
+	if rate <= 0 {
+		return 1
 	}
+	return rate
 }
 
 // PresentmentMinorToMicroUSD converts Stripe minor units to micro-USD using a locked FX rate.
@@ -143,8 +132,15 @@ func PresentmentMinorToMicroUSD(currency string, amountMinor int64, fxPresentmen
 	// All MVP currencies use 2 decimal places.
 	// major = minor/100; usd = major / fx; micro = usd * 1e6
 	// micro = amountMinor / 100 / fx * 1e6 = amountMinor * 1e4 / fx
-	usd := float64(amountMinor) / 100.0 / fxPresentmentPerUSD
-	return int64(common.QuotaFromFloat(usd * float64(MicroUSDPerUSD)))
+	microUSD := decimal.NewFromInt(amountMinor).
+		Mul(decimal.NewFromInt(MicroUSDPerUSD)).
+		Div(decimal.NewFromInt(100)).
+		Div(decimal.NewFromFloat(fxPresentmentPerUSD)).
+		Truncate(0)
+	if microUSD.IsNegative() || microUSD.GreaterThan(decimal.NewFromInt(math.MaxInt64)) {
+		return 0
+	}
+	return microUSD.IntPart()
 }
 
 // MicroUSDToQuota maps micro-USD into existing platform quota (QuotaPerUnit per USD).
@@ -152,38 +148,47 @@ func MicroUSDToQuota(microUSD int64) int {
 	if microUSD <= 0 {
 		return 0
 	}
-	// quota = microUSD / 1e6 * QuotaPerUnit
-	q := float64(microUSD) / float64(MicroUSDPerUSD) * common.QuotaPerUnit
-	return common.QuotaFromFloat(q)
+	// Keep monetary arithmetic decimal until the centralized quota conversion.
+	q := decimal.NewFromInt(microUSD).
+		Mul(decimal.NewFromFloat(common.QuotaPerUnit)).
+		Div(decimal.NewFromInt(MicroUSDPerUSD)).
+		Truncate(0)
+	return common.QuotaFromDecimal(q)
 }
 
 // ExportTopupConfigJSON for admin/status (no secrets).
 func ExportTopupConfigJSON() json.RawMessage {
 	type cfg struct {
-		Enabled          bool              `json:"enabled"`
-		ProductID        string            `json:"product_id"`
-		AccountID        string            `json:"account_id"`
-		RequireTestKeys  bool              `json:"require_test_keys"`
-		Currencies       []string          `json:"currencies"`
-		Presets          map[string][]int  `json:"presets"`
-		MinMax           map[string][2]int `json:"min_max_major"`
-		FX               map[string]float64 `json:"fx_presentment_per_usd"`
-		PublishableKeySet bool             `json:"publishable_key_set"`
-		SecretKeySet     bool              `json:"secret_key_set"`
-		WebhookSecretSet bool              `json:"webhook_secret_set"`
-		SandboxIndicator string            `json:"environment"`
+		Enabled           bool               `json:"enabled"`
+		ProductID         string             `json:"product_id"`
+		AccountID         string             `json:"account_id"`
+		RequireTestKeys   bool               `json:"require_test_keys"`
+		Currencies        []string           `json:"currencies"`
+		DefaultCurrency   string             `json:"default_currency"`
+		Presets           map[string][]int   `json:"presets"`
+		MinMaxMajor       map[string][2]float64 `json:"min_max_major"`
+		MinMaxMinor       map[string][2]int64   `json:"min_max_minor"`
+		FX                map[string]float64 `json:"fx_presentment_per_usd"`
+		PublishableKeySet bool               `json:"publishable_key_set"`
+		SecretKeySet      bool               `json:"secret_key_set"`
+		WebhookSecretSet  bool               `json:"webhook_secret_set"`
+		SandboxIndicator  string             `json:"environment"`
 	}
 	presets := map[string][]int{}
-	minmax := map[string][2]int{}
+	minmaxMajor := map[string][2]float64{}
+	minmaxMinor := map[string][2]int64{}
 	fx := map[string]float64{}
 	for _, c := range SupportedTopupCurrencies() {
 		presets[c] = GetTopupPresets(c)
-		mi, ma := TopupMinMaxMajor(c)
-		minmax[c] = [2]int{mi, ma}
+		mi, ma := TopupMinMaxMinor(c)
+		minmaxMinor[c] = [2]int64{mi, ma}
+		minmaxMajor[c] = [2]float64{float64(mi) / 100, float64(ma) / 100}
 		fx[c] = FXRatePresentmentPerUSD(c)
 	}
-	env := "sandbox"
-	if strings.HasPrefix(StripeApiSecret, "sk_live") {
+	env := "disabled"
+	if StripeRuntimeEnvironment == StripeRuntimeTest {
+		env = "sandbox"
+	} else if StripeRuntimeEnvironment == StripeRuntimeProduction {
 		env = "live"
 	}
 	b, _ := common.Marshal(cfg{
@@ -192,8 +197,10 @@ func ExportTopupConfigJSON() json.RawMessage {
 		AccountID:         StripeAccountID,
 		RequireTestKeys:   StripeRequireTestKeys,
 		Currencies:        SupportedTopupCurrencies(),
+		DefaultCurrency:   DefaultBillingCurrency(),
 		Presets:           presets,
-		MinMax:            minmax,
+		MinMaxMajor:       minmaxMajor,
+		MinMaxMinor:       minmaxMinor,
 		FX:                fx,
 		PublishableKeySet: strings.TrimSpace(StripePublishableKey) != "",
 		SecretKeySet:      strings.TrimSpace(StripeApiSecret) != "",

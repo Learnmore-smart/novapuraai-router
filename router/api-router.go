@@ -60,6 +60,7 @@ func SetApiRouter(router *gin.Engine) {
 		billingRoute := apiRouter.Group("/billing")
 		billingRoute.Use(middleware.UserAuth())
 		{
+			billingRoute.PUT("/currency", controller.PutBillingCurrency)
 			billingRoute.GET("/top-up/config", controller.GetBillingTopupConfig)
 			billingRoute.POST("/top-up/quote", middleware.CriticalRateLimit(), controller.PostBillingTopupQuote)
 			billingRoute.POST("/top-up/checkout", middleware.CriticalRateLimit(), controller.PostBillingTopupCheckout)
@@ -69,9 +70,15 @@ func SetApiRouter(router *gin.Engine) {
 		billingAdmin.Use(middleware.AdminAuth())
 		{
 			billingAdmin.GET("/top-up/config", controller.AdminBillingTopupConfig)
+			billingAdmin.GET("/currencies", controller.AdminBillingCurrencyConfig)
+			billingAdmin.PUT("/currencies", controller.AdminBillingCurrencyConfig)
+			billingAdmin.GET("/top-up/campaign", controller.AdminBillingTopupCampaign)
+			billingAdmin.PUT("/top-up/campaign", controller.AdminBillingTopupCampaign)
+			billingAdmin.GET("/top-up/preview", controller.AdminBillingTopupPreview)
 			billingAdmin.GET("/top-up/orders", controller.AdminBillingTopupOrders)
 			billingAdmin.GET("/top-up/promo-tiers", controller.AdminBillingPromoTiers)
 			billingAdmin.POST("/top-up/promo-tiers", controller.AdminBillingPromoTiers)
+			billingAdmin.PUT("/top-up/promo-tiers", controller.AdminBillingPromoTiers)
 			billingAdmin.POST("/top-up/orders/:order_id/retry-credit", controller.AdminRetryTopupCredit)
 		}
 		apiRouter.POST("/creem/webhook", anonymousRequestBodyLimit, controller.CreemWebhook)
@@ -214,7 +221,12 @@ func SetApiRouter(router *gin.Engine) {
 		{
 			optionRoute.GET("/", controller.GetOptions)
 			optionRoute.PUT("/", controller.UpdateOption)
-			optionRoute.POST("/payment_compliance", controller.ConfirmPaymentCompliance)
+			optionRoute.GET("/email-provider/health", controller.GetTransactionalEmailHealth)
+			optionRoute.PUT("/email-provider", controller.SwitchTransactionalEmailProvider)
+			optionRoute.POST("/email-provider/retry-safe", controller.RetryTransactionalEmailQueue)
+			optionRoute.GET("/email-provider/ses/credentials", controller.GetTransactionalEmailSESCredentials)
+			optionRoute.PUT("/email-provider/ses/credentials", controller.UpdateTransactionalEmailSESCredentials)
+			optionRoute.DELETE("/email-provider/ses/credentials", controller.DeleteTransactionalEmailSESCredentials)
 			optionRoute.GET("/channel_affinity_cache", controller.GetChannelAffinityCacheStats)
 			optionRoute.DELETE("/channel_affinity_cache", controller.ClearChannelAffinityCache)
 			optionRoute.POST("/rest_model_ratio", controller.ResetModelRatio)
