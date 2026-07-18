@@ -62,6 +62,10 @@ export type BulkApplyResult =
     }
   | { ok: false; errors: string[] }
 
+export type ExportPricingJsonOptions = {
+  candidateModelsOnly?: boolean
+}
+
 const PRICE_FIELDS = [
   'per_request',
   'input',
@@ -86,7 +90,8 @@ const round = (value: number): number => Number(formatPricingNumber(value))
 
 export function exportPricingJson(
   maps: BulkPricingMaps,
-  candidateModelNames: string[] = []
+  candidateModelNames: string[] = [],
+  options: ExportPricingJsonOptions = {}
 ): string {
   const priceMap = parseMap(maps.modelPrice)
   const ratioMap = parseMap(maps.modelRatio)
@@ -99,18 +104,20 @@ export function exportPricingJson(
   const discountMap = parseMap(maps.modelDiscount)
   const billingModeMap = parseStringMap(maps.billingMode)
 
-  const names = new Set([
-    ...Object.keys(priceMap),
-    ...Object.keys(ratioMap),
-    ...Object.keys(cacheMap),
-    ...Object.keys(createCacheMap),
-    ...Object.keys(completionMap),
-    ...Object.keys(imageMap),
-    ...Object.keys(audioMap),
-    ...Object.keys(audioCompletionMap),
-    ...Object.keys(discountMap),
-    ...candidateModelNames,
-  ])
+  const names = options.candidateModelsOnly
+    ? new Set(candidateModelNames)
+    : new Set([
+        ...Object.keys(priceMap),
+        ...Object.keys(ratioMap),
+        ...Object.keys(cacheMap),
+        ...Object.keys(createCacheMap),
+        ...Object.keys(completionMap),
+        ...Object.keys(imageMap),
+        ...Object.keys(audioMap),
+        ...Object.keys(audioCompletionMap),
+        ...Object.keys(discountMap),
+        ...candidateModelNames,
+      ])
 
   names.delete(GLOBAL_MODEL_DISCOUNT_KEY)
 
@@ -155,6 +162,24 @@ export function exportPricingJson(
   }
 
   return JSON.stringify(document, null, 2)
+}
+
+export function getUnsetPricingModelNames(
+  maps: BulkPricingMaps,
+  candidateModelNames: string[]
+): string[] {
+  const priceMap = parseMap(maps.modelPrice)
+  const ratioMap = parseMap(maps.modelRatio)
+  const billingModeMap = parseStringMap(maps.billingMode)
+
+  return [...new Set(candidateModelNames)]
+    .filter(
+      (name) =>
+        billingModeMap[name] !== 'tiered_expr' &&
+        !Object.hasOwn(priceMap, name) &&
+        !Object.hasOwn(ratioMap, name)
+    )
+    .sort((a, b) => a.localeCompare(b))
 }
 
 const isFiniteNumber = (value: unknown): value is number =>

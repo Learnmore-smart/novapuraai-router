@@ -67,6 +67,7 @@ import {
   resolveVisibleModelNames,
 } from './model-pricing-snapshots'
 import { buildModelRatioColumns } from './model-ratio-table-columns'
+import { getModelRatioColumnWidthClassNames } from './model-ratio-table-layout'
 
 type ModelRatioVisualEditorProps = {
   savedModelPrice: string
@@ -721,6 +722,11 @@ const ModelRatioVisualEditorComponent = forwardRef<
   )
 
   const hasRows = table.getRowModel().rows.length > 0
+  const visibleColumnIds = table
+    .getVisibleLeafColumns()
+    .map((column) => column.id)
+  const visibleColumnWidthClassNames =
+    getModelRatioColumnWidthClassNames(visibleColumnIds)
 
   let emptyStateText = t('No models configured. Use Add model to get started.')
   if (table.getState().globalFilter) {
@@ -800,7 +806,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
               table={table}
               containerClassName='min-h-0 flex-1 rounded-md'
               tableContainerClassName='h-full'
-              tableClassName='min-w-[852px] table-fixed'
+              tableClassName='min-w-[700px] table-fixed'
               tableHeaderClassName='[&_tr]:border-b-0'
               splitHeaderScrollClassName='h-full'
               bodyContainerClassName='[scrollbar-gutter:stable]'
@@ -813,11 +819,12 @@ const ModelRatioVisualEditorComponent = forwardRef<
               ]}
               colgroup={
                 <colgroup>
-                  <col className='w-9' />
-                  <col className='w-[300px]' />
-                  <col className='w-[120px]' />
-                  <col className='w-[300px]' />
-                  <col className='w-auto' />
+                  {visibleColumnIds.map((columnId, index) => (
+                    <col
+                      key={columnId}
+                      className={visibleColumnWidthClassNames[index]}
+                    />
+                  ))}
                 </colgroup>
               }
               renderRow={(row, { getCellClassName }) => (

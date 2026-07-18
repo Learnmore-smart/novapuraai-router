@@ -60,13 +60,6 @@ def main() -> None:
     ):
         save_png(img, OUT_WEB / name, size)
 
-    # Classic theme public assets (logo + favicon only)
-    classic = ROOT / "web" / "classic" / "public"
-    if classic.is_dir():
-        shutil.copy2(OUT_WEB / "logo.png", classic / "logo.png")
-        shutil.copy2(OUT_WEB / "favicon.ico", classic / "favicon.ico")
-        print("  classic public: logo.png + favicon.ico")
-
     print("done")
 
 

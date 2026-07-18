@@ -22,6 +22,7 @@ import { describe, test } from 'node:test'
 import {
   applyPricingJson,
   exportPricingJson,
+  getUnsetPricingModelNames,
   type BulkPricingMaps,
 } from './model-pricing-bulk-json.ts'
 
@@ -117,6 +118,43 @@ describe('bulk pricing JSON', () => {
     assert.deepEqual(exported.configured, { input: 3, discount: 0.9 })
     assert.equal(exported['unset-model'], null)
     assert.equal(exported['*'], undefined)
+  })
+
+  test('candidate-only export does not include configured models outside the requested scope', () => {
+    const exported = JSON.parse(
+      exportPricingJson(
+        {
+          ...emptyMaps,
+          modelRatio: '{"configured":1.5}',
+        },
+        ['unset-model'],
+        { candidateModelsOnly: true }
+      )
+    )
+
+    assert.deepEqual(exported, { 'unset-model': null })
+  })
+
+  test('selects enabled models whose saved base pricing is unset', () => {
+    const maps: BulkPricingMaps = {
+      ...emptyMaps,
+      modelPrice: '{"fixed":0.04}',
+      modelRatio: '{"token":1.5}',
+      modelDiscount: '{"discount-only":0.8}',
+      billingMode: '{"expression":"tiered_expr"}',
+    }
+
+    assert.deepEqual(
+      getUnsetPricingModelNames(maps, [
+        'token',
+        'fixed',
+        'expression',
+        'discount-only',
+        'unset',
+        'unset',
+      ]),
+      ['discount-only', 'unset']
+    )
   })
 
   test('applying an exported unset model is idempotent', () => {

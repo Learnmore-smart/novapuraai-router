@@ -105,9 +105,6 @@ function Ensure-DistStub($path) {
   }
 }
 
-# Go embeds both themes; classic can be a stub for local API+default UI work.
-Ensure-DistStub "web\classic\dist"
-
 if ($FrontendOnly) {
   Write-Host "Starting frontend only (rsbuild) on its own port..." -ForegroundColor Cyan
   # Install from web/ workspace root (has bun.lock + catalog)
@@ -144,11 +141,6 @@ if (-not (Test-Path "web\default\dist\index.html") -or -not (Test-Path "web\defa
   Write-Host "FAIL: web/default/dist incomplete after build." -ForegroundColor Red
   exit 1
 }
-# Classic theme uses web/classic/dist; keep it equal to default so stubs never ship
-Write-Host "Syncing classic dist from default..." -ForegroundColor DarkGray
-New-Item -ItemType Directory -Force -Path "web\classic\dist" | Out-Null
-Copy-Item -Recurse -Force "web\default\dist\*" "web\classic\dist\"
-
 Write-Host "`nStarting Go API on http://localhost:3000 ..." -ForegroundColor Green
 Write-Host "First registered user becomes admin." -ForegroundColor DarkGray
 Write-Host "Press Ctrl+C to stop.`n" -ForegroundColor DarkGray

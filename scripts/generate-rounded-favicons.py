@@ -10,13 +10,11 @@ Pipeline:
 from __future__ import annotations
 
 from pathlib import Path
-from shutil import copy2
 
 from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "web" / "default" / "public"
-OUT_CLASSIC = ROOT / "web" / "classic" / "public"
 SRC = ROOT / "public" / "logo" / "novapuraai_logo_router_2026-7-14.png"
 if not SRC.exists():
     SRC = OUT / "logo.png"
@@ -101,7 +99,7 @@ def main() -> None:
         append_images=ico_images[1:],
     )
     print(f"  favicon.ico: {ico_path.stat().st_size / 1024:.1f} KB")
-    copy2(ico_path, OUT / "favicon-20260715.ico")
+    (OUT / "favicon-20260715.ico").write_bytes(ico_path.read_bytes())
 
     # Raster logos used when SVG monogram is not available (admin/custom fallbacks)
     logo = rounded(512, radius_ratio=0.18, fill_ratio=0.94)
@@ -111,10 +109,6 @@ def main() -> None:
     )
     print("  logo.png / logo-256.png updated")
 
-    if OUT_CLASSIC.is_dir():
-        copy2(OUT / "logo.png", OUT_CLASSIC / "logo.png")
-        copy2(OUT / "favicon.ico", OUT_CLASSIC / "favicon.ico")
-        print("  classic public updated")
     print("done")
 
 

@@ -68,10 +68,15 @@ function getPolicy(kind: PolicyKind, language: string | undefined): PolicyBundle
 }
 
 function websiteUrl(): string {
-  if (typeof window !== 'undefined' && window.location?.origin) {
+  if (
+    typeof window !== 'undefined' &&
+    window.location?.origin &&
+    (window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1')
+  ) {
     return window.location.origin
   }
-  return 'https://novapuraai.com'
+  return 'https://www.novapuraai.com'
 }
 
 function interpolate(text: string, vars: Record<string, string>): string {

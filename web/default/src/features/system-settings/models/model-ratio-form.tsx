@@ -18,28 +18,24 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
 import { Braces, Code2, Eye, RotateCcw, Save } from 'lucide-react'
-import { memo, useCallback, useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import { JsonCodeEditor } from '@/components/json-code-editor'
 import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
   FormDescription,
   FormField,
-  FormItem,
   FormLabel,
-  FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { getEnabledModels } from '@/features/channels/api'
 
 import {
-  SettingsForm,
   SettingsSwitchContent,
   SettingsSwitchItem,
 } from '../components/settings-form-layout'
@@ -47,7 +43,15 @@ import {
   getGlobalDiscountDraft,
   setGlobalDiscountDraft,
 } from './model-global-discount'
+import {
+  getUnsetPricingModelNames,
+  type BulkPricingMaps,
+} from './model-pricing-bulk-json'
 import { ModelPricingBulkJsonDialog } from './model-pricing-bulk-json-dialog'
+import {
+  ModelPricingUnifiedJsonEditor,
+  type ModelPricingUnifiedJsonEditorHandle,
+} from './model-pricing-unified-json-editor'
 import {
   ModelRatioVisualEditor,
   type ModelRatioVisualEditorHandle,
@@ -78,103 +82,6 @@ type ModelRatioFormProps = {
   variant?: 'default' | 'unset'
 }
 
-type ModelJsonFieldName =
-  | 'ModelPrice'
-  | 'ModelRatio'
-  | 'CacheRatio'
-  | 'CreateCacheRatio'
-  | 'CompletionRatio'
-  | 'ImageRatio'
-  | 'AudioRatio'
-  | 'AudioCompletionRatio'
-  | 'ModelDiscount'
-
-const modelJsonFields: Array<{
-  name: ModelJsonFieldName
-  labelKey: string
-  descriptionKey: string
-}> = [
-  {
-    name: 'ModelPrice',
-    labelKey: 'Model fixed pricing',
-    descriptionKey:
-      'JSON map of model → USD cost per request. Takes precedence over ratio based billing.',
-  },
-  {
-    name: 'ModelRatio',
-    labelKey: 'Model ratio',
-    descriptionKey: 'JSON map of model → multiplier applied to quota billing.',
-  },
-  {
-    name: 'CacheRatio',
-    labelKey: 'Prompt cache ratio',
-    descriptionKey: 'Optional ratio used when upstream cache hits occur.',
-  },
-  {
-    name: 'CreateCacheRatio',
-    labelKey: 'Create cache ratio',
-    descriptionKey:
-      'Ratio applied when creating cache entries for supported models.',
-  },
-  {
-    name: 'CompletionRatio',
-    labelKey: 'Completion ratio',
-    descriptionKey:
-      'Applies to custom completion endpoints. JSON map of model → ratio.',
-  },
-  {
-    name: 'ImageRatio',
-    labelKey: 'Image ratio',
-    descriptionKey: 'Configure per-model ratio for image inputs or outputs.',
-  },
-  {
-    name: 'AudioRatio',
-    labelKey: 'Audio ratio',
-    descriptionKey:
-      'Ratio applied to audio inputs where supported by the upstream model.',
-  },
-  {
-    name: 'AudioCompletionRatio',
-    labelKey: 'Audio completion ratio',
-    descriptionKey: 'Ratio applied to audio completions for streaming models.',
-  },
-  {
-    name: 'ModelDiscount',
-    labelKey: 'Model discount',
-    descriptionKey:
-      'JSON map of model → discount rate in (0, 1]. The billed price is the configured price multiplied by this rate.',
-  },
-]
-
-function ModelJsonTextareaField(props: {
-  form: UseFormReturn<ModelFormValues>
-  name: ModelJsonFieldName
-  label: string
-  description: string
-}) {
-  return (
-    <FormField
-      control={props.form.control}
-      name={props.name}
-      render={({ field }) => (
-        <FormItem className='flex min-w-0 flex-col gap-2'>
-          <FormLabel>{props.label}</FormLabel>
-          <FormControl>
-            <JsonCodeEditor
-              value={field.value}
-              onChange={(value) => field.onChange(value)}
-            />
-          </FormControl>
-          <FormDescription className='text-xs leading-5'>
-            {props.description}
-          </FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-  )
-}
-
 export const ModelRatioForm = memo(function ModelRatioForm({
   form,
   savedValues,
@@ -190,6 +97,7 @@ export const ModelRatioForm = memo(function ModelRatioForm({
   const [bulkJsonOpen, setBulkJsonOpen] = useState(false)
   const [globalDiscountRate, setGlobalDiscountRate] = useState('0.8')
   const visualEditorRef = useRef<ModelRatioVisualEditorHandle>(null)
+  const unifiedEditorRef = useRef<ModelPricingUnifiedJsonEditorHandle>(null)
 
   const enabledModelsQuery = useQuery({
     queryKey: ['enabled-models'],
@@ -201,6 +109,88 @@ export const ModelRatioForm = memo(function ModelRatioForm({
     enabledModelsQuery.isError ||
     (enabledModelsQuery.data !== undefined && !enabledModelsQuery.data.success)
   const enabledModelsErrorMessage = enabledModelsQuery.data?.message
+
+  const modelPrice = form.watch('ModelPrice')
+  const modelRatio = form.watch('ModelRatio')
+  const cacheRatio = form.watch('CacheRatio')
+  const createCacheRatio = form.watch('CreateCacheRatio')
+  const completionRatio = form.watch('CompletionRatio')
+  const imageRatio = form.watch('ImageRatio')
+  const audioRatio = form.watch('AudioRatio')
+  const audioCompletionRatio = form.watch('AudioCompletionRatio')
+  const modelDiscount = form.watch('ModelDiscount')
+  const billingMode = form.watch('BillingMode')
+  const billingExpr = form.watch('BillingExpr')
+
+  const currentMaps = useMemo<BulkPricingMaps>(
+    () => ({
+      modelPrice,
+      modelRatio,
+      cacheRatio,
+      createCacheRatio,
+      completionRatio,
+      imageRatio,
+      audioRatio,
+      audioCompletionRatio,
+      modelDiscount,
+      billingMode,
+      billingExpr,
+    }),
+    [
+      audioCompletionRatio,
+      audioRatio,
+      billingExpr,
+      billingMode,
+      cacheRatio,
+      completionRatio,
+      createCacheRatio,
+      imageRatio,
+      modelDiscount,
+      modelPrice,
+      modelRatio,
+    ]
+  )
+
+  const savedMaps = useMemo<BulkPricingMaps>(
+    () => ({
+      modelPrice: savedValues.ModelPrice,
+      modelRatio: savedValues.ModelRatio,
+      cacheRatio: savedValues.CacheRatio,
+      createCacheRatio: savedValues.CreateCacheRatio,
+      completionRatio: savedValues.CompletionRatio,
+      imageRatio: savedValues.ImageRatio,
+      audioRatio: savedValues.AudioRatio,
+      audioCompletionRatio: savedValues.AudioCompletionRatio,
+      modelDiscount: savedValues.ModelDiscount,
+      billingMode: savedValues.BillingMode,
+      billingExpr: savedValues.BillingExpr,
+    }),
+    [
+      savedValues.AudioCompletionRatio,
+      savedValues.AudioRatio,
+      savedValues.BillingExpr,
+      savedValues.BillingMode,
+      savedValues.CacheRatio,
+      savedValues.CompletionRatio,
+      savedValues.CreateCacheRatio,
+      savedValues.ImageRatio,
+      savedValues.ModelDiscount,
+      savedValues.ModelPrice,
+      savedValues.ModelRatio,
+    ]
+  )
+
+  const candidateModelNames = useMemo(
+    () => enabledModelsQuery.data?.data || [],
+    [enabledModelsQuery.data?.data]
+  )
+  const unifiedModelNames = useMemo(
+    () =>
+      isUnsetVariant
+        ? getUnsetPricingModelNames(savedMaps, candidateModelNames)
+        : candidateModelNames,
+    [candidateModelNames, isUnsetVariant, savedMaps]
+  )
 
   useEffect(() => {
     if (!enabledModelsError) return
@@ -217,7 +207,7 @@ export const ModelRatioForm = memo(function ModelRatioForm({
     [form]
   )
 
-  const modelDiscountDraft = form.watch('ModelDiscount')
+  const modelDiscountDraft = modelDiscount
   const globalDiscount = getGlobalDiscountDraft(modelDiscountDraft)
 
   useEffect(() => {
@@ -243,14 +233,21 @@ export const ModelRatioForm = memo(function ModelRatioForm({
     [form, handleFieldChange, t]
   )
 
-  const toggleEditMode = useCallback(() => {
+  const toggleEditMode = useCallback(async () => {
+    if (editMode === 'json') {
+      const committed = unifiedEditorRef.current?.commitDraft()
+      if (committed !== true) return
+    }
     setEditMode((prev) => (prev === 'visual' ? 'json' : 'visual'))
-  }, [])
+  }, [editMode])
 
   const handleSave = useCallback(async () => {
     if (editMode === 'visual') {
       const committed = await visualEditorRef.current?.commitOpenEditor()
       if (committed === false) return
+    } else {
+      const committed = unifiedEditorRef.current?.commitDraft()
+      if (committed !== true) return
     }
 
     await form.handleSubmit(onSave)()
@@ -384,17 +381,17 @@ export const ModelRatioForm = memo(function ModelRatioForm({
               savedModelDiscount={savedValues.ModelDiscount}
               savedBillingMode={savedValues.BillingMode}
               savedBillingExpr={savedValues.BillingExpr}
-              modelPrice={form.watch('ModelPrice')}
-              modelRatio={form.watch('ModelRatio')}
-              cacheRatio={form.watch('CacheRatio')}
-              createCacheRatio={form.watch('CreateCacheRatio')}
-              completionRatio={form.watch('CompletionRatio')}
-              imageRatio={form.watch('ImageRatio')}
-              audioRatio={form.watch('AudioRatio')}
-              audioCompletionRatio={form.watch('AudioCompletionRatio')}
-              modelDiscount={form.watch('ModelDiscount')}
-              billingMode={form.watch('BillingMode')}
-              billingExpr={form.watch('BillingExpr')}
+              modelPrice={modelPrice}
+              modelRatio={modelRatio}
+              cacheRatio={cacheRatio}
+              createCacheRatio={createCacheRatio}
+              completionRatio={completionRatio}
+              imageRatio={imageRatio}
+              audioRatio={audioRatio}
+              audioCompletionRatio={audioCompletionRatio}
+              modelDiscount={modelDiscount}
+              billingMode={billingMode}
+              billingExpr={billingExpr}
               candidateModelNames={enabledModelsQuery.data?.data}
               candidateModelsLoading={enabledModelsQuery.isLoading}
               candidateModelsUnavailable={enabledModelsError}
@@ -438,62 +435,48 @@ export const ModelRatioForm = memo(function ModelRatioForm({
             )}
           </div>
         ) : (
-          <SettingsForm onSubmit={form.handleSubmit(onSave)}>
-            <div className='grid min-w-0 gap-x-5 gap-y-8 lg:grid-cols-2 2xl:grid-cols-3'>
-              {modelJsonFields.map((config) => (
-                <ModelJsonTextareaField
-                  key={config.name}
-                  form={form}
-                  name={config.name}
-                  label={t(config.labelKey)}
-                  description={t(config.descriptionKey)}
-                />
-              ))}
-            </div>
-
-            <FormField
-              control={form.control}
-              name='ExposeRatioEnabled'
-              render={({ field }) => (
-                <SettingsSwitchItem>
-                  <SettingsSwitchContent>
-                    <FormLabel>{t('Expose ratio API')}</FormLabel>
-                    <FormDescription>
-                      {t(
-                        'Allow clients to query configured ratios via `/api/ratio`.'
-                      )}
-                    </FormDescription>
-                  </SettingsSwitchContent>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </SettingsSwitchItem>
-              )}
+          <div className='space-y-6'>
+            <ModelPricingUnifiedJsonEditor
+              ref={unifiedEditorRef}
+              maps={currentMaps}
+              modelNames={unifiedModelNames}
+              candidateModelsOnly={isUnsetVariant}
+              onApply={handleBulkApply}
             />
-          </SettingsForm>
+
+            {!isUnsetVariant && (
+              <FormField
+                control={form.control}
+                name='ExposeRatioEnabled'
+                render={({ field }) => (
+                  <SettingsSwitchItem>
+                    <SettingsSwitchContent>
+                      <FormLabel>{t('Expose ratio API')}</FormLabel>
+                      <FormDescription>
+                        {t(
+                          'Allow clients to query configured ratios via `/api/ratio`.'
+                        )}
+                      </FormDescription>
+                    </SettingsSwitchContent>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </SettingsSwitchItem>
+                )}
+              />
+            )}
+          </div>
         )}
       </Form>
 
       <ModelPricingBulkJsonDialog
         open={bulkJsonOpen}
         onOpenChange={setBulkJsonOpen}
-        maps={{
-          modelPrice: form.watch('ModelPrice'),
-          modelRatio: form.watch('ModelRatio'),
-          cacheRatio: form.watch('CacheRatio'),
-          createCacheRatio: form.watch('CreateCacheRatio'),
-          completionRatio: form.watch('CompletionRatio'),
-          imageRatio: form.watch('ImageRatio'),
-          audioRatio: form.watch('AudioRatio'),
-          audioCompletionRatio: form.watch('AudioCompletionRatio'),
-          modelDiscount: form.watch('ModelDiscount'),
-          billingMode: form.watch('BillingMode'),
-          billingExpr: form.watch('BillingExpr'),
-        }}
-        modelNames={enabledModelsQuery.data?.data || []}
+        maps={currentMaps}
+        modelNames={candidateModelNames}
         onApply={handleBulkApply}
       />
     </div>
