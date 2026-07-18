@@ -49,6 +49,9 @@ tiktoken_cache
 .gopath
 .test
 .playwright-mcp
+.tmp/
+.codex-test-cache/
+.codex-tmp/
 
 # Local-only probes / scratch test workspaces
 .local-tests/
