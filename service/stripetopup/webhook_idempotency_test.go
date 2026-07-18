@@ -269,3 +269,41 @@ func TestWebhookRejectsMissingPaymentAmount(t *testing.T) {
 	require.NoError(t, model.DB.Where("order_id = ?", "np_missing_amount").First(&order).Error)
 	assert.Equal(t, model.StripeOrderManualReview, order.Status)
 }
+
+func TestWebhookRejectsCheckoutSessionMismatch(t *testing.T) {
+	setupStripeTestDB(t)
+	originalRequireTest := setting.StripeRequireTestKeys
+	originalAccountID := setting.StripeAccountID
+	t.Cleanup(func() {
+		setting.StripeRequireTestKeys = originalRequireTest
+		setting.StripeAccountID = originalAccountID
+	})
+	setting.StripeRequireTestKeys = true
+	setting.StripeAccountID = ""
+
+	user := &model.User{Username: "session-mismatch-user", Password: "password123"}
+	require.NoError(t, model.DB.Create(user).Error)
+	require.NoError(t, model.DB.Create(&model.StripeTopupOrder{
+		OrderID:                 "np_session_mismatch",
+		UserId:                  user.Id,
+		StripeCheckoutSessionID: "cs_expected",
+		Status:                  model.StripeOrderCheckoutCreated,
+		PresentmentCurrency:     "usd",
+		PresentmentAmountMinor:  1000,
+		FxRateSnapshot:          1,
+		PaidCreditMicroUSD:      10_000_000,
+		TotalCreditMicroUSD:     10_000_000,
+		PaidQuota:               5_000_000,
+	}).Error)
+
+	event := checkoutCompletedEvent("evt_wrong_session", "np_session_mismatch", true)
+	err := ProcessVerifiedEvent(context.Background(), event)
+	require.ErrorIs(t, err, ErrWebhookPaymentMismatch)
+
+	var refreshed model.User
+	require.NoError(t, model.DB.First(&refreshed, user.Id).Error)
+	assert.Zero(t, refreshed.Quota)
+	var order model.StripeTopupOrder
+	require.NoError(t, model.DB.Where("order_id = ?", "np_session_mismatch").First(&order).Error)
+	assert.Equal(t, model.StripeOrderManualReview, order.Status)
+}

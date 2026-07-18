@@ -29,6 +29,7 @@ import (
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/service/authz"
 	"github.com/QuantumNous/new-api/service/emaildelivery"
+	"github.com/QuantumNous/new-api/service/stripetopup"
 	"github.com/QuantumNous/new-api/setting"
 	_ "github.com/QuantumNous/new-api/setting/performance_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
@@ -327,9 +328,25 @@ func InitResources() error {
 
 	// Initialize options, should after model.InitDB()
 	model.InitOptionMap()
-	// Env/Secret Manager Stripe credentials win over options table, while
-	// Dashboard-persisted wallet top-up settings remain authoritative.
-	setting.RefreshStripeSecretsFromEnv()
+	for _, environment := range []string{model.StripeEnvironmentTest, model.StripeEnvironmentProduction} {
+		credentials, found, loadErr := model.LoadStripeCredentials(environment)
+		if loadErr != nil {
+			common.FatalLog("failed to load encrypted Stripe credentials: " + loadErr.Error())
+			return loadErr
+		}
+		if found {
+			setting.SetStripeCredentialProfile(environment, credentials.SecretKey, credentials.PublishableKey, credentials.WebhookSecret)
+		}
+	}
+	if setting.StripeTopupEnabled {
+		stripeValidationContext, cancelStripeValidation := context.WithTimeout(context.Background(), 15*time.Second)
+		err = stripetopup.ValidateStripeRuntime(stripeValidationContext)
+		cancelStripeValidation()
+		if err != nil {
+			common.FatalLog("failed to validate Stripe top-up runtime: " + err.Error())
+			return err
+		}
+	}
 
 	// 清理旧的磁盘缓存文件
 	common.CleanupOldCacheFiles()

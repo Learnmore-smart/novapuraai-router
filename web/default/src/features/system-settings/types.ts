@@ -72,6 +72,15 @@ export type RetryTransactionalEmailResponse = {
   }
 }
 
+export type SendTransactionalEmailTestResponse = {
+  success: boolean
+  message: string
+  data?: {
+    provider: TransactionalEmailProvider
+    status: 'sent' | 'failed' | 'retry_queued'
+  }
+}
+
 export type SESCredentialSource = 'none' | 'environment' | 'database'
 
 export type SESCredentialStatus = {
@@ -91,6 +100,24 @@ export type SESCredentialStatusResponse = {
   success: boolean
   message: string
   data: SESCredentialStatus
+}
+
+export type StripeCredentialEnvironment = 'test' | 'production'
+
+export type StripeCredentialStatusResponse = {
+  success: boolean
+  message: string
+  data: {
+    secret_configured: boolean
+    publishable_configured: boolean
+    webhook_configured: boolean
+  }
+}
+
+export type StripeCredentialUpdateRequest = {
+  secret_key?: string
+  publishable_key?: string
+  webhook_secret?: string
 }
 
 export type SystemTaskStatus = 'pending' | 'running' | 'succeeded' | 'failed'

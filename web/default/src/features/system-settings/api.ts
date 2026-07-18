@@ -3,9 +3,13 @@ import { api } from '@/lib/api'
 import type {
   FetchUpstreamRatiosRequest,
   LogCleanupTask,
-  RetryTransactionalEmailResponse,
+	RetryTransactionalEmailResponse,
+	SendTransactionalEmailTestResponse,
   SESCredentialStatusResponse,
   SESCredentialUpdateRequest,
+  StripeCredentialEnvironment,
+  StripeCredentialStatusResponse,
+  StripeCredentialUpdateRequest,
   SwitchTransactionalEmailProviderResponse,
   SystemOptionsResponse,
   SystemTaskListResponse,
@@ -52,6 +56,14 @@ export async function retryTransactionalEmailQueue() {
   return res.data
 }
 
+export async function sendTransactionalEmailTest(recipient: string) {
+  const res = await api.post<SendTransactionalEmailTestResponse>(
+    '/api/option/email-provider/test',
+    { recipient }
+  )
+  return res.data
+}
+
 export async function getTransactionalEmailSESCredentials() {
   const res = await api.get<SESCredentialStatusResponse>(
     '/api/option/email-provider/ses/credentials'
@@ -72,6 +84,26 @@ export async function updateTransactionalEmailSESCredentials(
 export async function deleteTransactionalEmailSESCredentials() {
   const res = await api.delete<SESCredentialStatusResponse>(
     '/api/option/email-provider/ses/credentials'
+  )
+  return res.data
+}
+
+export async function updateStripeCredentials(
+  environment: StripeCredentialEnvironment,
+  request: StripeCredentialUpdateRequest
+) {
+  const res = await api.put<StripeCredentialStatusResponse>(
+    `/api/option/stripe/${environment}/credentials`,
+    request
+  )
+  return res.data
+}
+
+export async function deleteStripeCredentials(
+  environment: StripeCredentialEnvironment
+) {
+  const res = await api.delete<StripeCredentialStatusResponse>(
+    `/api/option/stripe/${environment}/credentials`
   )
   return res.data
 }

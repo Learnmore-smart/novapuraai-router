@@ -17,18 +17,15 @@ func TestGetOptionsReturnsStripeConfigurationStatusWithoutSecrets(t *testing.T) 
 	gin.SetMode(gin.TestMode)
 	originalRuntime := setting.StripeRuntimeEnvironment
 	t.Cleanup(func() {
-		setting.RefreshStripeSecretsFromEnv()
+		setting.ClearStripeCredentialProfile(setting.StripeRuntimeTest)
+		setting.ClearStripeCredentialProfile(setting.StripeRuntimeProduction)
 		setting.StripeRuntimeEnvironment = originalRuntime
 	})
 
-	t.Setenv("STRIPE_TEST_SECRET_KEY", "sk_test_do_not_return")
-	t.Setenv("STRIPE_TEST_PUBLISHABLE_KEY", "pk_test_do_not_return")
-	t.Setenv("STRIPE_TEST_WEBHOOK_SECRET", "whsec_test_do_not_return")
-	t.Setenv("STRIPE_PROD_SECRET_KEY", "sk_live_do_not_return")
-	t.Setenv("STRIPE_PROD_PUBLISHABLE_KEY", "")
-	t.Setenv("STRIPE_PROD_WEBHOOK_SECRET", "")
+	t.Setenv("GIN_MODE", "debug")
+	setting.SetStripeCredentialProfile(setting.StripeRuntimeTest, "sk_test_do_not_return", "pk_test_do_not_return", "whsec_test_do_not_return")
+	setting.SetStripeCredentialProfile(setting.StripeRuntimeProduction, "sk_live_do_not_return", "", "")
 	setting.StripeRuntimeEnvironment = setting.StripeRuntimeTest
-	setting.RefreshStripeSecretsFromEnv()
 
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)

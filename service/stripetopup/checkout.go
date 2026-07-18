@@ -27,6 +27,8 @@ type CheckoutResult struct {
 // ValidateStripeSecrets ensures sandbox keys in non-live deployments.
 func ValidateStripeSecrets() error {
 	secret := strings.TrimSpace(setting.StripeApiSecret)
+	publishable := strings.TrimSpace(setting.StripePublishableKey)
+	webhookSecret := strings.TrimSpace(setting.StripeWebhookSecret)
 	if secret == "" {
 		return fmt.Errorf("stripe secret key not configured")
 	}
@@ -37,13 +39,25 @@ func ValidateStripeSecrets() error {
 		if !strings.HasPrefix(secret, "sk_test") && !strings.HasPrefix(secret, "rk_test") {
 			return fmt.Errorf("invalid stripe secret key prefix")
 		}
-	} else {
-		if !strings.HasPrefix(secret, "sk_") && !strings.HasPrefix(secret, "rk_") {
-			return fmt.Errorf("invalid stripe secret key")
+		if !strings.HasPrefix(publishable, "pk_test") {
+			return fmt.Errorf("stripe test publishable key not configured")
 		}
+	} else {
+		if !strings.HasPrefix(secret, "sk_live") && !strings.HasPrefix(secret, "rk_live") {
+			return fmt.Errorf("test stripe secret key rejected in production")
+		}
+		if !strings.HasPrefix(publishable, "pk_live") {
+			return fmt.Errorf("test stripe publishable key rejected in production")
+		}
+	}
+	if !strings.HasPrefix(webhookSecret, "whsec_") {
+		return fmt.Errorf("stripe webhook signing secret not configured")
 	}
 	if strings.TrimSpace(setting.StripeTopupProductID) == "" {
 		return fmt.Errorf("STRIPE_TOPUP_PRODUCT_ID not configured")
+	}
+	if strings.TrimSpace(setting.StripeAccountID) == "" {
+		return fmt.Errorf("stripe account ID not configured")
 	}
 	return nil
 }

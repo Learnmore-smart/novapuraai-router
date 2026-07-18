@@ -221,6 +221,18 @@ func loadOptionsFromDatabase() {
 			common.SysLog("failed to update option map: " + err.Error())
 		}
 	}
+	for _, environment := range []string{StripeEnvironmentTest, StripeEnvironmentProduction} {
+		credentials, found, err := LoadStripeCredentials(environment)
+		if err != nil {
+			common.SysError("failed to synchronize encrypted Stripe credentials")
+			continue
+		}
+		if !found {
+			setting.ClearStripeCredentialProfile(environment)
+			continue
+		}
+		setting.SetStripeCredentialProfile(environment, credentials.SecretKey, credentials.PublishableKey, credentials.WebhookSecret)
+	}
 }
 
 func SyncOptions(frequency int) {

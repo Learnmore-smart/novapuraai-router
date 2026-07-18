@@ -108,9 +108,11 @@ export function StripeTopupCard() {
   const selectedOffer = topup.offers.find(
     (offer) => offer.payment_amount_minor === topup.selectedAmountMinor
   )
-  const [minimumMajor, maximumMajor] = topup.config?.config.min_max_major[
+  const [minimumMinor, maximumMinor] = topup.config?.config.min_max_minor[
     topup.selectedCurrency
   ] ?? [0, 0]
+  const minimumDisplay = (minimumMinor / 100).toFixed(2)
+  const maximumDisplay = (maximumMinor / 100).toFixed(2)
   const customAmountMatch = customAmount.trim().match(/^(\d+)(?:\.(\d{1,2}))?$/)
   let customAmountMinor: number | null = null
   if (customAmountMatch) {
@@ -123,8 +125,8 @@ export function StripeTopupCard() {
   }
   const customAmountValid =
     customAmountMinor != null &&
-    customAmountMinor >= minimumMajor * 100 &&
-    customAmountMinor <= maximumMajor * 100
+    customAmountMinor >= minimumMinor &&
+    customAmountMinor <= maximumMinor
   useEffect(() => {
     if (!customSelected || !customAmountValid || customAmountMinor == null) {
       setQuotedAmountMinor(null)
@@ -322,8 +324,8 @@ export function StripeTopupCard() {
               id='stripe-custom-topup'
               type='number'
               inputMode='decimal'
-              min={minimumMajor}
-              max={maximumMajor}
+              min={minimumDisplay}
+              max={maximumDisplay}
               step='0.01'
               value={customAmount}
               onFocus={() => setCustomSelected(true)}
@@ -331,12 +333,12 @@ export function StripeTopupCard() {
                 setCustomSelected(true)
                 setCustomAmount(event.target.value)
               }}
-              placeholder={`${minimumMajor}–${maximumMajor} ${topup.selectedCurrency.toUpperCase()}`}
+              placeholder={`${minimumDisplay}-${maximumDisplay} ${topup.selectedCurrency.toUpperCase()}`}
               aria-invalid={customSelected && !customAmountValid}
             />
             <span className='text-muted-foreground text-xs'>
-              {t('Minimum:')} {minimumMajor}{' '}
-              {topup.selectedCurrency.toUpperCase()} · {maximumMajor}{' '}
+              {t('Minimum:')} {minimumDisplay}{' '}
+              {topup.selectedCurrency.toUpperCase()} · {maximumDisplay}{' '}
               {topup.selectedCurrency.toUpperCase()}
             </span>
           </div>

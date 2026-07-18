@@ -357,6 +357,7 @@ export interface BillingTopupConfig {
     currencies: BillingCurrency[]
     default_currency: BillingCurrency
     min_max_major: Record<BillingCurrency, [number, number]>
+    min_max_minor: Record<BillingCurrency, [number, number]>
   }
 }
 

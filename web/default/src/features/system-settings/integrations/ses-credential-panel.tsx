@@ -173,23 +173,14 @@ export function SESCredentialPanel() {
               )}
             </div>
 
-            {environmentManaged ? (
+            <form className='space-y-3' onSubmit={submitCredentials}>
               <p className='text-muted-foreground text-xs'>
-                {t(
-                  'SES credentials are managed by the environment. Remove those environment values before using Dashboard credentials.'
-                )}
+                {status?.configured
+                  ? t('Leave a field blank to keep its current encrypted value.')
+                  : t(
+                      'Enter an SES access key ID and secret access key to configure the provider.'
+                    )}
               </p>
-            ) : (
-              <form className='space-y-3' onSubmit={submitCredentials}>
-                <p className='text-muted-foreground text-xs'>
-                  {status?.configured
-                    ? t(
-                        'Leave a field blank to keep its current encrypted value.'
-                      )
-                    : t(
-                        'Enter an SES access key ID and secret access key to configure the provider.'
-                      )}
-                </p>
 
                 <div className='grid gap-3 md:grid-cols-2'>
                   <div className='space-y-1.5'>
@@ -302,7 +293,6 @@ export function SESCredentialPanel() {
                   </Button>
                 </div>
               </form>
-            )}
           </>
         )}
       </CollapsibleContent>

@@ -1,9 +1,11 @@
 package controller
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
@@ -14,8 +16,19 @@ import (
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/types"
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestInteractiveChannelTestContextHasTenMinuteDeadline(t *testing.T) {
+	startedAt := time.Now()
+	ctx, cancel := newInteractiveChannelTestContext(context.Background())
+	defer cancel()
+
+	deadline, ok := ctx.Deadline()
+	require.True(t, ok)
+	assert.WithinDuration(t, startedAt.Add(10*time.Minute), deadline, time.Second)
+}
 
 func TestReconcileChannelMultiKeyMetadataPromotesNewlinePool(t *testing.T) {
 	channel := &model.Channel{Key: "key-one\nkey-two"}

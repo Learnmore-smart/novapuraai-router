@@ -6,28 +6,35 @@ import {
   RefreshCw,
   ShieldCheck,
 } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
 import {
-  getTransactionalEmailHealth,
-  retryTransactionalEmailQueue,
+	getTransactionalEmailHealth,
+	retryTransactionalEmailQueue,
+	sendTransactionalEmailTest,
   switchTransactionalEmailProvider,
 } from '../api'
 import type { TransactionalEmailProvider } from '../types'
-import { getEmailProviderSwitchState } from './email-provider-health'
+import {
+  getEmailProviderSwitchState,
+  isValidTestEmailRecipient,
+} from './email-provider-health'
 import { SESCredentialPanel } from './ses-credential-panel'
 
 const PROVIDER_ORDER: TransactionalEmailProvider[] = ['brevo', 'ses']
 
 export function EmailProviderHealthCard() {
   const { t } = useTranslation()
-  const queryClient = useQueryClient()
+	const queryClient = useQueryClient()
+	const [testRecipient, setTestRecipient] = useState('noahzh52@gmail.com')
   const healthQuery = useQuery({
     queryKey: ['transactional-email-health'],
     queryFn: getTransactionalEmailHealth,
@@ -77,6 +84,23 @@ export function EmailProviderHealthCard() {
     },
     onError: (error: Error) => {
       toast.error(error.message || t('Failed to retry queued emails'))
+    },
+  })
+
+  const testEmailMutation = useMutation({
+    mutationFn: sendTransactionalEmailTest,
+    onSuccess: async (response) => {
+      if (!response.success) {
+        toast.error(response.message)
+        return
+      }
+      toast.success(t('Test email sent'))
+      await queryClient.invalidateQueries({
+        queryKey: ['transactional-email-health'],
+      })
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || t('Failed to send test email'))
     },
   })
 
@@ -299,6 +323,38 @@ export function EmailProviderHealthCard() {
               : t('Retry safe queue')}
           </Button>
         )}
+      </div>
+
+      <div className='border-border mt-3 flex flex-wrap items-end gap-2 border-t pt-3'>
+        <label className='min-w-52 flex-1 space-y-1 text-xs'>
+          <span className='text-muted-foreground'>{t('Test recipient')}</span>
+          <Input
+            type='email'
+            value={testRecipient}
+            onChange={(event) => setTestRecipient(event.target.value)}
+            placeholder='name@example.com'
+            disabled={testEmailMutation.isPending}
+          />
+        </label>
+        <Button
+          type='button'
+          variant='outline'
+          disabled={
+            testEmailMutation.isPending ||
+            !isValidTestEmailRecipient(testRecipient)
+          }
+          onClick={() => testEmailMutation.mutate(testRecipient.trim())}
+        >
+          {testEmailMutation.isPending && (
+            <Loader2 className='animate-spin' aria-hidden='true' />
+          )}
+          {testEmailMutation.isPending
+            ? t('Sending test email...')
+            : t('Send test email')}
+        </Button>
+        <span className='text-muted-foreground w-full text-xs'>
+          {t('The test uses the selected transactional email provider.')}
+        </span>
       </div>
 
       {report.manual_review_count > 0 && (

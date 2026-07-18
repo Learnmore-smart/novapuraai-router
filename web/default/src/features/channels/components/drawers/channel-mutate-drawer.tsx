@@ -680,10 +680,6 @@ export function ChannelMutateDrawer({
     }
   }, [open, channelId])
 
-  // Check if this is a multi-key channel
-  const isMultiKeyChannel =
-    isEditing && channelData?.data?.channel_info?.is_multi_key === true
-
   // Form setup
   const form = useForm<ChannelFormValues>({
     resolver: zodResolver(channelFormSchema),
@@ -1568,7 +1564,6 @@ export function ChannelMutateDrawer({
   const channelMutation = useChannelMutateForm({
     currentRow,
     isEditing,
-    isMultiKeyChannel,
     onSuccess: handleSuccess,
   })
 
@@ -2926,9 +2921,16 @@ export function ChannelMutateDrawer({
                                         {t(
                                           'Enter new key to update, or leave empty to keep current key'
                                         )}
-                                        {isMultiKeyChannel && (
+                                        {supportsMultiKeyAddMode && (
                                           <span className='text-warning mt-1 block'>
                                             {keyModeDescription}
+                                          </span>
+                                        )}
+                                        {supportsMultiKeyAddMode && (
+                                          <span className='mt-1 block'>
+                                            {t(
+                                              "Paste one API key per line. Each key is tested and used independently while this channel's models and settings are shared."
+                                            )}
                                           </span>
                                         )}
                                       </>
@@ -2944,14 +2946,18 @@ export function ChannelMutateDrawer({
                                       <FormControl>
                                         <Textarea
                                           placeholder={keyPlaceholder}
-                                          rows={isBatchMode ? 8 : 4}
+                                          rows={
+                                            isEditing || isBatchMode ? 8 : 4
+                                          }
                                           {...field}
                                         />
                                       </FormControl>
                                       <FormDescription>
                                         <div className='flex flex-col gap-2'>
                                           <span>{keyDescription}</span>
-                                          {isBatchMode && (
+                                          {(isBatchMode ||
+                                            (isEditing &&
+                                              supportsMultiKeyAddMode)) && (
                                             <Button
                                               type='button'
                                               variant='outline'
@@ -3073,7 +3079,7 @@ export function ChannelMutateDrawer({
                                 </div>
                               )}
 
-                              {isEditing && isMultiKeyChannel && (
+                              {isEditing && supportsMultiKeyAddMode && (
                                 <FormField
                                   control={form.control}
                                   name='key_mode'

@@ -11,7 +11,6 @@ import (
 )
 
 var (
-	ErrSESCredentialsEnvironmentManaged    = errors.New("SES credentials are managed by the environment")
 	ErrIncompleteSESEnvironmentCredentials = errors.New("incomplete environment-managed SES credentials")
 )
 
@@ -47,15 +46,7 @@ func GetSESCredentialStatus(context.Context) (SESCredentialStatus, error) {
 }
 
 func SaveSESCredentials(_ context.Context, update SESCredentialUpdate) (SESCredentialStatus, error) {
-	current, err := resolveSESCredentials(os.Getenv, model.LoadSESCredentials)
-	if err != nil {
-		return SESCredentialStatus{}, err
-	}
-	if current.Status.Source == SESCredentialSourceEnvironment {
-		return current.Status, ErrSESCredentialsEnvironmentManaged
-	}
-
-	_, err = model.SaveSESCredentials(model.SESCredentialUpdate{
+	_, err := model.SaveSESCredentials(model.SESCredentialUpdate{
 		AccessKeyID:       update.AccessKeyID,
 		SecretAccessKey:   update.SecretAccessKey,
 		SessionToken:      update.SessionToken,

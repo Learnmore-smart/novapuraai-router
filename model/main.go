@@ -311,6 +311,7 @@ func migrateDB() error {
 		&TopupPromoRedemption{},
 		&EmailDelivery{},
 		&EmailProviderCredential{},
+		&StripeCredential{},
 	)
 	if err != nil {
 		return err

@@ -1,9 +1,10 @@
 package controller
 
 import (
-	"errors"
 	"net/http"
+	"net/mail"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -19,6 +20,7 @@ var (
 	getTransactionalEmailCredentialStatus = emaildelivery.GetSESCredentialStatus
 	saveTransactionalEmailCredentials     = emaildelivery.SaveSESCredentials
 	deleteTransactionalEmailCredentials   = emaildelivery.DeleteSESCredentials
+	sendTransactionalEmailTest            = emaildelivery.SendTransactionalEmail
 )
 
 const maxTransactionalEmailCredentialBytes = 4096
@@ -33,6 +35,53 @@ func GetTransactionalEmailHealth(c *gin.Context) {
 		"success": true,
 		"message": "",
 		"data":    report,
+	})
+}
+
+func SendTransactionalEmailTest(c *gin.Context) {
+	var request struct {
+		Recipient string `json:"recipient"`
+	}
+	if err := common.DecodeJson(c.Request.Body, &request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "invalid test email request"})
+		return
+	}
+	recipient, err := mail.ParseAddress(strings.TrimSpace(request.Recipient))
+	if err != nil || recipient.Address == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "a valid test recipient email is required"})
+		return
+	}
+
+	result, err := sendTransactionalEmailTest(c.Request.Context(), emaildelivery.SendRequest{
+		BusinessKey: "dashboard-test:" + time.Now().UTC().Format(time.RFC3339Nano),
+		Message: emaildelivery.Message{
+			Type:     emaildelivery.MessageTypeNotification,
+			To:       recipient.Address,
+			Subject:  "Transactional email test",
+			HTMLBody: "<p>This is a transactional email delivery test.</p>",
+			TextBody: "This is a transactional email delivery test.",
+		},
+	})
+	if err != nil {
+		recordManageAudit(c, "email.test_send", map[string]interface{}{
+			"provider": result.Provider,
+			"status":   result.Status,
+			"failure":  result.FailureReason,
+		})
+		c.JSON(http.StatusBadGateway, gin.H{"success": false, "message": "test email delivery failed: " + result.FailureReason})
+		return
+	}
+	recordManageAudit(c, "email.test_send", map[string]interface{}{
+		"provider": result.Provider,
+		"status":   result.Status,
+	})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data": gin.H{
+			"provider": result.Provider,
+			"status":   result.Status,
+		},
 	})
 }
 
@@ -143,10 +192,6 @@ func UpdateTransactionalEmailSESCredentials(c *gin.Context) {
 
 	status, err := saveTransactionalEmailCredentials(c.Request.Context(), request)
 	if err != nil {
-		if errors.Is(err, emaildelivery.ErrSESCredentialsEnvironmentManaged) {
-			common.ApiErrorMsg(c, err.Error())
-			return
-		}
 		common.SysError("failed to save SES credentials")
 		common.ApiErrorMsg(c, "failed to save SES credentials")
 		return

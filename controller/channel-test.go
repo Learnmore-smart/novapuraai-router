@@ -41,6 +41,12 @@ type testResult struct {
 	newAPIError *types.NewAPIError
 }
 
+const interactiveChannelTestTimeout = 10 * time.Minute
+
+func newInteractiveChannelTestContext(parent context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(parent, interactiveChannelTestTimeout)
+}
+
 func normalizeChannelTestEndpoint(channel *model.Channel, modelName, endpointType string) string {
 	normalized := strings.TrimSpace(endpointType)
 	if normalized != "" {
@@ -902,6 +908,8 @@ func TestChannel(c *gin.Context) {
 	if c.Request != nil {
 		requestCtx = c.Request.Context()
 	}
+	requestCtx, cancel := newInteractiveChannelTestContext(requestCtx)
+	defer cancel()
 	result := testChannel(requestCtx, channel, testUserID, testModel, endpointType, isStream, keyIndex)
 	if result.localErr != nil {
 		resp := gin.H{

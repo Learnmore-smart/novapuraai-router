@@ -70,6 +70,27 @@ func TestResolveSESCredentialsUsesExactlyOneCompleteSource(t *testing.T) {
 	})
 }
 
+func TestSaveSESCredentialsStoresDashboardFallbackBehindEnvironmentOverride(t *testing.T) {
+	setupEmailServiceTest(t)
+	require.NoError(t, model.DB.AutoMigrate(&model.EmailProviderCredential{}))
+	t.Setenv("AWS_SES_ACCESS_KEY_ID", "environment-access-key")
+	t.Setenv("AWS_SES_SECRET_ACCESS_KEY", "environment-secret-key")
+	t.Setenv("AWS_SES_SESSION_TOKEN", "environment-token")
+
+	status, err := SaveSESCredentials(context.Background(), SESCredentialUpdate{
+		AccessKeyID:     "dashboard-access-key",
+		SecretAccessKey: "dashboard-secret-key",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, SESCredentialSourceEnvironment, status.Source)
+
+	credentials, found, err := model.LoadSESCredentials()
+	require.NoError(t, err)
+	require.True(t, found)
+	assert.Equal(t, "dashboard-access-key", credentials.AccessKeyID)
+	assert.Equal(t, "dashboard-secret-key", credentials.SecretAccessKey)
+}
+
 func TestServiceProviderReplacementIsVisibleToHealth(t *testing.T) {
 	now := setupEmailServiceTest(t)
 	oldSES := &fakeProvider{name: ProviderSES, health: ProviderHealth{Provider: ProviderSES, Configured: false}}

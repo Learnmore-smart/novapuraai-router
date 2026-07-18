@@ -28,6 +28,7 @@ func setupEmailDeliveryControllerTest(t *testing.T) {
 	previousCredentialStatus := getTransactionalEmailCredentialStatus
 	previousCredentialSave := saveTransactionalEmailCredentials
 	previousCredentialDelete := deleteTransactionalEmailCredentials
+	previousTestSend := sendTransactionalEmailTest
 	previousDB := model.DB
 	previousLogDB := model.LOG_DB
 	previousOptions := common.OptionMap
@@ -46,11 +47,39 @@ func setupEmailDeliveryControllerTest(t *testing.T) {
 		getTransactionalEmailCredentialStatus = previousCredentialStatus
 		saveTransactionalEmailCredentials = previousCredentialSave
 		deleteTransactionalEmailCredentials = previousCredentialDelete
+		sendTransactionalEmailTest = previousTestSend
 		model.DB = previousDB
 		model.LOG_DB = previousLogDB
 		common.RedisEnabled = previousRedisEnabled
 		common.OptionMap = previousOptions
 	})
+}
+
+func TestSendTransactionalEmailTestValidatesRecipientAndRedactsIt(t *testing.T) {
+	setupEmailDeliveryControllerTest(t)
+	var captured emaildelivery.SendRequest
+	sendTransactionalEmailTest = func(_ context.Context, request emaildelivery.SendRequest) (emaildelivery.DeliveryResult, error) {
+		captured = request
+		return emaildelivery.DeliveryResult{Provider: emaildelivery.ProviderSES, Status: emaildelivery.DeliveryStatusSent}, nil
+	}
+
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Set("id", 1)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/option/email-provider/test", strings.NewReader(`{"recipient":"noahzh52@gmail.com"}`))
+	SendTransactionalEmailTest(ctx)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "noahzh52@gmail.com", captured.Message.To)
+	assert.Equal(t, emaildelivery.MessageTypeNotification, captured.Message.Type)
+	assert.Contains(t, recorder.Body.String(), `"provider":"ses"`)
+	assert.NotContains(t, recorder.Body.String(), "noahzh52@gmail.com")
+
+	invalidRecorder := httptest.NewRecorder()
+	invalidCtx, _ := gin.CreateTestContext(invalidRecorder)
+	invalidCtx.Request = httptest.NewRequest(http.MethodPost, "/api/option/email-provider/test", strings.NewReader(`{"recipient":"not-an-email"}`))
+	SendTransactionalEmailTest(invalidCtx)
+	assert.Equal(t, http.StatusBadRequest, invalidRecorder.Code)
 }
 
 func TestTransactionalEmailSESCredentialStatusIsWriteOnly(t *testing.T) {

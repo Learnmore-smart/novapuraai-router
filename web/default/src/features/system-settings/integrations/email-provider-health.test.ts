@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 
-import { getEmailProviderSwitchState } from './email-provider-health.ts'
+import {
+  getEmailProviderSwitchState,
+  isValidTestEmailRecipient,
+} from './email-provider-health.ts'
 
 describe('transactional email provider switch state', () => {
   test('marks the active provider as selected', () => {
@@ -63,5 +66,10 @@ describe('transactional email provider switch state', () => {
       ),
       'unavailable'
     )
+  })
+
+  test('accepts a normal test recipient and rejects malformed input', () => {
+    assert.equal(isValidTestEmailRecipient('noahzh52@gmail.com'), true)
+    assert.equal(isValidTestEmailRecipient('not-an-email'), false)
   })
 })

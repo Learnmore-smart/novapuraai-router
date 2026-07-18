@@ -993,7 +993,7 @@ func UpdateChannel(c *gin.Context) {
 	}
 
 	// 处理多key模式下的密钥追加/覆盖逻辑
-	if channel.KeyMode != nil && channel.ChannelInfo.IsMultiKey {
+	if channel.KeyMode != nil {
 		switch *channel.KeyMode {
 		case "append":
 			// 追加模式：将新密钥添加到现有密钥列表
@@ -1005,7 +1005,7 @@ func UpdateChannel(c *gin.Context) {
 				if strings.HasPrefix(strings.TrimSpace(originChannel.Key), "[") {
 					// JSON数组格式
 					var arr []json.RawMessage
-					if err := json.Unmarshal([]byte(strings.TrimSpace(originChannel.Key)), &arr); err == nil {
+					if err := common.Unmarshal([]byte(strings.TrimSpace(originChannel.Key)), &arr); err == nil {
 						existingKeys = make([]string, len(arr))
 						for i, v := range arr {
 							existingKeys[i] = string(v)

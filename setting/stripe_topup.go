@@ -159,20 +159,20 @@ func MicroUSDToQuota(microUSD int64) int {
 // ExportTopupConfigJSON for admin/status (no secrets).
 func ExportTopupConfigJSON() json.RawMessage {
 	type cfg struct {
-		Enabled           bool               `json:"enabled"`
-		ProductID         string             `json:"product_id"`
-		AccountID         string             `json:"account_id"`
-		RequireTestKeys   bool               `json:"require_test_keys"`
-		Currencies        []string           `json:"currencies"`
-		DefaultCurrency   string             `json:"default_currency"`
-		Presets           map[string][]int   `json:"presets"`
+		Enabled           bool                  `json:"enabled"`
+		ProductID         string                `json:"product_id"`
+		AccountID         string                `json:"account_id"`
+		RequireTestKeys   bool                  `json:"require_test_keys"`
+		Currencies        []string              `json:"currencies"`
+		DefaultCurrency   string                `json:"default_currency"`
+		Presets           map[string][]int      `json:"presets"`
 		MinMaxMajor       map[string][2]float64 `json:"min_max_major"`
 		MinMaxMinor       map[string][2]int64   `json:"min_max_minor"`
-		FX                map[string]float64 `json:"fx_presentment_per_usd"`
-		PublishableKeySet bool               `json:"publishable_key_set"`
-		SecretKeySet      bool               `json:"secret_key_set"`
-		WebhookSecretSet  bool               `json:"webhook_secret_set"`
-		SandboxIndicator  string             `json:"environment"`
+		FX                map[string]float64    `json:"fx_presentment_per_usd"`
+		PublishableKeySet bool                  `json:"publishable_key_set"`
+		SecretKeySet      bool                  `json:"secret_key_set"`
+		WebhookSecretSet  bool                  `json:"webhook_secret_set"`
+		SandboxIndicator  string                `json:"environment"`
 	}
 	presets := map[string][]int{}
 	minmaxMajor := map[string][2]float64{}

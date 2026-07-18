@@ -10,3 +10,7 @@ export function getEmailProviderSwitchState(
   if (provider.configured) return 'available'
   return 'unavailable'
 }
+
+export function isValidTestEmailRecipient(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+}

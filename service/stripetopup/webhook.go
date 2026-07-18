@@ -127,9 +127,13 @@ func handleCheckoutPaid(ctx context.Context, event stripe.Event, async bool) err
 		_ = model.MarkStripeTopupOrderStatus(orderID, "*", model.StripeOrderManualReview, "amount mismatch")
 		return fmt.Errorf("%w: amount mismatch order=%s got=%d want=%d", ErrWebhookPaymentMismatch, orderID, amountTotal, order.PresentmentAmountMinor)
 	}
+	sessionID := event.GetObjectValue("id")
+	if sessionID == "" || (order.StripeCheckoutSessionID != "" && order.StripeCheckoutSessionID != sessionID) {
+		_ = model.MarkStripeTopupOrderStatus(orderID, "*", model.StripeOrderManualReview, "checkout session mismatch")
+		return fmt.Errorf("%w: checkout session mismatch order=%s", ErrWebhookPaymentMismatch, orderID)
+	}
 
 	customerID := event.GetObjectValue("customer")
-	sessionID := event.GetObjectValue("id")
 	pi := event.GetObjectValue("payment_intent")
 
 	// Mark paid then credit (credit is idempotent to credited)

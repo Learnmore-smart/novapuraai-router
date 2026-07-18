@@ -2,7 +2,6 @@ package setting
 
 import (
 	"os"
-	"strconv"
 	"strings"
 )
 
@@ -42,55 +41,31 @@ var StripeProdAccountID = ""
 var stripeTestCredentials stripeCredentialProfile
 var stripeProdCredentials stripeCredentialProfile
 
-// InitStripeEnv loads Stripe secrets and top-up config from environment / Secret Manager names.
-// Test credentials are used outside release. Production credentials are used in
-// release mode; session cookie origin configuration remains independent.
+// InitStripeEnv initializes the runtime selector without reading Stripe values
+// from the process environment. Stripe credentials are loaded from encrypted
+// database rows after database initialization.
 func InitStripeEnv() {
-	loadStripeCredentialsFromEnv()
-	StripeTestTopupProductID = firstEnv("STRIPE_TEST_TOPUP_PRODUCT_ID", "STRIPE_TOPUP_PRODUCT_ID", "STRIPE_PRODUCT_ID")
-	StripeProdTopupProductID = firstEnv("STRIPE_PROD_TOPUP_PRODUCT_ID")
-	StripeTestAccountID = firstEnv("STRIPE_TEST_ACCOUNT_ID", "STRIPE_ACCOUNT_ID")
-	StripeProdAccountID = firstEnv("STRIPE_PROD_ACCOUNT_ID")
-	if v := firstEnv("STRIPE_PRICE_ID", "StripePriceId"); v != "" {
-		StripePriceId = v
-	}
-	if v := firstEnv("STRIPE_TOPUP_ENABLED"); v != "" {
-		StripeTopupEnabled = strings.EqualFold(v, "true") || v == "1"
-	}
-	if v := firstEnv("STRIPE_FX_CNY_PER_USD"); v != "" {
-		if f, err := strconv.ParseFloat(v, 64); err == nil && f > 0 {
-			StripeFXCNYPerUSD = f
-			_ = SetBillingCurrencyFXRate(BillingCurrencyCNY, f)
-		}
-	}
-	if v := firstEnv("STRIPE_FX_CAD_PER_USD"); v != "" {
-		if f, err := strconv.ParseFloat(v, 64); err == nil && f > 0 {
-			StripeFXCADPerUSD = f
-			_ = SetBillingCurrencyFXRate(BillingCurrencyCAD, f)
-		}
-	}
-
+	stripeTestCredentials = stripeCredentialProfile{}
+	stripeProdCredentials = stripeCredentialProfile{}
 	ApplyStripeRuntimeProfile()
 }
 
-// RefreshStripeSecretsFromEnv reapplies only credential values after database-backed
-// options are loaded, so persisted wallet top-up settings remain authoritative.
-func RefreshStripeSecretsFromEnv() {
-	loadStripeCredentialsFromEnv()
+func SetStripeCredentialProfile(environment string, apiSecret string, publishableKey string, webhookSecret string) {
+	profile := stripeCredentialProfile{
+		apiSecret:      strings.TrimSpace(apiSecret),
+		publishableKey: strings.TrimSpace(publishableKey),
+		webhookSecret:  strings.TrimSpace(webhookSecret),
+	}
+	if environment == StripeRuntimeProduction {
+		stripeProdCredentials = profile
+	} else if environment == StripeRuntimeTest {
+		stripeTestCredentials = profile
+	}
 	ApplyStripeRuntimeProfile()
 }
 
-func loadStripeCredentialsFromEnv() {
-	stripeTestCredentials = stripeCredentialProfile{
-		apiSecret:      firstEnv("STRIPE_TEST_SECRET_KEY", "STRIPE_API_SECRET", "StripeApiSecret"),
-		publishableKey: firstEnv("STRIPE_TEST_PUBLISHABLE_KEY", "STRIPE_PUBLISHABLE_KEY"),
-		webhookSecret:  firstEnv("STRIPE_TEST_WEBHOOK_SECRET", "STRIPE_WEBHOOK_SECRET", "StripeWebhookSecret"),
-	}
-	stripeProdCredentials = stripeCredentialProfile{
-		apiSecret:      firstEnv("STRIPE_PROD_SECRET_KEY"),
-		publishableKey: firstEnv("STRIPE_PROD_PUBLISHABLE_KEY"),
-		webhookSecret:  firstEnv("STRIPE_PROD_WEBHOOK_SECRET"),
-	}
+func ClearStripeCredentialProfile(environment string) {
+	SetStripeCredentialProfile(environment, "", "", "")
 }
 
 // ApplyStripeRuntimeProfile activates the already-loaded credential profile and
@@ -141,13 +116,4 @@ func applyStripeTestKeyPolicy() {
 	if strings.HasPrefix(StripePublishableKey, "pk_live") {
 		StripePublishableKey = ""
 	}
-}
-
-func firstEnv(keys ...string) string {
-	for _, k := range keys {
-		if v := strings.TrimSpace(os.Getenv(k)); v != "" {
-			return v
-		}
-	}
-	return ""
 }

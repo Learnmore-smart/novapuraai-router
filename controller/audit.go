@@ -34,6 +34,8 @@ var auditContentTemplates = map[string]string{
 	"email.safe_retry":             "Retried ${processed} queued transactional emails (${sent} sent, ${queued} queued, ${failed} failed)",
 	"email.ses_credentials_update": "Updated encrypted SES credentials (access key: ${access_key_replaced}, secret key: ${secret_key_replaced}, session token: ${session_token_changed})",
 	"email.ses_credentials_delete": "Deleted Dashboard-managed encrypted SES credentials",
+	"stripe.credentials_update":    "Updated encrypted Stripe ${environment} credentials",
+	"stripe.credentials_delete":    "Deleted encrypted Stripe ${environment} credentials",
 
 	"channel.create":             "Created channel ${name} (type ${type}, count ${count})",
 	"channel.update":             "Updated channel ${name} (ID: ${id})",

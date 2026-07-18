@@ -545,13 +545,18 @@ function buildSettingsJSON(formData: ChannelFormValues): string {
       formData.allow_include_obfuscation === true
     settingsObj.allow_inference_geo = formData.allow_inference_geo === true
   } else {
-    if ('disable_store' in settingsObj) delete settingsObj.disable_store
-    if ('allow_safety_identifier' in settingsObj)
+    if ('disable_store' in settingsObj) {
+      delete settingsObj.disable_store
+    }
+    if ('allow_safety_identifier' in settingsObj) {
       delete settingsObj.allow_safety_identifier
-    if ('allow_include_obfuscation' in settingsObj)
+    }
+    if ('allow_include_obfuscation' in settingsObj) {
       delete settingsObj.allow_include_obfuscation
-    if (formData.type !== 14 && 'allow_inference_geo' in settingsObj)
+    }
+    if (formData.type !== 14 && 'allow_inference_geo' in settingsObj) {
       delete settingsObj.allow_inference_geo
+    }
   }
 
   // Anthropic (type 14): claude_beta_query, allow_inference_geo, allow_speed
@@ -560,8 +565,12 @@ function buildSettingsJSON(formData: ChannelFormValues): string {
     settingsObj.allow_speed = formData.allow_speed === true
     settingsObj.claude_beta_query = formData.claude_beta_query === true
   } else {
-    if ('allow_speed' in settingsObj) delete settingsObj.allow_speed
-    if ('claude_beta_query' in settingsObj) delete settingsObj.claude_beta_query
+    if ('allow_speed' in settingsObj) {
+      delete settingsObj.allow_speed
+    }
+    if ('claude_beta_query' in settingsObj) {
+      delete settingsObj.claude_beta_query
+    }
   }
 
   settingsObj.disable_task_polling_sleep =
@@ -574,14 +583,14 @@ function buildSettingsJSON(formData: ChannelFormValues): string {
     settingsObj.upstream_model_update_auto_sync_enabled =
       settingsObj.upstream_model_update_check_enabled === true &&
       formData.upstream_model_update_auto_sync_enabled === true
-    settingsObj.upstream_model_update_ignored_models = Array.from(
-      new Set(
+    settingsObj.upstream_model_update_ignored_models = [
+      ...new Set(
         String(formData.upstream_model_update_ignored_models || '')
           .split(',')
           .map((model) => model.trim())
           .filter(Boolean)
-      )
-    )
+      ),
+    ]
     if (
       !Array.isArray(settingsObj.upstream_model_update_last_detected_models) ||
       settingsObj.upstream_model_update_check_enabled !== true
@@ -671,8 +680,8 @@ export function transformFormDataToCreatePayload(formData: ChannelFormValues): {
 export function transformFormDataToUpdatePayload(
   formData: ChannelFormValues,
   channelId: number
-): Partial<Channel> {
-  const payload: Partial<Channel> = {
+): Partial<Channel> & { key_mode?: 'append' | 'replace' } {
+  const payload: Partial<Channel> & { key_mode?: 'append' | 'replace' } = {
     id: channelId,
     name: formData.name,
     type: formData.type,
@@ -698,6 +707,7 @@ export function transformFormDataToUpdatePayload(
   // Only include key if it was changed (not empty)
   if (formData.key && formData.key.trim()) {
     payload.key = formData.key
+    payload.key_mode = formData.key_mode
   }
 
   // Clean up empty strings to null for optional fields

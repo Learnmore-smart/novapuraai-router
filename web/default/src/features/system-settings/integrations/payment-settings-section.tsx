@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   CheckCircle2,
   CircleAlert,
@@ -38,6 +38,7 @@ import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 
+import { updateStripeCredentials } from '../api'
 import {
   SettingsForm,
   SettingsSwitchContent,
@@ -51,6 +52,7 @@ import { AmountDiscountVisualEditor } from './amount-discount-visual-editor'
 import { AmountOptionsVisualEditor } from './amount-options-visual-editor'
 import { CreemProductsVisualEditor } from './creem-products-visual-editor'
 import { PaymentMethodsVisualEditor } from './payment-methods-visual-editor'
+import { buildStripeCredentialUpdate } from './stripe-credential-form'
 import { getStripeEnvironmentReadiness } from './stripe-environment-status'
 import {
   TopupPromotionSettings,
@@ -221,18 +223,51 @@ function StripeEnvironmentCard({
   accountField,
 }: StripeEnvironmentCardProps) {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [credentialStatus, setCredentialStatus] = React.useState(status)
+  const [credentials, setCredentials] = React.useState({
+    secretKey: '',
+    publishableKey: '',
+    webhookSecret: '',
+  })
+  React.useEffect(() => setCredentialStatus(status), [status])
+  const updateCredentials = useMutation({
+    mutationFn: () => {
+      const payload = buildStripeCredentialUpdate(credentials)
+      if (Object.keys(payload).length === 0) {
+        throw new Error(t('Enter at least one Stripe credential to update'))
+      }
+      return updateStripeCredentials(environment, payload)
+    },
+    onSuccess: async (response) => {
+      setCredentialStatus({
+        secretConfigured: response.data.secret_configured,
+        publishableConfigured: response.data.publishable_configured,
+        webhookConfigured: response.data.webhook_configured,
+      })
+      setCredentials({ secretKey: '', publishableKey: '', webhookSecret: '' })
+      await queryClient.invalidateQueries({ queryKey: ['system-options'] })
+      toast.success(t('Stripe credentials saved'))
+    },
+    onError: (error) =>
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t('Failed to save Stripe credentials')
+      ),
+  })
   const productID = useWatch({ control, name: productField })
   const accountID = useWatch({ control, name: accountField })
   const readiness = getStripeEnvironmentReadiness({
-    ...status,
+    ...credentialStatus,
     productID,
     accountID,
   })
   const label = environment === 'test' ? t('Test') : t('Production')
   const credentialRows = [
-    [t('Secret key'), status.secretConfigured],
-    [t('Publishable key'), status.publishableConfigured],
-    [t('Webhook signing secret'), status.webhookConfigured],
+    [t('Secret key'), credentialStatus.secretConfigured],
+    [t('Publishable key'), credentialStatus.publishableConfigured],
+    [t('Webhook signing secret'), credentialStatus.webhookConfigured],
   ] as const
 
   return (
@@ -288,6 +323,65 @@ function StripeEnvironmentCard({
               </span>
             </div>
           ))}
+        </div>
+
+        <div className='grid gap-3'>
+          {(
+            [
+              [
+                'secretKey',
+                t('Secret key'),
+                environment === 'test' ? 'rk_test_...' : 'rk_live_...',
+                credentialStatus.secretConfigured,
+              ],
+              [
+                'publishableKey',
+                t('Publishable key'),
+                environment === 'test' ? 'pk_test_...' : 'pk_live_...',
+                credentialStatus.publishableConfigured,
+              ],
+              [
+                'webhookSecret',
+                t('Webhook signing secret'),
+                'whsec_...',
+                credentialStatus.webhookConfigured,
+              ],
+            ] as const
+          ).map(([field, fieldLabel, emptyPlaceholder, configured]) => (
+            <div key={field} className='space-y-2'>
+              <FormLabel htmlFor={`stripe-${environment}-${field}`}>
+                {fieldLabel}
+              </FormLabel>
+              <Input
+                id={`stripe-${environment}-${field}`}
+                type='password'
+                autoComplete='new-password'
+                value={credentials[field]}
+                placeholder={configured ? '••••••••••••' : emptyPlaceholder}
+                onChange={(event) =>
+                  setCredentials((current) => ({
+                    ...current,
+                    [field]: event.target.value,
+                  }))
+                }
+              />
+            </div>
+          ))}
+          <p className='text-muted-foreground text-xs'>
+            {t(
+              'Stored credentials are encrypted. Leave a field blank to keep its current value.'
+            )}
+          </p>
+          <Button
+            type='button'
+            className='w-fit'
+            disabled={updateCredentials.isPending}
+            onClick={() => updateCredentials.mutate()}
+          >
+            {updateCredentials.isPending
+              ? t('Saving...')
+              : t('Save credentials')}
+          </Button>
         </div>
 
         <div className='grid gap-4 sm:grid-cols-2'>
@@ -1322,11 +1416,11 @@ export function PaymentSettingsSection({
                 <Alert>
                   <ShieldAlert />
                   <AlertTitle>
-                    {t('Stripe secrets are managed securely')}
+                    {t('Stripe credentials are encrypted at rest')}
                   </AlertTitle>
                   <AlertDescription>
                     {t(
-                      'Update Stripe keys in Secret Manager or environment variables. This dashboard shows only whether each value is configured and never returns the secret.'
+                      'Enter Stripe keys here. They are encrypted in the database and are never loaded from .env or returned to the browser after saving.'
                     )}
                   </AlertDescription>
                 </Alert>
