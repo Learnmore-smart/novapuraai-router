@@ -28,7 +28,7 @@ import { useDebounce } from '@/hooks'
 import { cn } from '@/lib/utils'
 
 import { DataTableFacetedFilter } from './faceted-filter'
-import { DataTableViewOptions } from './view-options'
+import { DataTableViewOptions, type DataTableViewOption } from './view-options'
 
 type FilterDef = {
   columnId: string
@@ -54,6 +54,8 @@ export type DataTableToolbarProps<TData> = {
    * Placeholder for the default search input. Defaults to `t('Filter...')`.
    */
   searchPlaceholder?: string
+  /** Optional sizing override for the default search input. */
+  searchInputClassName?: string
   /**
    * Delay committing the default search input. Defaults to immediate updates.
    */
@@ -117,6 +119,9 @@ export type DataTableToolbarProps<TData> = {
    * Hide the View Options (column visibility) dropdown.
    */
   hideViewOptions?: boolean
+  /** Optional read-only row filters rendered inside the View dropdown. */
+  additionalViewOptions?: DataTableViewOption[]
+  additionalViewOptionsLabel?: string
   /**
    * Optional view-mode toggle (e.g. table vs. card) rendered in the right
    * action cluster, before the View Options dropdown. Typically a
@@ -250,7 +255,10 @@ export function DataTableToolbar<TData>(props: DataTableToolbarProps<TData>) {
       onChange={handleSearchChange}
       onCompositionStart={handleSearchCompositionStart}
       onCompositionEnd={handleSearchCompositionEnd}
-      className='w-full sm:w-[200px] lg:w-[240px]'
+      className={cn(
+        'w-full sm:w-[200px] lg:w-[240px]',
+        props.searchInputClassName
+      )}
     />
   )
 
@@ -312,7 +320,11 @@ export function DataTableToolbar<TData>(props: DataTableToolbarProps<TData>) {
   ) : null
 
   const viewOptionsNode = !props.hideViewOptions ? (
-    <DataTableViewOptions table={props.table} />
+    <DataTableViewOptions
+      table={props.table}
+      additionalOptions={props.additionalViewOptions}
+      additionalOptionsLabel={props.additionalViewOptionsLabel}
+    />
   ) : null
 
   const viewToggleNode = props.viewToggle ?? null

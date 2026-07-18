@@ -16,6 +16,7 @@ skills-lock.json
 
 # Local secrets & runtime (Day-1 docker / deploy)
 .env
+.env-prod
 data/
 logs/
 upload/

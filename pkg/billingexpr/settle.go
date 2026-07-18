@@ -24,7 +24,13 @@ func ComputeTieredQuotaWithRequest(snap *BillingSnapshot, params TokenParams, re
 		return TieredResult{}, err
 	}
 
-	quotaBeforeGroup := quotaConversion(cost, snap)
+	globalDiscount := snap.GlobalDiscount
+	if globalDiscount <= 0 || globalDiscount > 1 {
+		// Snapshots created before global discounts existed deserialize this
+		// field as zero and must retain their original full-price behavior.
+		globalDiscount = 1
+	}
+	quotaBeforeGroup := quotaConversion(cost, snap) * globalDiscount
 	afterGroup, clamp := common.QuotaRoundChecked(quotaBeforeGroup * snap.GroupRatio)
 	crossed := trace.MatchedTier != snap.EstimatedTier
 

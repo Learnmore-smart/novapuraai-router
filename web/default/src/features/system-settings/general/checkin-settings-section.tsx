@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm, type Resolver } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -34,6 +35,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 
+import { updateSystemOption } from '../api'
 import {
   SettingsForm,
   SettingsSwitchContent,
@@ -41,7 +43,8 @@ import {
 } from '../components/settings-form-layout'
 import { SettingsPageFormActions } from '../components/settings-page-context'
 import { SettingsSection } from '../components/settings-section'
-import { useUpdateOption } from '../hooks/use-update-option'
+import type { UpdateOptionRequest } from '../types'
+import { saveCheckinOptionUpdates } from './checkin-settings'
 
 const schema = z.object({
   enabled: z.boolean(),
@@ -61,7 +64,18 @@ export function CheckinSettingsSection({
   }
 }) {
   const { t } = useTranslation()
-  const updateOption = useUpdateOption()
+  const queryClient = useQueryClient()
+  const updateOptions = useMutation({
+    mutationFn: (updates: UpdateOptionRequest[]) =>
+      saveCheckinOptionUpdates(updates, updateSystemOption),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['system-options'] })
+      toast.success(t('Setting updated successfully'))
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || t('Failed to update setting'))
+    },
+  })
 
   const form = useForm<Values>({
     resolver: zodResolver(schema) as unknown as Resolver<Values>,
@@ -76,7 +90,7 @@ export function CheckinSettingsSection({
   const enabled = form.watch('enabled')
 
   async function onSubmit(values: Values) {
-    const updates: Array<{ key: string; value: string }> = []
+    const updates: UpdateOptionRequest[] = []
 
     if (values.enabled !== defaultValues.enabled) {
       updates.push({
@@ -104,10 +118,7 @@ export function CheckinSettingsSection({
       return
     }
 
-    for (const update of updates) {
-      await updateOption.mutateAsync(update)
-    }
-
+    await updateOptions.mutateAsync(updates)
     form.reset(values)
   }
 
@@ -117,7 +128,7 @@ export function CheckinSettingsSection({
         <SettingsForm onSubmit={form.handleSubmit(onSubmit)} autoComplete='off'>
           <SettingsPageFormActions
             onSave={form.handleSubmit(onSubmit)}
-            isSaving={updateOption.isPending || isSubmitting}
+            isSaving={updateOptions.isPending || isSubmitting}
             isSaveDisabled={!isDirty}
             saveLabel='Save check-in settings'
           />
@@ -138,7 +149,7 @@ export function CheckinSettingsSection({
                   <Switch
                     checked={field.value}
                     onCheckedChange={field.onChange}
-                    disabled={updateOption.isPending || isSubmitting}
+                    disabled={updateOptions.isPending || isSubmitting}
                   />
                 </FormControl>
               </SettingsSwitchItem>

@@ -60,6 +60,22 @@ export type ModelRow = ModelPricingSnapshot & {
   isDraftNew: boolean
 }
 
+export type ModelPricingFilterMode = 'all' | 'configured' | 'unset'
+
+export function resolveVisibleModelNames(options: {
+  savedModelNames: string[]
+  draftModelNames: string[]
+  candidateModelNames?: string[]
+  filterMode: ModelPricingFilterMode
+}): string[] {
+  const modelNames =
+    options.filterMode === 'all'
+      ? new Set([...options.savedModelNames, ...options.draftModelNames])
+      : new Set(options.candidateModelNames ?? [])
+
+  return [...modelNames].sort((a, b) => a.localeCompare(b))
+}
+
 export const hasPricingValue = (value?: string) =>
   value !== undefined && value !== ''
 
@@ -246,7 +262,7 @@ export const buildModelSnapshots = ({
     ...Object.keys(billingExprMap),
   ])
 
-  return Array.from(modelNames).map((name) => {
+  return [...modelNames].map((name) => {
     const price = priceMap[name]?.toString() || ''
     const ratio = ratioMap[name]?.toString() || ''
     const cache = cacheMap[name]?.toString() || ''

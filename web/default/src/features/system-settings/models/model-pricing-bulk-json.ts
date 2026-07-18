@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { safeJsonParse } from '../utils/json-parser'
+import { GLOBAL_MODEL_DISCOUNT_KEY } from './model-global-discount'
 import { formatPricingNumber } from './pricing-format'
 
 /**
@@ -83,7 +84,10 @@ const parseStringMap = (value: string): Record<string, string> =>
 
 const round = (value: number): number => Number(formatPricingNumber(value))
 
-export function exportPricingJson(maps: BulkPricingMaps): string {
+export function exportPricingJson(
+  maps: BulkPricingMaps,
+  candidateModelNames: string[] = []
+): string {
   const priceMap = parseMap(maps.modelPrice)
   const ratioMap = parseMap(maps.modelRatio)
   const cacheMap = parseMap(maps.cacheRatio)
@@ -105,9 +109,12 @@ export function exportPricingJson(maps: BulkPricingMaps): string {
     ...Object.keys(audioMap),
     ...Object.keys(audioCompletionMap),
     ...Object.keys(discountMap),
+    ...candidateModelNames,
   ])
 
-  const document: Record<string, Record<string, number>> = {}
+  names.delete(GLOBAL_MODEL_DISCOUNT_KEY)
+
+  const document: Record<string, Record<string, number> | null> = {}
   for (const name of [...names].sort((a, b) => a.localeCompare(b))) {
     if (billingModeMap[name] === 'tiered_expr') continue
 
@@ -142,6 +149,8 @@ export function exportPricingJson(maps: BulkPricingMaps): string {
     }
     if (Object.keys(entry).length > 0) {
       document[name] = entry
+    } else {
+      document[name] = null
     }
   }
 
@@ -164,11 +173,7 @@ export function applyPricingJson(
       errors: [error instanceof Error ? error.message : 'Invalid JSON'],
     }
   }
-  if (
-    parsed === null ||
-    typeof parsed !== 'object' ||
-    Array.isArray(parsed)
-  ) {
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
     return { ok: false, errors: ['Expected a JSON object keyed by model name'] }
   }
 
@@ -178,6 +183,10 @@ export function applyPricingJson(
   for (const [name, rawEntry] of entries) {
     if (name.trim() === '') {
       errors.push('Empty model name')
+      continue
+    }
+    if (name.trim() === GLOBAL_MODEL_DISCOUNT_KEY) {
+      errors.push('"*" is reserved for the global discount control')
       continue
     }
     if (rawEntry === null) continue
@@ -266,6 +275,18 @@ export function applyPricingJson(
     const name = rawName.trim()
 
     if (rawEntry === null) {
+      const hadConfig =
+        Object.hasOwn(priceMap, name) ||
+        Object.hasOwn(ratioMap, name) ||
+        Object.hasOwn(cacheMap, name) ||
+        Object.hasOwn(createCacheMap, name) ||
+        Object.hasOwn(completionMap, name) ||
+        Object.hasOwn(imageMap, name) ||
+        Object.hasOwn(audioMap, name) ||
+        Object.hasOwn(audioCompletionMap, name) ||
+        Object.hasOwn(discountMap, name) ||
+        Object.hasOwn(billingModeMap, name) ||
+        Object.hasOwn(billingExprMap, name)
       delete priceMap[name]
       delete ratioMap[name]
       delete cacheMap[name]
@@ -277,7 +298,7 @@ export function applyPricingJson(
       delete discountMap[name]
       delete billingModeMap[name]
       delete billingExprMap[name]
-      removed += 1
+      if (hadConfig) removed += 1
       continue
     }
 

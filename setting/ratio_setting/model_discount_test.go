@@ -45,3 +45,33 @@ func TestUpdateModelDiscountByJSONStringValidation(t *testing.T) {
 	_, ok = GetModelDiscount("model-a")
 	assert.False(t, ok)
 }
+
+func TestGlobalModelDiscountOverridesAndRestoresPerModelRates(t *testing.T) {
+	saved := ModelDiscount2JSONString()
+	t.Cleanup(func() {
+		require.NoError(t, UpdateModelDiscountByJSONString(saved))
+	})
+
+	require.NoError(t, UpdateModelDiscountByJSONString(`{"*":0.6,"model-a":0.8}`))
+
+	rate, ok := GetModelDiscount("model-a")
+	assert.True(t, ok)
+	assert.Equal(t, 0.6, rate)
+
+	rate, ok = GetModelDiscount("model-without-own-rate")
+	assert.True(t, ok)
+	assert.Equal(t, 0.6, rate)
+
+	require.NoError(t, UpdateModelDiscountByJSONString(`{"*":1,"model-a":0.8}`))
+	rate, ok = GetModelDiscount("model-a")
+	assert.True(t, ok)
+	assert.Equal(t, 1.0, rate)
+
+	require.NoError(t, UpdateModelDiscountByJSONString(`{"model-a":0.8}`))
+	rate, ok = GetModelDiscount("model-a")
+	assert.True(t, ok)
+	assert.Equal(t, 0.8, rate)
+
+	_, ok = GetGlobalModelDiscount()
+	assert.False(t, ok)
+}

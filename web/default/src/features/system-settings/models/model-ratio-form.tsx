@@ -34,6 +34,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { getEnabledModels } from '@/features/channels/api'
 
@@ -42,6 +43,10 @@ import {
   SettingsSwitchContent,
   SettingsSwitchItem,
 } from '../components/settings-form-layout'
+import {
+  getGlobalDiscountDraft,
+  setGlobalDiscountDraft,
+} from './model-global-discount'
 import { ModelPricingBulkJsonDialog } from './model-pricing-bulk-json-dialog'
 import {
   ModelRatioVisualEditor,
@@ -183,19 +188,18 @@ export const ModelRatioForm = memo(function ModelRatioForm({
   const isUnsetVariant = variant === 'unset'
   const [editMode, setEditMode] = useState<'visual' | 'json'>('visual')
   const [bulkJsonOpen, setBulkJsonOpen] = useState(false)
+  const [globalDiscountRate, setGlobalDiscountRate] = useState('0.8')
   const visualEditorRef = useRef<ModelRatioVisualEditorHandle>(null)
 
   const enabledModelsQuery = useQuery({
     queryKey: ['enabled-models'],
     queryFn: getEnabledModels,
-    enabled: isUnsetVariant,
+    enabled: true,
   })
 
-  const enabledModelsError = isUnsetVariant
-    ? enabledModelsQuery.isError ||
-      (enabledModelsQuery.data !== undefined &&
-        !enabledModelsQuery.data.success)
-    : false
+  const enabledModelsError =
+    enabledModelsQuery.isError ||
+    (enabledModelsQuery.data !== undefined && !enabledModelsQuery.data.success)
   const enabledModelsErrorMessage = enabledModelsQuery.data?.message
 
   useEffect(() => {
@@ -211,6 +215,32 @@ export const ModelRatioForm = memo(function ModelRatioForm({
       })
     },
     [form]
+  )
+
+  const modelDiscountDraft = form.watch('ModelDiscount')
+  const globalDiscount = getGlobalDiscountDraft(modelDiscountDraft)
+
+  useEffect(() => {
+    if (globalDiscount.rate !== null) {
+      setGlobalDiscountRate(String(globalDiscount.rate))
+    }
+  }, [globalDiscount.rate])
+
+  const updateGlobalDiscount = useCallback(
+    (enabled: boolean, rateText: string) => {
+      const rate = Number(rateText)
+      try {
+        handleFieldChange(
+          'ModelDiscount',
+          setGlobalDiscountDraft(form.getValues('ModelDiscount'), enabled, rate)
+        )
+      } catch {
+        toast.error(
+          t('Global discount rate must be greater than 0 and at most 1.')
+        )
+      }
+    },
+    [form, handleFieldChange, t]
   )
 
   const toggleEditMode = useCallback(() => {
@@ -242,8 +272,8 @@ export const ModelRatioForm = memo(function ModelRatioForm({
 
   return (
     <div className='space-y-6'>
-      {!isUnsetVariant && (
-        <div className='flex flex-wrap justify-end gap-2'>
+      <div className='flex flex-wrap justify-end gap-2'>
+        {!isUnsetVariant && (
           <Button
             type='button'
             variant='destructive'
@@ -254,40 +284,88 @@ export const ModelRatioForm = memo(function ModelRatioForm({
             <RotateCcw data-icon='inline-start' />
             {t('Reset prices')}
           </Button>
-          {editMode === 'json' && (
-            <Button
-              type='button'
-              size='sm'
-              onClick={handleSave}
-              disabled={isSaving}
-            >
-              <Save data-icon='inline-start' />
-              {isSaving ? t('Saving...') : t('Save model prices')}
-            </Button>
-          )}
+        )}
+        {editMode === 'json' && (
+          <Button
+            type='button'
+            size='sm'
+            onClick={handleSave}
+            disabled={isSaving}
+          >
+            <Save data-icon='inline-start' />
+            {isSaving ? t('Saving...') : t('Save model prices')}
+          </Button>
+        )}
+        {!isUnsetVariant && (
           <Button
             type='button'
             variant='outline'
             size='sm'
             onClick={() => setBulkJsonOpen(true)}
+            disabled={enabledModelsQuery.isLoading || enabledModelsError}
           >
             <Braces data-icon='inline-start' />
             {t('Bulk edit (JSON)')}
           </Button>
-          <Button variant='outline' size='sm' onClick={toggleEditMode}>
-            {editMode === 'visual' ? (
-              <>
-                <Code2 className='mr-2 h-4 w-4' />
-                {t('Switch to JSON')}
-              </>
-            ) : (
-              <>
-                <Eye className='mr-2 h-4 w-4' />
-                {t('Switch to Visual')}
-              </>
-            )}
-          </Button>
-        </div>
+        )}
+        <Button variant='outline' size='sm' onClick={toggleEditMode}>
+          {editMode === 'visual' ? (
+            <>
+              <Code2 className='mr-2 h-4 w-4' />
+              {t('Switch to JSON')}
+            </>
+          ) : (
+            <>
+              <Eye className='mr-2 h-4 w-4' />
+              {t('Switch to Visual')}
+            </>
+          )}
+        </Button>
+      </div>
+
+      {!isUnsetVariant && (
+        <SettingsSwitchItem>
+          <SettingsSwitchContent>
+            <div className='text-sm font-medium'>
+              {t('Apply discount to all models')}
+            </div>
+            <p className='text-muted-foreground text-sm'>
+              {t(
+                'Temporarily overrides every model discount without deleting individual rates. Turn it off to restore each model rate.'
+              )}
+            </p>
+          </SettingsSwitchContent>
+          <div className='flex items-center gap-3'>
+            <Input
+              className='w-24'
+              inputMode='decimal'
+              aria-label={t('Global discount rate')}
+              value={globalDiscountRate}
+              onChange={(event) => {
+                const nextValue = event.target.value
+                if (!/^\d*\.?\d*$/.test(nextValue)) return
+                setGlobalDiscountRate(nextValue)
+                const rate = Number(nextValue)
+                if (
+                  globalDiscount.enabled &&
+                  nextValue !== '' &&
+                  rate > 0 &&
+                  rate <= 1
+                ) {
+                  updateGlobalDiscount(true, nextValue)
+                }
+              }}
+              placeholder='0.8'
+            />
+            <Switch
+              checked={globalDiscount.enabled}
+              onCheckedChange={(checked) =>
+                updateGlobalDiscount(checked, globalDiscountRate)
+              }
+              aria-label={t('Apply discount to all models')}
+            />
+          </div>
+        </SettingsSwitchItem>
       )}
 
       <Form {...form}>
@@ -317,12 +395,9 @@ export const ModelRatioForm = memo(function ModelRatioForm({
               modelDiscount={form.watch('ModelDiscount')}
               billingMode={form.watch('BillingMode')}
               billingExpr={form.watch('BillingExpr')}
-              candidateModelNames={
-                isUnsetVariant ? enabledModelsQuery.data?.data : undefined
-              }
-              candidateModelsLoading={
-                isUnsetVariant && enabledModelsQuery.isLoading
-              }
+              candidateModelNames={enabledModelsQuery.data?.data}
+              candidateModelsLoading={enabledModelsQuery.isLoading}
+              candidateModelsUnavailable={enabledModelsError}
               filterMode={isUnsetVariant ? 'unset' : 'all'}
               onSave={handleSave}
               isSaving={isSaving}
@@ -418,6 +493,7 @@ export const ModelRatioForm = memo(function ModelRatioForm({
           billingMode: form.watch('BillingMode'),
           billingExpr: form.watch('BillingExpr'),
         }}
+        modelNames={enabledModelsQuery.data?.data || []}
         onApply={handleBulkApply}
       />
     </div>

@@ -42,6 +42,7 @@ type ModelPricingBulkJsonDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   maps: BulkPricingMaps
+  modelNames: string[]
   onApply: (updates: Record<string, string>) => void
 }
 
@@ -49,6 +50,7 @@ export function ModelPricingBulkJsonDialog({
   open,
   onOpenChange,
   maps,
+  modelNames,
   onApply,
 }: ModelPricingBulkJsonDialogProps) {
   const { t } = useTranslation()
@@ -57,7 +59,7 @@ export function ModelPricingBulkJsonDialog({
 
   useEffect(() => {
     if (open) {
-      setDraft(exportPricingJson(maps))
+      setDraft(exportPricingJson(maps, modelNames))
       setErrors([])
     }
     // Re-export only when the dialog opens; edits must not be clobbered.

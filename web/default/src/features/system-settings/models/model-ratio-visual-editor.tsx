@@ -62,7 +62,9 @@ import {
   buildModelSnapshots,
   getSnapshotSignature,
   isBasePricingUnset,
+  type ModelPricingFilterMode,
   type ModelRow,
+  resolveVisibleModelNames,
 } from './model-pricing-snapshots'
 import { buildModelRatioColumns } from './model-ratio-table-columns'
 
@@ -91,7 +93,8 @@ type ModelRatioVisualEditorProps = {
   billingExpr: string
   candidateModelNames?: string[]
   candidateModelsLoading?: boolean
-  filterMode?: 'all' | 'unset'
+  candidateModelsUnavailable?: boolean
+  filterMode?: ModelPricingFilterMode
   onChange: (field: string, value: string) => void
   onSave: () => void | Promise<void>
   isSaving: boolean
@@ -132,6 +135,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
     billingExpr,
     candidateModelNames,
     candidateModelsLoading,
+    candidateModelsUnavailable,
     filterMode = 'all',
     onChange,
     onSave,
@@ -147,6 +151,8 @@ const ModelRatioVisualEditorComponent = forwardRef<
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [globalFilter, setGlobalFilter] = useState('')
+  const [showConfiguredModelsOnly, setShowConfiguredModelsOnly] =
+    useState(false)
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const editorPanelRef = useRef<ModelPricingEditorPanelHandle>(null)
   const [pagination, setPagination] = useState<PaginationState>({
@@ -192,6 +198,13 @@ const ModelRatioVisualEditorComponent = forwardRef<
     localStorage.setItem(STORAGE_KEY, JSON.stringify(columnVisibility))
   }, [columnVisibility])
 
+  let effectiveFilterMode: ModelPricingFilterMode = 'all'
+  if (filterMode === 'unset') {
+    effectiveFilterMode = 'unset'
+  } else if (showConfiguredModelsOnly) {
+    effectiveFilterMode = 'configured'
+  }
+
   const models = useMemo(() => {
     const savedRows = buildModelSnapshots({
       modelPrice: savedModelPrice,
@@ -222,12 +235,14 @@ const ModelRatioVisualEditorComponent = forwardRef<
 
     const savedByName = new Map(savedRows.map((row) => [row.name, row]))
     const draftByName = new Map(draftRows.map((row) => [row.name, row]))
-    const modelNames =
-      filterMode === 'unset'
-        ? new Set(candidateModelNames ?? [])
-        : new Set([...savedByName.keys(), ...draftByName.keys()])
+    const modelNames = resolveVisibleModelNames({
+      savedModelNames: [...savedByName.keys()],
+      draftModelNames: [...draftByName.keys()],
+      candidateModelNames,
+      filterMode: effectiveFilterMode,
+    })
 
-    return [...modelNames]
+    return modelNames
       .map((name) => {
         const saved = savedByName.get(name)
         const draft = draftByName.get(name)
@@ -246,11 +261,13 @@ const ModelRatioVisualEditorComponent = forwardRef<
         }
       })
       .filter((row) => !row.isDraftDeleted)
-      .filter((row) => filterMode !== 'unset' || isBasePricingUnset(row.saved))
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .filter(
+        (row) =>
+          effectiveFilterMode !== 'unset' || isBasePricingUnset(row.saved)
+      )
   }, [
     candidateModelNames,
-    filterMode,
+    effectiveFilterMode,
     savedModelPrice,
     savedModelRatio,
     savedCacheRatio,
@@ -541,9 +558,12 @@ const ModelRatioVisualEditorComponent = forwardRef<
         { fallback: {}, silent: true }
       )
 
-      const setDiscountIfPresent = (name: string, value: string | undefined) => {
+      const setDiscountIfPresent = (
+        name: string,
+        value: string | undefined
+      ) => {
         if (!value || value === '') return
-        const parsed = parseFloat(value)
+        const parsed = Number.parseFloat(value)
         // A rate of 1 is a no-op discount; keep the map clean instead.
         if (Number.isFinite(parsed) && parsed > 0 && parsed < 1) {
           discountMap[name] = parsed
@@ -556,7 +576,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
         value: string | undefined
       ) => {
         if (!value || value === '') return
-        const parsed = parseFloat(value)
+        const parsed = Number.parseFloat(value)
         if (Number.isFinite(parsed)) target[name] = parsed
       }
 
@@ -709,6 +729,10 @@ const ModelRatioVisualEditorComponent = forwardRef<
     emptyStateText = candidateModelsLoading
       ? t('Loading...')
       : t('No models with unset prices')
+  } else if (effectiveFilterMode === 'configured') {
+    emptyStateText = candidateModelsLoading
+      ? t('Loading...')
+      : t('No models configured in API')
   }
 
   return (
@@ -718,6 +742,8 @@ const ModelRatioVisualEditorComponent = forwardRef<
           <DataTableToolbar
             table={table}
             searchPlaceholder={t('Search models...')}
+            searchInputClassName='min-w-24 flex-1 sm:w-auto lg:w-auto'
+            className='flex-nowrap overflow-x-auto pb-1'
             filters={[
               {
                 columnId: 'billingMode',
@@ -743,12 +769,26 @@ const ModelRatioVisualEditorComponent = forwardRef<
             ]}
             preActions={
               filterMode === 'unset' ? undefined : (
-                <Button onClick={handleAdd}>
+                <Button size='sm' onClick={handleAdd}>
                   <Plus data-icon='inline-start' />
                   {t('Add model')}
                 </Button>
               )
             }
+            additionalViewOptions={
+              filterMode === 'unset'
+                ? undefined
+                : [
+                    {
+                      label: t('Show only models configured in API'),
+                      checked: showConfiguredModelsOnly,
+                      disabled:
+                        candidateModelsLoading || candidateModelsUnavailable,
+                      onCheckedChange: setShowConfiguredModelsOnly,
+                    },
+                  ]
+            }
+            additionalViewOptionsLabel={t('Model filters')}
           />
 
           {!hasRows ? (
@@ -891,6 +931,8 @@ export const ModelRatioVisualEditor = memo(
       prevProps.billingExpr === nextProps.billingExpr &&
       prevProps.candidateModelNames === nextProps.candidateModelNames &&
       prevProps.candidateModelsLoading === nextProps.candidateModelsLoading &&
+      prevProps.candidateModelsUnavailable ===
+        nextProps.candidateModelsUnavailable &&
       prevProps.filterMode === nextProps.filterMode &&
       prevProps.onChange === nextProps.onChange &&
       prevProps.onSave === nextProps.onSave &&

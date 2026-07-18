@@ -113,7 +113,11 @@ export default defineConfig(({ envMode }) => {
     performance: {
       // Remove console in production
       removeConsole: isProd ? ['log'] : false,
-      buildCache: false,
+      // Persistent Rspack cache: dev restarts reuse the previous compilation
+      // instead of cold-compiling every module. Kept off for production so
+      // release builds stay fully reproducible. If dev output ever looks
+      // stale, delete web/default/node_modules/.cache and restart.
+      buildCache: !isProd,
     },
     tools: {
       rspack: {

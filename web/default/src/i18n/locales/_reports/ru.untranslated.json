@@ -1,5 +1,21 @@
 {
+  "…and {{count}} more errors": "…and {{count}} more errors",
+  "Apply to draft": "Apply to draft",
+  "Bulk edit (JSON)": "Bulk edit (JSON)",
+  "Bulk edit pricing as JSON": "Bulk edit pricing as JSON",
   "Configured — leave blank to keep unchanged": "Configured — leave blank to keep unchanged",
+  "Discount rate": "Discount rate",
+  "Discount rate in (0, 1]; e.g. 0.8 bills 80% of the price.": "Discount rate in (0, 1]; e.g. 0.8 bills 80% of the price.",
+  "Discount rate must be greater than 0 and at most 1.": "Discount rate must be greater than 0 and at most 1.",
+  "Discounted price": "Discounted price",
+  "Discounted price; editing it recalculates the rate.": "Discounted price; editing it recalculates the rate.",
+  "JSON map of model → discount rate in (0, 1]. The billed price is the configured price multiplied by this rate.": "JSON map of model → discount rate in (0, 1]. The billed price is the configured price multiplied by this rate.",
+  "Model discount": "Model discount",
   "novapuraai.com, localhost": "novapuraai.com, localhost",
-  "Stored securely and never returned by the settings API. If GITHUB_OAUTH_CLIENT_SECRET is set in the environment, it overrides this value.": "Stored securely and never returned by the settings API. If GITHUB_OAUTH_CLIENT_SECRET is set in the environment, it overrides this value."
+  "One entry per model with USD prices per 1M tokens: input, output, cache_read, cache_write, image_input, audio_input, audio_output, discount (0–1), or per_request for fixed pricing. Set a model to null to remove it; models not listed stay unchanged.": "One entry per model with USD prices per 1M tokens: input, output, cache_read, cache_write, image_input, audio_input, audio_output, discount (0–1), or per_request for fixed pricing. Set a model to null to remove it; models not listed stay unchanged.",
+  "Review the changes, then save to persist them.": "Review the changes, then save to persist them.",
+  "Skipped expression-billed models: {{models}}": "Skipped expression-billed models: {{models}}",
+  "Stored securely and never returned by the settings API. If GITHUB_OAUTH_CLIENT_SECRET is set in the environment, it overrides this value.": "Stored securely and never returned by the settings API. If GITHUB_OAUTH_CLIENT_SECRET is set in the environment, it overrides this value.",
+  "Updated pricing for {{count}} models": "Updated pricing for {{count}} models",
+  "Users see the original price struck through and pay the discounted price. Leave empty for no discount.": "Users see the original price struck through and pay the discounted price. Leave empty for no discount."
 }

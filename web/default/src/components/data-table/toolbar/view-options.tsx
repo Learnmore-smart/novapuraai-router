@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { type Table } from '@tanstack/react-table'
+import type { Table } from '@tanstack/react-table'
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -32,10 +32,21 @@ import {
 
 type DataTableViewOptionsProps<TData> = {
   table: Table<TData>
+  additionalOptions?: DataTableViewOption[]
+  additionalOptionsLabel?: string
+}
+
+export type DataTableViewOption = {
+  label: string
+  checked: boolean
+  onCheckedChange: (checked: boolean) => void
+  disabled?: boolean
 }
 
 export function DataTableViewOptions<TData>({
   table,
+  additionalOptions,
+  additionalOptionsLabel,
 }: DataTableViewOptionsProps<TData>) {
   const { t } = useTranslation()
 
@@ -81,6 +92,25 @@ export function DataTableViewOptions<TData>({
             )
           })}
         </DropdownMenuGroup>
+        {additionalOptions && additionalOptions.length > 0 && (
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>
+              {additionalOptionsLabel || t('Filter rows')}
+            </DropdownMenuLabel>
+            {additionalOptions.map((option) => (
+              <DropdownMenuCheckboxItem
+                key={option.label}
+                checked={option.checked}
+                disabled={option.disabled}
+                onCheckedChange={(value) =>
+                  option.onCheckedChange(value === true)
+                }
+              >
+                {option.label}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuGroup>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )

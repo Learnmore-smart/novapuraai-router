@@ -102,6 +102,37 @@ describe('bulk pricing JSON', () => {
     assert.deepEqual(exported['fixed-model'], { per_request: 0.04 })
   })
 
+  test('exports every enabled model and omits the global discount control key', () => {
+    const exported = JSON.parse(
+      exportPricingJson(
+        {
+          ...emptyMaps,
+          modelRatio: '{"configured":1.5}',
+          modelDiscount: '{"*":0.8,"configured":0.9}',
+        },
+        ['unset-model', 'configured']
+      )
+    )
+
+    assert.deepEqual(exported.configured, { input: 3, discount: 0.9 })
+    assert.equal(exported['unset-model'], null)
+    assert.equal(exported['*'], undefined)
+  })
+
+  test('applying an exported unset model is idempotent', () => {
+    const result = applyPricingJson(emptyMaps, '{"unset-model":null}')
+    assert.ok(result.ok)
+    assert.equal(result.removed, 0)
+  })
+
+  test('rejects the reserved global discount key even with surrounding whitespace', () => {
+    const result = applyPricingJson(
+      { ...emptyMaps, modelDiscount: '{"*":0.8}' },
+      '{" * ":null}'
+    )
+    assert.equal(result.ok, false)
+  })
+
   test('null removes a model from every map', () => {
     const maps: BulkPricingMaps = {
       ...emptyMaps,
@@ -166,9 +197,6 @@ describe('bulk pricing JSON', () => {
       JSON.parse(converted.updates['billing_setting.billing_mode']),
       {}
     )
-    assert.equal(
-      JSON.parse(converted.updates.ModelRatio)['expr-model'],
-      1.5
-    )
+    assert.equal(JSON.parse(converted.updates.ModelRatio)['expr-model'], 1.5)
   })
 })
