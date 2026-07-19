@@ -28,6 +28,15 @@ export function usePayment() {
   // Calculate payment amount
   const calculatePaymentAmount = useCallback(
     async (topupAmount: number, paymentType: string) => {
+      // Defense-in-depth: the useEffect in index.tsx skips the initial call
+      // when the legacy form is hidden, but user interactions (clearing the
+      // custom amount input, selecting a method with amount=0) can still
+      // reach here. Avoid firing /api/user/amount or /api/user/stripe/amount
+      // with a meaningless payload.
+      if (topupAmount <= 0) {
+        setAmount(0)
+        return 0
+      }
       try {
         setCalculating(true)
 

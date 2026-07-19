@@ -42,7 +42,10 @@ type StripeAdaptor struct {
 
 func (*StripeAdaptor) RequestAmount(c *gin.Context, req *StripePayRequest) {
 	if setting.StripeTopupEnabled {
-		c.JSON(http.StatusConflict, gin.H{"message": "error", "data": "legacy fixed-price Stripe top-up is disabled; use Product Checkout"})
+		// HTTP 200 + success:false so the frontend's skipBusinessError flag
+		// suppresses the global axios error toast. A 409 + {"message":"error"}
+		// body bypassed skipBusinessError and surfaced a literal "error" toast.
+		common.ApiErrorMsg(c, "legacy fixed-price Stripe top-up is disabled; use Product Checkout")
 		return
 	}
 	if req.Amount < getStripeMinTopup() {
@@ -65,7 +68,10 @@ func (*StripeAdaptor) RequestAmount(c *gin.Context, req *StripePayRequest) {
 
 func (*StripeAdaptor) RequestPay(c *gin.Context, req *StripePayRequest) {
 	if setting.StripeTopupEnabled {
-		c.JSON(http.StatusConflict, gin.H{"message": "error", "data": "legacy fixed-price Stripe top-up is disabled; use Product Checkout"})
+		// HTTP 200 + success:false so the frontend's skipBusinessError flag
+		// suppresses the global axios error toast. A 409 + {"message":"error"}
+		// body bypassed skipBusinessError and surfaced a literal "error" toast.
+		common.ApiErrorMsg(c, "legacy fixed-price Stripe top-up is disabled; use Product Checkout")
 		return
 	}
 	if req.PaymentMethod != model.PaymentMethodStripe {

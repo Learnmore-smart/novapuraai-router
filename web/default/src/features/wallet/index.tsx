@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
@@ -17,6 +18,7 @@ import { StripeTopupCard } from './components/stripe-topup-card'
 import { SubscriptionPlansCard } from './components/subscription-plans-card'
 import { WalletStatsCard } from './components/wallet-stats-card'
 import { DEFAULT_DISCOUNT_RATE } from './constants'
+import { getBillingTopupConfig } from './api'
 import {
   useTopupInfo,
   usePayment,
@@ -63,6 +65,29 @@ export function Wallet(props: WalletProps) {
   const { status } = useStatus()
   const { currency } = useSystemConfig()
   const { topupInfo, presetAmounts, loading: topupLoading } = useTopupInfo()
+
+  // Lift the billing-topup-config query so RechargeFormCard can distinguish
+  // "Product Stripe enabled in settings" from "Product Stripe actually serving
+  // checkout". Shares the same TanStack Query key as useStripeTopup — no extra
+  // network request.
+  const billingTopupConfigQuery = useQuery({
+    queryKey: ['billing-topup-config'],
+    queryFn: getBillingTopupConfig,
+    staleTime: 30_000,
+  })
+  const stripeTopupActuallyEnabled = !!billingTopupConfigQuery.data?.data?.config?.enabled
+
+  // Mirrors RechargeFormCard's hasAnyTopup. When false, the legacy form is
+  // hidden and there is no reason to fire the initial calculatePaymentAmount
+  // call (which would hit /api/user/stripe/amount or /api/user/amount and
+  // produce a dead 200/success:false response).
+  const hasAnyTopup = !!(
+    topupInfo?.enable_online_topup ||
+    topupInfo?.enable_stripe_topup ||
+    topupInfo?.enable_creem_topup ||
+    topupInfo?.enable_waffo_topup ||
+    topupInfo?.enable_waffo_pancake_topup
+  )
 
   // Calculate effective exchange rate - when display type is USD, use rate of 1
   const effectiveUsdExchangeRate = useMemo(() => {
@@ -116,9 +141,13 @@ export function Wallet(props: WalletProps) {
     }
   }, [props.initialShowHistory])
 
-  // Initialize topup amount when topup info is loaded
+  // Initialize topup amount when topup info is loaded.
+  // Skip the initial calculatePaymentAmount call when the legacy form is
+  // hidden (!hasAnyTopup) — otherwise we fire a dead request to
+  // /api/user/stripe/amount (or /api/user/amount) that the backend now
+  // answers with 200/success:false, and the user sees no topup form anyway.
   useEffect(() => {
-    if (topupInfo && topupAmount === 0) {
+    if (topupInfo && topupAmount === 0 && hasAnyTopup) {
       const minTopup = getMinTopupAmount(topupInfo)
       setTopupAmount(minTopup)
 
@@ -126,7 +155,7 @@ export function Wallet(props: WalletProps) {
       const defaultPaymentType = getDefaultPaymentType(topupInfo)
       calculatePaymentAmount(minTopup, defaultPaymentType)
     }
-  }, [topupInfo, topupAmount, calculatePaymentAmount])
+  }, [topupInfo, topupAmount, calculatePaymentAmount, hasAnyTopup])
 
   // Get current payment type (selected or default)
   const getCurrentPaymentType = useCallback(() => {
@@ -290,6 +319,7 @@ export function Wallet(props: WalletProps) {
                   enableWaffoPancakeTopup={
                     topupInfo?.enable_waffo_pancake_topup
                   }
+                  stripeTopupActuallyEnabled={stripeTopupActuallyEnabled}
                 />
               </div>
 

@@ -24,7 +24,11 @@ func TestLegacyStripeTopupEndpointsAreDisabledByProductCheckout(t *testing.T) {
 		recorder := httptest.NewRecorder()
 		ctx, _ := gin.CreateTestContext(recorder)
 		invoke(ctx)
-		assert.Equal(t, http.StatusConflict, recorder.Code)
+		// HTTP 200 + success:false so the frontend's skipBusinessError flag
+		// suppresses the global axios error toast (a 409 bypassed it and
+		// surfaced a literal "error" toast on every wallet page load).
+		assert.Equal(t, http.StatusOK, recorder.Code)
+		assert.Contains(t, recorder.Body.String(), `"success":false`)
 		assert.Contains(t, recorder.Body.String(), "Product Checkout")
 	}
 }
