@@ -1,148 +1,97 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import {
-  DEFAULT_DOC_SECTION,
-  type DocSectionId,
-  isDocSectionId,
-} from '../config/nav-tree'
+// Rsbuild already maps `import './x.md'` to a raw string (rsbuild.config.ts).
+// `import.meta.glob` lets us lazy-load only the (section, lang) the user opens.
+const docModules = import.meta.glob<string>('@/i18n/docs/*/*.md', {
+  query: '?raw',
+  import: 'default',
+  eager: false,
+})
 
-export type DocLangCode = 'en' | 'zh' | 'zh-TW' | 'fr' | 'ru' | 'ja' | 'vi'
-
-const DOC_LANGS: DocLangCode[] = [
-  'en',
-  'zh',
-  'zh-TW',
-  'fr',
-  'ru',
-  'ja',
-  'vi',
-]
-
-/**
- * Map i18next language codes onto docs markdown file language codes.
- */
-export function resolveDocLang(language: string | undefined): DocLangCode {
-  if (!language) return 'en'
-  const normalized = language.trim().replaceAll('_', '-')
-  const lower = normalized.toLowerCase()
-
-  if (
-    lower === 'zhtw' ||
-    lower === 'zh-tw' ||
-    lower === 'zh-hk' ||
-    lower === 'zh-mo' ||
-    lower.startsWith('zh-hant')
-  ) {
-    return 'zh-TW'
-  }
-  if (lower === 'zhcn' || lower === 'zh-cn' || lower.startsWith('zh')) {
-    return 'zh'
-  }
-  if (lower.startsWith('fr')) return 'fr'
-  if (lower.startsWith('ru')) return 'ru'
-  if (lower.startsWith('ja')) return 'ja'
-  if (lower.startsWith('vi')) return 'vi'
-  if (lower.startsWith('en')) return 'en'
-  return 'en'
+// Map i18next language code to docs folder name.
+const LANG_FOLDER: Record<string, string> = {
+  en: 'en',
+  zhCN: 'zh',
+  zhTW: 'zh-TW',
+  fr: 'fr',
+  ru: 'ru',
+  ja: 'ja',
+  vi: 'vi',
 }
 
-// Markdown is loaded as raw strings via rspack `asset/source` (see rsbuild.config.ts).
-const docModules = import.meta.glob('../../../i18n/docs/*/*.md') as Record<
-  string,
-  () => Promise<string | { default: string }>
->
-
-function buildModuleKey(section: DocSectionId, lang: DocLangCode): string {
-  return `../../../i18n/docs/${section}/${lang}.md`
+function pickFolder(i18nLang: string): string {
+  return LANG_FOLDER[i18nLang] ?? 'en'
 }
 
-async function resolveModuleText(
-  loader: () => Promise<string | { default: string }>
-): Promise<string> {
-  const mod = await loader()
-  if (typeof mod === 'string') return mod
-  if (mod && typeof mod === 'object' && typeof mod.default === 'string') {
-    return mod.default
-  }
-  return ''
+function moduleKey(sectionId: string, folder: string): string {
+  return `/src/i18n/docs/${sectionId}/${folder}.md`
 }
 
-async function loadDocMarkdown(
-  section: DocSectionId,
-  lang: DocLangCode
-): Promise<{ markdown: string; resolvedLang: DocLangCode }> {
-  const preferredKey = buildModuleKey(section, lang)
-  const preferredLoader = docModules[preferredKey]
-  if (preferredLoader) {
-    const markdown = await resolveModuleText(preferredLoader)
-    if (markdown.trim()) {
-      return { markdown, resolvedLang: lang }
-    }
-  }
-
-  // Fallback chain: en → zh → first available for section
-  for (const fallback of DOC_LANGS) {
-    if (fallback === lang) continue
-    const key = buildModuleKey(section, fallback)
-    const loader = docModules[key]
-    if (!loader) continue
-    const markdown = await resolveModuleText(loader)
-    if (markdown.trim()) {
-      return { markdown, resolvedLang: fallback }
-    }
-  }
-
-  return { markdown: '', resolvedLang: lang }
+export interface DocContentResult {
+  content: string
+  loading: boolean
+  notFound: boolean
 }
 
-export function useDocContent(sectionParam: string | undefined) {
+interface LoaderEntry {
+  key: string
+  loader: () => Promise<string>
+}
+
+function resolveLoader(sectionId: string, folder: string): LoaderEntry | null {
+  const key = moduleKey(sectionId, folder)
+  const loader = docModules[key]
+  if (loader) return { key, loader }
+  // Fall back to English if the requested language is missing.
+  if (folder !== 'en') {
+    const enKey = moduleKey(sectionId, 'en')
+    const enLoader = docModules[enKey]
+    if (enLoader) return { key: enKey, loader: enLoader }
+  }
+  return null
+}
+
+export function useDocContent(sectionId: string): DocContentResult {
   const { i18n } = useTranslation()
-  const section: DocSectionId = isDocSectionId(sectionParam ?? '')
-    ? (sectionParam as DocSectionId)
-    : DEFAULT_DOC_SECTION
-  const requestedLang = resolveDocLang(i18n.language)
+  const folder = pickFolder(i18n.language)
+  const entry = resolveLoader(sectionId, folder)
 
-  const [markdown, setMarkdown] = useState('')
-  const [resolvedLang, setResolvedLang] = useState<DocLangCode>(requestedLang)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [state, setState] = useState<{
+    content: string
+    loading: boolean
+    notFound: boolean
+  }>(
+    entry
+      ? { content: '', loading: true, notFound: false }
+      : { content: '', loading: false, notFound: true }
+  )
 
+  const cacheKey = entry?.key ?? ''
   useEffect(() => {
+    if (!entry) {
+      setState({ content: '', loading: false, notFound: true })
+      return
+    }
     let cancelled = false
-    setLoading(true)
-    setError(null)
-
-    void loadDocMarkdown(section, requestedLang)
-      .then((result) => {
-        if (cancelled) return
-        setMarkdown(result.markdown)
-        setResolvedLang(result.resolvedLang)
-        if (!result.markdown.trim()) {
-          setError('missing')
+    setState({ content: '', loading: true, notFound: false })
+    entry
+      .loader()
+      .then((raw) => {
+        if (!cancelled) {
+          setState({ content: raw ?? '', loading: false, notFound: false })
         }
       })
       .catch(() => {
-        if (cancelled) return
-        setMarkdown('')
-        setError('load_failed')
+        if (!cancelled) {
+          setState({ content: '', loading: false, notFound: true })
+        }
       })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-
     return () => {
       cancelled = true
     }
-  }, [section, requestedLang])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cacheKey])
 
-  return {
-    section,
-    markdown,
-    loading,
-    error,
-    requestedLang,
-    resolvedLang,
-    usedFallback: resolvedLang !== requestedLang,
-  }
+  return state
 }

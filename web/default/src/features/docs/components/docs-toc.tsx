@@ -3,87 +3,176 @@ import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
 
-import type { TocItem } from '../lib/toc'
+interface TocItem {
+  id: string
+  text: string
+  level: 2 | 3
+}
 
-export type { TocItem }
+interface DocsTocProps {
+  containerRef: React.RefObject<HTMLElement | null>
+}
 
-type DocsTocProps = {
-  items: TocItem[]
-  className?: string
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replaceAll(/[^\p{L}\p{N}\s-]/gu, '')
+    .replaceAll(/\s+/g, '-')
+}
+
+function extractTocFromContainer(container: HTMLElement | null): TocItem[] {
+  if (!container) return []
+  const headings = container.querySelectorAll<HTMLElement>('h2, h3')
+  const items: TocItem[] = []
+  headings.forEach((heading) => {
+    const text = heading.textContent?.trim() ?? ''
+    if (!text) return
+    let id = heading.id
+    if (!id) {
+      id = slugify(text)
+      heading.id = id
+    }
+    items.push({
+      id,
+      text,
+      level: heading.tagName === 'H2' ? 2 : 3,
+    })
+  })
+  return items
 }
 
 export function DocsToc(props: DocsTocProps) {
   const { t } = useTranslation()
+  const [toc, setToc] = useState<TocItem[]>([])
   const [activeId, setActiveId] = useState<string>('')
 
-  const headingIds = useMemo(
-    () => props.items.map((item) => item.id),
-    [props.items]
-  )
-
+  // Re-extract TOC when content changes (after markdown renders).
   useEffect(() => {
-    if (headingIds.length === 0) return
+    const container = props.containerRef.current
+    if (!container) return
 
-    const elements = headingIds
-      .map((id) => document.querySelector<HTMLElement>(`#${CSS.escape(id)}`))
-      .filter((el): el is HTMLElement => Boolean(el))
+    const updateToc = () => setToc(extractTocFromContainer(container))
 
-    if (elements.length === 0) return
+    updateToc()
 
+    const observer = new MutationObserver(() => updateToc())
+    observer.observe(container, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [props.containerRef])
+
+  // Highlight active heading using IntersectionObserver.
+  useEffect(() => {
+    if (toc.length === 0) return
+    const container = props.containerRef.current
+    if (!container) return
+
+    const headingEls = toc
+      .map((item) => container.querySelector<HTMLElement>(`#${CSS.escape(item.id)}`))
+      .filter((el): el is HTMLElement => el !== null)
+
+    if (headingEls.length === 0) return
+
+    const visibleSet = new Set<string>()
     const observer = new IntersectionObserver(
       (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort(
-            (a, b) =>
-              (a.target as HTMLElement).offsetTop -
-              (b.target as HTMLElement).offsetTop
-          )
-        if (visible[0]?.target?.id) {
-          setActiveId(visible[0].target.id)
+        entries.forEach((entry) => {
+          const id = entry.target.id
+          if (entry.isIntersecting) visibleSet.add(id)
+          else visibleSet.delete(id)
+        })
+        if (visibleSet.size > 0) {
+          // Pick the topmost visible heading.
+          const topMost = headingEls.find((el) => visibleSet.has(el.id))
+          if (topMost) setActiveId(topMost.id)
         }
       },
       {
-        rootMargin: '-20% 0px -70% 0px',
-        threshold: [0, 1],
+        rootMargin: '-80px 0px -70% 0px',
+        threshold: 0,
       }
     )
 
-    for (const el of elements) observer.observe(el)
+    headingEls.forEach((el) => observer.observe(el))
     return () => observer.disconnect()
-  }, [headingIds])
+  }, [toc, props.containerRef])
 
-  if (props.items.length === 0) return null
+  const handleJump = (id: string) => (event: React.MouseEvent) => {
+    event.preventDefault()
+    const container = props.containerRef.current
+    const target = container?.querySelector<HTMLElement>(`#${CSS.escape(id)}`)
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      setActiveId(id)
+    }
+  }
+
+  const hasToc = toc.length > 0
+  const groups = useMemo(() => {
+    // Group h3 under the preceding h2.
+    const result: { h2: TocItem; h3s: TocItem[] }[] = []
+    let current: { h2: TocItem; h3s: TocItem[] } | null = null
+    toc.forEach((item) => {
+      if (item.level === 2) {
+        current = { h2: item, h3s: [] }
+        result.push(current)
+      } else if (current) {
+        current.h3s.push(item)
+      }
+    })
+    return result
+  }, [toc])
+
+  if (!hasToc) return null
 
   return (
-    <nav
+    <aside
+      className='hidden xl:block'
       aria-label={t('On this page')}
-      className={cn(
-        'sticky top-[calc(var(--app-header-height)+1.5rem)] hidden max-h-[calc(100vh-var(--app-header-height)-3rem)] overflow-y-auto xl:block',
-        props.className
-      )}
     >
-      <p className='text-muted-foreground mb-3 text-xs font-semibold tracking-wide uppercase'>
-        {t('On this page')}
-      </p>
-      <ul className='border-border space-y-1.5 border-l pl-3'>
-        {props.items.map((item) => (
-          <li key={item.id}>
-            <a
-              href={`#${item.id}`}
-              className={cn(
-                'block text-sm transition-colors',
-                item.level === 3 && 'pl-3 text-[13px]',
-                activeId === item.id
-                  ? 'text-foreground font-medium'
-                  : 'text-muted-foreground hover:text-foreground'
+      <div className='sticky top-[calc(var(--app-header-height)+2rem)]'>
+        <p className='text-muted-foreground mb-2 text-[0.7rem] font-semibold tracking-wider uppercase'>
+          {t('On this page')}
+        </p>
+        <ul className='space-y-1 border-l border-border'>
+          {groups.map((group) => (
+            <li key={group.h2.id}>
+              <a
+                href={`#${group.h2.id}`}
+                onClick={handleJump(group.h2.id)}
+                className={cn(
+                  'hover:text-foreground -ml-px block border-l border-transparent px-3 py-1 text-sm transition-colors',
+                  activeId === group.h2.id
+                    ? 'text-foreground border-primary font-medium'
+                    : 'text-muted-foreground'
+                )}
+              >
+                {group.h2.text}
+              </a>
+              {group.h3s.length > 0 && (
+                <ul className='space-y-0.5'>
+                  {group.h3s.map((h3) => (
+                    <li key={h3.id}>
+                      <a
+                        href={`#${h3.id}`}
+                        onClick={handleJump(h3.id)}
+                        className={cn(
+                          'hover:text-foreground -ml-px block border-l border-transparent px-3 py-0.5 text-[0.8125rem] transition-colors',
+                          activeId === h3.id
+                            ? 'text-foreground border-primary font-medium'
+                            : 'text-muted-foreground'
+                        )}
+                      >
+                        {h3.text}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
               )}
-            >
-              {item.text}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </nav>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </aside>
   )
 }

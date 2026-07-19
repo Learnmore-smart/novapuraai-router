@@ -1,146 +1,245 @@
-export type DocSectionId =
-  | 'quickstart'
-  | 'authentication'
-  | 'first-request'
-  | 'base-url'
-  | 'routing'
-  | 'billing'
-  | 'rate-limits'
-  | 'api-chat'
-  | 'api-messages'
-  | 'api-gemini'
-  | 'api-embeddings'
-  | 'api-media'
-  | 'api-models'
-  | 'api-errors'
-  | 'sdk-python'
-  | 'sdk-node'
-  | 'sdk-go'
-  | 'sdk-curl'
-  | 'integration-cursor'
-  | 'integration-nextchat'
-  | 'integration-openwebui'
-  | 'integration-dify'
-  | 'integration-langchain'
-  | 'faq'
+import {
+  BookOpen,
+  Compass,
+  CreditCard,
+  FileQuestion,
+  Gauge,
+  KeyRound,
+  Layers,
+  Boxes,
+  Plug,
+  Code2,
+  Terminal,
+  AlertTriangle,
+  Image,
+  ListOrdered,
+  Route,
+  Send,
+  Sparkles,
+  Workflow,
+  type LucideIcon,
+} from 'lucide-react'
 
-export type DocNavItem = {
-  id: DocSectionId
-  /** i18n key (English source string) */
+export interface DocNavItem {
+  id: string
   titleKey: string
+  href: string
+  icon?: LucideIcon
 }
 
-export type DocNavGroup = {
-  /** i18n key (English source string) */
+export interface DocNavGroup {
+  id: string
   titleKey: string
   items: DocNavItem[]
 }
 
-/**
- * Official docs sidebar tree.
- * Order is intentional: onboarding → concepts → API → SDKs → integrations → FAQ.
- */
-export const DOC_NAV_TREE: DocNavGroup[] = [
+// Order is used for prev/next navigation.
+// Sections must match `i18n/docs/<id>/<lang>.md` files.
+export const DOC_NAV_GROUPS: DocNavGroup[] = [
   {
+    id: 'getting-started',
     titleKey: 'Getting Started',
     items: [
-      { id: 'quickstart', titleKey: 'Quickstart' },
-      { id: 'authentication', titleKey: 'Authentication' },
-      { id: 'first-request', titleKey: 'Your First Request' },
+      {
+        id: 'quickstart',
+        titleKey: 'Quickstart',
+        href: '/docs/quickstart',
+        icon: Compass,
+      },
+      {
+        id: 'authentication',
+        titleKey: 'Authentication',
+        href: '/docs/authentication',
+        icon: KeyRound,
+      },
+      {
+        id: 'first-request',
+        titleKey: 'Your First Request',
+        href: '/docs/first-request',
+        icon: Send,
+      },
     ],
   },
   {
+    id: 'core-concepts',
     titleKey: 'Core Concepts',
     items: [
-      { id: 'base-url', titleKey: 'Base URL & Endpoints' },
-      { id: 'routing', titleKey: 'Models & Routing' },
-      { id: 'billing', titleKey: 'Billing & Quota' },
-      { id: 'rate-limits', titleKey: 'Rate Limits' },
+      {
+        id: 'base-url',
+        titleKey: 'Base URL & Endpoints',
+        href: '/docs/base-url',
+        icon: Route,
+      },
+      {
+        id: 'routing',
+        titleKey: 'Models & Routing',
+        href: '/docs/routing',
+        icon: Workflow,
+      },
+      {
+        id: 'billing',
+        titleKey: 'Billing & Quota',
+        href: '/docs/billing',
+        icon: CreditCard,
+      },
+      {
+        id: 'rate-limits',
+        titleKey: 'Rate Limits',
+        href: '/docs/rate-limits',
+        icon: Gauge,
+      },
     ],
   },
   {
+    id: 'api-reference',
     titleKey: 'API Reference',
     items: [
-      { id: 'api-chat', titleKey: 'Chat Completions' },
-      { id: 'api-messages', titleKey: 'Messages (Claude)' },
-      { id: 'api-gemini', titleKey: 'Gemini' },
-      { id: 'api-embeddings', titleKey: 'Embeddings' },
-      { id: 'api-media', titleKey: 'Images / Audio / Rerank' },
-      { id: 'api-models', titleKey: 'Models List' },
-      { id: 'api-errors', titleKey: 'Errors' },
+      {
+        id: 'api-chat',
+        titleKey: 'Chat Completions',
+        href: '/docs/api-chat',
+        icon: Sparkles,
+      },
+      {
+        id: 'api-messages',
+        titleKey: 'Messages (Claude)',
+        href: '/docs/api-messages',
+        icon: Layers,
+      },
+      {
+        id: 'api-gemini',
+        titleKey: 'Gemini',
+        href: '/docs/api-gemini',
+        icon: Sparkles,
+      },
+      {
+        id: 'api-embeddings',
+        titleKey: 'Embeddings',
+        href: '/docs/api-embeddings',
+        icon: Layers,
+      },
+      {
+        id: 'api-media',
+        titleKey: 'Images / Audio / Rerank',
+        href: '/docs/api-media',
+        icon: Image,
+      },
+      {
+        id: 'api-models',
+        titleKey: 'Models List',
+        href: '/docs/api-models',
+        icon: ListOrdered,
+      },
+      {
+        id: 'api-errors',
+        titleKey: 'Errors',
+        href: '/docs/api-errors',
+        icon: AlertTriangle,
+      },
     ],
   },
   {
+    id: 'sdks',
     titleKey: 'SDKs & Examples',
     items: [
-      { id: 'sdk-python', titleKey: 'Python' },
-      { id: 'sdk-node', titleKey: 'Node.js' },
-      { id: 'sdk-go', titleKey: 'Go' },
-      { id: 'sdk-curl', titleKey: 'curl' },
+      {
+        id: 'sdk-python',
+        titleKey: 'Python',
+        href: '/docs/sdk-python',
+        icon: Code2,
+      },
+      {
+        id: 'sdk-node',
+        titleKey: 'Node.js',
+        href: '/docs/sdk-node',
+        icon: Code2,
+      },
+      {
+        id: 'sdk-go',
+        titleKey: 'Go',
+        href: '/docs/sdk-go',
+        icon: Code2,
+      },
+      {
+        id: 'sdk-curl',
+        titleKey: 'curl',
+        href: '/docs/sdk-curl',
+        icon: Terminal,
+      },
     ],
   },
   {
+    id: 'integrations',
     titleKey: 'Integrations',
     items: [
-      { id: 'integration-cursor', titleKey: 'Cursor' },
-      { id: 'integration-nextchat', titleKey: 'NextChat' },
-      { id: 'integration-openwebui', titleKey: 'OpenWebUI' },
-      { id: 'integration-dify', titleKey: 'Dify' },
-      { id: 'integration-langchain', titleKey: 'LangChain / LlamaIndex' },
+      {
+        id: 'integration-cursor',
+        titleKey: 'Cursor',
+        href: '/docs/integration-cursor',
+        icon: Plug,
+      },
+      {
+        id: 'integration-nextchat',
+        titleKey: 'NextChat',
+        href: '/docs/integration-nextchat',
+        icon: Plug,
+      },
+      {
+        id: 'integration-openwebui',
+        titleKey: 'OpenWebUI',
+        href: '/docs/integration-openwebui',
+        icon: Plug,
+      },
+      {
+        id: 'integration-dify',
+        titleKey: 'Dify',
+        href: '/docs/integration-dify',
+        icon: Plug,
+      },
+      {
+        id: 'integration-langchain',
+        titleKey: 'LangChain / LlamaIndex',
+        href: '/docs/integration-langchain',
+        icon: Boxes,
+      },
     ],
   },
   {
+    id: 'faq',
     titleKey: 'FAQ',
-    items: [{ id: 'faq', titleKey: 'FAQ' }],
+    items: [
+      {
+        id: 'faq',
+        titleKey: 'FAQ',
+        href: '/docs/faq',
+        icon: FileQuestion,
+      },
+    ],
   },
 ]
 
-export const DOC_SECTIONS: DocSectionId[] = DOC_NAV_TREE.flatMap((group) =>
-  group.items.map((item) => item.id)
+// Flat ordered list for prev/next navigation across all groups.
+export const DOC_FLAT_ITEMS: DocNavItem[] = DOC_NAV_GROUPS.flatMap(
+  (group) => group.items
 )
 
-export const DEFAULT_DOC_SECTION: DocSectionId = 'quickstart'
+export const DOC_DEFAULT_SECTION = 'quickstart'
 
-export function isDocSectionId(value: string): value is DocSectionId {
-  return DOC_SECTIONS.includes(value as DocSectionId)
+export function findDocItem(sectionId: string): DocNavItem | undefined {
+  return DOC_FLAT_ITEMS.find((item) => item.id === sectionId)
 }
 
-export function getDocSectionMeta(id: DocSectionId): {
-  titleKey: string
-  groupTitleKey: string
-  index: number
+export function findDocNeighbor(sectionId: string): {
+  prev?: DocNavItem
+  next?: DocNavItem
 } {
-  let index = 0
-  for (const group of DOC_NAV_TREE) {
-    for (const item of group.items) {
-      if (item.id === id) {
-        return {
-          titleKey: item.titleKey,
-          groupTitleKey: group.titleKey,
-          index,
-        }
-      }
-      index += 1
-    }
-  }
+  const index = DOC_FLAT_ITEMS.findIndex((item) => item.id === sectionId)
+  if (index === -1) return {}
   return {
-    titleKey: id,
-    groupTitleKey: 'Docs',
-    index: 0,
-  }
-}
-
-export function getAdjacentSections(id: DocSectionId): {
-  prev: DocSectionId | null
-  next: DocSectionId | null
-} {
-  const index = DOC_SECTIONS.indexOf(id)
-  if (index < 0) return { prev: null, next: null }
-  return {
-    prev: index > 0 ? (DOC_SECTIONS[index - 1] ?? null) : null,
+    prev: index > 0 ? DOC_FLAT_ITEMS[index - 1] : undefined,
     next:
-      index < DOC_SECTIONS.length - 1
-        ? (DOC_SECTIONS[index + 1] ?? null)
-        : null,
+      index < DOC_FLAT_ITEMS.length - 1
+        ? DOC_FLAT_ITEMS[index + 1]
+        : undefined,
   }
 }

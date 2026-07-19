@@ -1,148 +1,110 @@
-import { Link } from '@tanstack/react-router'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
-import { useEffect, useMemo } from 'react'
+import { Link } from '@tanstack/react-router'
+import { useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { Markdown } from '@/components/ui/markdown'
+import { { Markdown } from '@/components/ui/markdown'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-import {
-  getAdjacentSections,
-  getDocSectionMeta,
-  type DocSectionId,
-} from '../config/nav-tree'
-import { extractTocFromMarkdown, type TocItem } from '../lib/toc'
+import { findDocItem, findDocNeighbor } from '../config/nav-tree'
+import { useDocContent } from '../hooks/use-doc-content'
+import { DocsToc } from './docs-toc'
 
-type DocsContentProps = {
-  section: DocSectionId
-  markdown: string
-  loading: boolean
-  error: string | null
-  usedFallback: boolean
-  onTocChange?: (items: TocItem[]) => void
+interface DocsContentProps {
+  sectionId: string
   className?: string
 }
 
 export function DocsContent(props: DocsContentProps) {
   const { t } = useTranslation()
-  const meta = getDocSectionMeta(props.section)
-  const adjacent = getAdjacentSections(props.section)
+  const item = findDocItem(props.sectionId)
+  const { content, loading, notFound } = useDocContent(props.sectionId)
+  const contentRef = useRef<HTMLDivElement>(null)
 
-  const toc = useMemo(
-    () => extractTocFromMarkdown(props.markdown),
-    [props.markdown]
+  const neighbor = useMemo(
+    () => findDocNeighbor(props.sectionId),
+    [props.sectionId]
   )
 
-  useEffect(() => {
-    props.onTocChange?.(toc)
-    // Intentionally depend on toc only; parent stores TOC for the floating sidebar.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- onTocChange is a setState
-  }, [toc])
+  const title = item ? t(item.titleKey) : props.sectionId
 
-  // Assign stable ids to rendered headings so TOC anchors work.
-  useEffect(() => {
-    if (props.loading || !props.markdown) return
-    const root = document.querySelector('#docs-article')
-    if (!root) return
-    const headings = root.querySelectorAll('h2, h3')
-    headings.forEach((heading, index) => {
-      const item = toc[index]
-      if (item) {
-        heading.id = item.id
-      }
-    })
-  }, [props.loading, props.markdown, toc])
-
-  if (props.loading) {
+  if (loading) {
     return (
-      <div className={cn('min-w-0 space-y-4', props.className)}>
-        <Skeleton className='h-8 w-2/3' />
+      <div className={cn('space-y-4', props.className)}>
+        <Skeleton className='h-9 w-2/3' />
         <Skeleton className='h-4 w-full' />
         <Skeleton className='h-4 w-5/6' />
-        <Skeleton className='h-4 w-4/5' />
-        <Skeleton className='mt-6 h-40 w-full' />
+        <Skeleton className='h-32 w-full' />
+        <Skeleton className='h-4 w-full' />
+        <Skeleton className='h-4 w-4/6' />
       </div>
     )
   }
 
-  if (props.error || !props.markdown.trim()) {
+  if (notFound || !item) {
     return (
-      <div className={cn('min-w-0', props.className)}>
-        <div className='border-border bg-card rounded-lg border border-dashed p-8 text-center'>
-          <h1 className='text-xl font-semibold'>{t(meta.titleKey)}</h1>
-          <p className='text-muted-foreground mt-2 text-sm'>
-            {t('This documentation page is not available yet.')}
-          </p>
-        </div>
+      <div className={cn('py-16 text-center', props.className)}>
+        <h1 className='text-2xl font-semibold'>{t('Doc not found')}</h1>
+        <p className='text-muted-foreground mt-2 text-sm'>
+          {t(
+            'The documentation section you requested does not exist or has not been translated yet.'
+          )}
+        </p>
+        <Button className='mt-6' render={<Link to='/docs/quickstart' />}>
+          {t('Back to Quickstart')}
+        </Button>
       </div>
     )
   }
 
   return (
-    <div className={cn('min-w-0', props.className)}>
-      <header className='mb-8 space-y-2 border-b border-border pb-6'>
-        <p className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>
-          {t(meta.groupTitleKey)}
-        </p>
-        <h1 className='text-3xl font-semibold tracking-tight'>
-          {t(meta.titleKey)}
-        </h1>
-        {props.usedFallback ? (
-          <p className='text-muted-foreground bg-muted/50 rounded-md px-3 py-2 text-sm'>
-            {t(
-              'This page is shown in a fallback language because a full translation is still loading or missing.'
-            )}
-          </p>
-        ) : null}
-      </header>
+    <div className='grid gap-10 xl:grid-cols-[minmax(0,1fr)_14rem]'>
+      <article className='min-w-0'>
+        <header className='border-b border-border pb-4'>
+          <p className='editorial-kicker'>{t('Documentation')}</p>
+          <h1 className='mt-1 text-3xl font-semibold tracking-tight sm:text-4xl'>
+            {title}
+          </h1>
+        </header>
 
-      <article
-        id='docs-article'
-        className='prose-neutral dark:prose-invert max-w-none'
-      >
-        <Markdown className='prose-neutral dark:prose-invert max-w-none'>
-          {props.markdown}
-        </Markdown>
-      </article>
+        <div ref={contentRef} className='np-docs-content py-6'>
+          <Markdown>{content}</Markdown>
+        </div>
 
-      <nav
-        aria-label={t('Page navigation')}
-        className='border-border mt-12 grid gap-3 border-t pt-6 sm:grid-cols-2'
-      >
-        {adjacent.prev ? (
-          <Link
-            to='/docs/$section'
-            params={{ section: adjacent.prev }}
-            className='border-border hover:bg-muted/50 group flex flex-col gap-1 rounded-lg border p-4 transition-colors'
-          >
-            <span className='text-muted-foreground flex items-center gap-1 text-xs'>
-              <ArrowLeft className='size-3.5' />
-              {t('Previous')}
-            </span>
-            <span className='text-sm font-medium group-hover:underline'>
-              {t(getDocSectionMeta(adjacent.prev).titleKey)}
-            </span>
-          </Link>
-        ) : (
-          <div />
-        )}
-        {adjacent.next ? (
-          <Link
-            to='/docs/$section'
-            params={{ section: adjacent.next }}
-            className='border-border hover:bg-muted/50 group flex flex-col items-end gap-1 rounded-lg border p-4 text-right transition-colors'
-          >
-            <span className='text-muted-foreground flex items-center gap-1 text-xs'>
-              {t('Next')}
-              <ArrowRight className='size-3.5' />
-            </span>
-            <span className='text-sm font-medium group-hover:underline'>
-              {t(getDocSectionMeta(adjacent.next).titleKey)}
-            </span>
-          </Link>
-        ) : null}
-      </nav>
-    </div>
-  )
-}
+        <nav
+          className='border-border mt-8 flex items-center justify-between gap-3 border-t pt-6'
+          aria-label={t('Doc pagination')}
+        >
+          {neighbor.prev ? (
+            <Button
+              variant='outline'
+              render={<Link to={neighbor.prev.href} />}
+              className='max-w-[48%] justify-start text-left'
+            >
+              <ArrowLeft data-icon='inline-start' />
+              <span className='flex min-w-0 flex-col'>
+                <span className='text-muted-foreground text-[0.7rem] font-medium tracking-wider uppercase'>
+                  {t('Previous')}
+                </span>
+                <span className='truncate text-sm font-medium'>
+                  {t(neighbor.prev.titleKey)}
+                </span>
+              </span>
+            </Button>
+          ) : (
+            <span />
+          )}
+          {neighbor.next ? (
+            <Button
+              variant='outline'
+              render={<Link to={neighbor.next.href} />}
+              className='max-w-[48%] justify-end text-right'
+            >
+              <span className='flex min-w-0 flex-col items-end'>
+                <span className='text-muted-foreground text-[0.7rem] font-medium tracking-wider uppercase'>
+                  {t('Next')}
+                </span>
+                <span className='truncate text-sm font-medium'>
+                  {t
