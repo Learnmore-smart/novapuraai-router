@@ -145,6 +145,7 @@ topup.order_not_exists: "充值訂單不存在"
 topup.order_status: "充值訂單狀態錯誤"
 topup.failed: "充值失敗，請稍後重試"
 topup.invalid_quota: "無效的充值額度"
+topup.legacy_stripe_disabled: "舊版固定價格 Stripe 充值已停用，請使用 Product Checkout"
 
 # Channel messages
 channel.not_exists: "管道不存在"

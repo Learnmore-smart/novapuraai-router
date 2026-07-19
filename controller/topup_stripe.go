@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/setting"
@@ -45,7 +46,7 @@ func (*StripeAdaptor) RequestAmount(c *gin.Context, req *StripePayRequest) {
 		// HTTP 200 + success:false so the frontend's skipBusinessError flag
 		// suppresses the global axios error toast. A 409 + {"message":"error"}
 		// body bypassed skipBusinessError and surfaced a literal "error" toast.
-		common.ApiErrorMsg(c, "legacy fixed-price Stripe top-up is disabled; use Product Checkout")
+		common.ApiErrorI18n(c, i18n.MsgTopupLegacyStripeDisabled)
 		return
 	}
 	if req.Amount < getStripeMinTopup() {
@@ -71,7 +72,7 @@ func (*StripeAdaptor) RequestPay(c *gin.Context, req *StripePayRequest) {
 		// HTTP 200 + success:false so the frontend's skipBusinessError flag
 		// suppresses the global axios error toast. A 409 + {"message":"error"}
 		// body bypassed skipBusinessError and surfaced a literal "error" toast.
-		common.ApiErrorMsg(c, "legacy fixed-price Stripe top-up is disabled; use Product Checkout")
+		common.ApiErrorI18n(c, i18n.MsgTopupLegacyStripeDisabled)
 		return
 	}
 	if req.PaymentMethod != model.PaymentMethodStripe {

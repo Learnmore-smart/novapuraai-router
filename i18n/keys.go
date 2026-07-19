@@ -159,11 +159,12 @@ const (
 
 // Topup related messages
 const (
-	MsgTopupNotProvided    = "topup.not_provided"
-	MsgTopupOrderNotExists = "topup.order_not_exists"
-	MsgTopupOrderStatus    = "topup.order_status"
-	MsgTopupFailed         = "topup.failed"
-	MsgTopupInvalidQuota   = "topup.invalid_quota"
+	MsgTopupNotProvided          = "topup.not_provided"
+	MsgTopupOrderNotExists       = "topup.order_not_exists"
+	MsgTopupOrderStatus          = "topup.order_status"
+	MsgTopupFailed               = "topup.failed"
+	MsgTopupInvalidQuota         = "topup.invalid_quota"
+	MsgTopupLegacyStripeDisabled = "topup.legacy_stripe_disabled"
 )
 
 // Channel related messages
