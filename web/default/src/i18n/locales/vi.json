@@ -5687,5 +5687,15 @@
   "Send test email": "Gửi email thử nghiệm",
   "Test email sent": "Đã gửi email thử nghiệm",
   "Failed to send test email": "Không thể gửi email thử nghiệm",
-  "The test uses the selected transactional email provider.": "Thử nghiệm sử dụng nhà cung cấp email giao dịch đang được chọn."
+  "The test uses the selected transactional email provider.": "Thử nghiệm sử dụng nhà cung cấp email giao dịch đang được chọn.",
+  "Questions, answered clearly.": "Câu hỏi thường gặp, được giải đáp rõ ràng.",
+  "Everything you need to know before creating a key, choosing a model, or adding credits.": "Mọi điều bạn cần biết trước khi tạo khóa, chọn mô hình hoặc nạp tín dụng.",
+  "Loading FAQ": "Đang tải câu hỏi thường gặp",
+  "Refer friends. Earn API credits.": "Giới thiệu bạn bè. Nhận tín dụng API.",
+  "Share your personal link, earn rewards when friends join, and transfer those rewards to your API balance.": "Chia sẻ liên kết cá nhân, nhận thưởng khi bạn bè đăng ký và chuyển phần thưởng vào số dư API.",
+  "Open referral program": "Mở chương trình giới thiệu",
+  "GLM 5.2": "GLM 5.2",
+  "DeepSeek V4 Pro": "DeepSeek V4 Pro",
+  "Kimi K2.6": "Kimi K2.6",
+  "Nemotron 3 Ultra": "Nemotron 3 Ultra"
 }

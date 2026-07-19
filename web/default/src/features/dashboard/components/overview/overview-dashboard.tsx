@@ -11,6 +11,7 @@ import {
   Copy,
   CreditCard,
   FileText,
+  Gift,
   KeyRound,
   ListChecks,
   RadioTower,
@@ -45,7 +46,6 @@ import {
 } from '../../hooks/use-status-data'
 import { AnnouncementsPanel } from './announcements-panel'
 import { ApiInfoPanel } from './api-info-panel'
-import { FAQPanel } from './faq-panel'
 import { PerformanceHealthPanel } from './performance-health-panel'
 import { SummaryCards } from './summary-cards'
 import { UptimePanel } from './uptime-panel'
@@ -187,10 +187,10 @@ function StartStepItem(props: {
 
       <Link
         to={props.step.to}
-        className='bg-card hover:bg-muted/60 focus-visible:ring-ring flex min-w-0 flex-1 items-center justify-between gap-3 rounded-md border border-border px-3 py-2.5 text-left transition-colors outline-none focus-visible:ring-2'
+        className='bg-card hover:bg-muted/60 focus-visible:ring-ring border-border flex min-w-0 flex-1 items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left transition-colors outline-none focus-visible:ring-2'
       >
         <span className='flex min-w-0 items-start gap-2.5'>
-          <span className='bg-muted mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-border'>
+          <span className='bg-muted border-border mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border'>
             <Icon className='size-3.5' aria-hidden='true' />
           </span>
           <span className='flex min-w-0 flex-col gap-0.5'>
@@ -261,9 +261,9 @@ function RequestPreview(props: {
       initial={shouldReduceMotion ? false : { opacity: 0 }}
       animate={shouldReduceMotion ? undefined : { opacity: 1 }}
       transition={MOTION_TRANSITION.slow}
-      className='relative overflow-hidden rounded-lg border border-border bg-card p-3'
+      className='border-border bg-card relative overflow-hidden rounded-lg border p-3'
     >
-      <div className='flex items-center justify-between gap-3 border-b border-border pb-3'>
+      <div className='border-border flex items-center justify-between gap-3 border-b pb-3'>
         <div className='flex min-w-0 items-center gap-2'>
           <IconBadge tone='info'>
             <TerminalSquare />
@@ -298,7 +298,7 @@ function RequestPreview(props: {
         )}
       </div>
 
-      <div className='bg-muted my-3 rounded-md border border-border p-3 font-mono text-xs'>
+      <div className='bg-muted border-border my-3 rounded-md border p-3 font-mono text-xs'>
         <div className='mb-2 flex items-center gap-1.5'>
           <span className='bg-destructive size-2 rounded-full' />
           <span className='bg-warning size-2 rounded-full' />
@@ -324,7 +324,7 @@ function RequestPreview(props: {
           return (
             <div
               key={signal.label}
-              className='bg-muted/50 flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2'
+              className='bg-muted/50 border-border flex items-center justify-between gap-3 rounded-md border px-3 py-2'
             >
               <span className='flex min-w-0 items-center gap-2'>
                 <IconBadge tone={signal.tone} size='xs'>
@@ -351,10 +351,10 @@ function QuickActionItem(props: { action: QuickAction }) {
   return (
     <Button
       variant='outline'
-      className='bg-card hover:bg-muted/60 h-auto justify-start rounded-md border border-border px-3 py-3 text-left'
+      className='bg-card hover:bg-muted/60 border-border h-auto justify-start rounded-md border px-3 py-3 text-left'
       render={<Link to={props.action.to} />}
     >
-      <span className='bg-muted flex size-9 shrink-0 items-center justify-center rounded-md border border-border'>
+      <span className='bg-muted border-border flex size-9 shrink-0 items-center justify-center rounded-md border'>
         <Icon className='size-4' aria-hidden='true' />
       </span>
       <span className='flex min-w-0 flex-1 flex-col gap-0.5'>
@@ -392,7 +392,6 @@ export function OverviewDashboard() {
   const {
     apiInfo: showApiInfoPanel,
     announcements: showAnnouncementsPanel,
-    faq: showFAQPanel,
     uptimeKuma: showUptimePanel,
   } = useDashboardContentVisibility()
   const [manualSetupGuideExpanded, setManualSetupGuideExpanded] = useState<
@@ -550,7 +549,7 @@ export function OverviewDashboard() {
   const setupGuideExpanded =
     manualSetupGuideExpanded ?? (setupStatusReady && !setupComplete)
   const showLeftContentPanels =
-    isAdmin || showApiInfoPanel || showAnnouncementsPanel || showFAQPanel
+    isAdmin || showApiInfoPanel || showAnnouncementsPanel
   const showContentPanels = showLeftContentPanels || showUptimePanel
 
   const handleSetupGuideToggle = () => {
@@ -585,7 +584,7 @@ export function OverviewDashboard() {
 
       {setupGuideExpanded ? (
         <CardStaggerContainer className='grid items-stretch gap-4 xl:grid-cols-[minmax(0,1fr)_23rem]'>
-          <CardStaggerItem className='h-full overflow-hidden rounded-lg border border-border bg-card'>
+          <CardStaggerItem className='border-border bg-card h-full overflow-hidden rounded-lg border'>
             <div className='relative h-full overflow-hidden p-4 sm:p-6'>
               <SetupGuideBackdrop />
               <div className='relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_21rem]'>
@@ -621,7 +620,7 @@ export function OverviewDashboard() {
                     </div>
                   </div>
 
-                  <ol className='bg-muted/40 rounded-md border border-border p-2'>
+                  <ol className='bg-muted/40 border-border rounded-md border p-2'>
                     {startSteps.map((step, index) => (
                       <StartStepItem
                         key={step.title}
@@ -641,10 +640,12 @@ export function OverviewDashboard() {
             </div>
           </CardStaggerItem>
 
-          <CardStaggerItem className='h-full rounded-lg border border-border bg-card p-4 sm:p-5'>
+          <CardStaggerItem className='border-border bg-card h-full rounded-lg border p-4 sm:p-5'>
             <div className='flex h-full flex-col gap-4'>
               <div className='flex flex-col gap-1'>
-                <div className='editorial-kicker'>{t('Recommended actions')}</div>
+                <div className='editorial-kicker'>
+                  {t('Recommended actions')}
+                </div>
                 <h3 className='text-lg font-semibold tracking-tight'>
                   {t('Keep the platform ready')}
                 </h3>
@@ -659,12 +660,12 @@ export function OverviewDashboard() {
         </CardStaggerContainer>
       ) : (
         <CardStaggerContainer>
-          <CardStaggerItem className='overflow-hidden rounded-lg border border-border bg-card'>
+          <CardStaggerItem className='border-border bg-card overflow-hidden rounded-lg border'>
             <div className='relative overflow-hidden px-4 py-3 sm:px-5'>
               <SetupGuideBackdrop compact />
               <div className='relative flex flex-wrap items-center justify-between gap-3'>
                 <div className='flex min-w-0 items-center gap-3'>
-                  <span className='bg-muted flex size-9 shrink-0 items-center justify-center rounded-md border border-border'>
+                  <span className='bg-muted border-border flex size-9 shrink-0 items-center justify-center rounded-md border'>
                     <Check className='text-success size-4' aria-hidden='true' />
                   </span>
                   <div className='min-w-0'>
@@ -711,6 +712,36 @@ export function OverviewDashboard() {
         </CardStaggerContainer>
       )}
 
+      <CardStaggerContainer>
+        <CardStaggerItem className='border-border bg-card overflow-hidden rounded-lg border'>
+          <div className='flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5'>
+            <div className='flex min-w-0 items-start gap-3'>
+              <span className='bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-lg'>
+                <Gift className='size-5' aria-hidden='true' />
+              </span>
+              <div className='min-w-0'>
+                <h3 className='text-sm font-semibold sm:text-base'>
+                  {t('Refer friends. Earn API credits.')}
+                </h3>
+                <p className='text-muted-foreground mt-1 max-w-2xl text-xs leading-relaxed sm:text-sm'>
+                  {t(
+                    'Invite a friend with your personal link. Once they verify their email, create a token, and make their first billable request, you both receive ¥100 in API credits.'
+                  )}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant='outline'
+              className='shrink-0'
+              render={<Link to='/wallet' />}
+            >
+              {t('Open referral program')}
+              <ArrowRight data-icon='inline-end' />
+            </Button>
+          </div>
+        </CardStaggerItem>
+      </CardStaggerContainer>
+
       <SummaryCards />
 
       {showContentPanels && (
@@ -726,8 +757,7 @@ export function OverviewDashboard() {
             <div
               className={cn(
                 'grid min-w-0 grid-cols-1 gap-4',
-                (showApiInfoPanel || showAnnouncementsPanel || showFAQPanel) &&
-                  'lg:grid-cols-2'
+                (showApiInfoPanel || showAnnouncementsPanel) && 'lg:grid-cols-2'
               )}
             >
               {isAdmin && (
@@ -743,11 +773,6 @@ export function OverviewDashboard() {
               {showAnnouncementsPanel && (
                 <CardStaggerItem>
                   <AnnouncementsPanel />
-                </CardStaggerItem>
-              )}
-              {showFAQPanel && (
-                <CardStaggerItem>
-                  <FAQPanel />
                 </CardStaggerItem>
               )}
             </div>

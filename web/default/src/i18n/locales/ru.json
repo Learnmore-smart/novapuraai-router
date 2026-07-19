@@ -5687,5 +5687,15 @@
   "Send test email": "Отправить тестовое письмо",
   "Test email sent": "Тестовое письмо отправлено",
   "Failed to send test email": "Не удалось отправить тестовое письмо",
-  "The test uses the selected transactional email provider.": "Тест использует выбранного поставщика транзакционной почты."
+  "The test uses the selected transactional email provider.": "Тест использует выбранного поставщика транзакционной почты.",
+  "Questions, answered clearly.": "Чёткие ответы на частые вопросы.",
+  "Everything you need to know before creating a key, choosing a model, or adding credits.": "Всё, что нужно знать перед созданием ключа, выбором модели или пополнением баланса.",
+  "Loading FAQ": "Загрузка вопросов и ответов",
+  "Refer friends. Earn API credits.": "Приглашайте друзей. Получайте API-кредиты.",
+  "Share your personal link, earn rewards when friends join, and transfer those rewards to your API balance.": "Поделитесь личной ссылкой, получайте награды за регистрацию друзей и переводите их на API-баланс.",
+  "Open referral program": "Открыть реферальную программу",
+  "GLM 5.2": "GLM 5.2",
+  "DeepSeek V4 Pro": "DeepSeek V4 Pro",
+  "Kimi K2.6": "Kimi K2.6",
+  "Nemotron 3 Ultra": "Nemotron 3 Ultra"
 }

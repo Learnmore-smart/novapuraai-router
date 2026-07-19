@@ -11,6 +11,7 @@ import { useAuthStore } from '@/stores/auth-store'
 
 import {
   CTA,
+  FAQ,
   Features,
   Hero,
   HowItWorks,
@@ -135,6 +136,7 @@ export function Home() {
       <Features />
       <HowItWorks />
       <PricingTeaser />
+      <FAQ />
       <CTA isAuthenticated={isAuthenticated} />
       <Footer />
     </PublicLayout>

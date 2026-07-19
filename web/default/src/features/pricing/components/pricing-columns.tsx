@@ -65,10 +65,15 @@ export function usePricingColumns(
         const model = row.original
         const modelIconKey = model.icon || model.vendor_icon
         const modelIcon = modelIconKey ? getLobeIcon(modelIconKey, 14) : null
+        const initial = model.model_name?.charAt(0).toUpperCase() || '?'
 
         return (
           <div className='flex max-w-full min-w-0 items-center gap-2'>
-            {modelIcon}
+            {modelIcon || (
+              <span className='text-muted-foreground text-xs font-bold'>
+                {initial}
+              </span>
+            )}
             <span className='truncate font-mono text-sm font-medium'>
               {model.model_name}
             </span>

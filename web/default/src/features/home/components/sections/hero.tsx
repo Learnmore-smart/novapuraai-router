@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Gift } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -46,6 +46,13 @@ export function Hero(props: HeroProps) {
             'A prepaid gateway with health-aware routing and a request ledger you can audit. Point your existing OpenAI-style client at NovaPura and ship.'
           )}
         </p>
+
+        {!props.isAuthenticated && (
+          <div className='np-fade-up np-fade-up-delay-2 mx-auto mt-5 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary'>
+            <Gift className='size-4' aria-hidden='true' />
+            {t('Sign up now to get ¥50 in API credits')}
+          </div>
+        )}
 
         <div className='np-fade-up np-fade-up-delay-3 mt-9 flex flex-wrap items-center justify-center gap-3'>
           <Button

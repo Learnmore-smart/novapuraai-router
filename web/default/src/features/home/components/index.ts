@@ -1,4 +1,5 @@
 export { CTA } from './sections/cta'
+export { FAQ } from './sections/faq'
 export { Features } from './sections/features'
 export { Hero } from './sections/hero'
 export { HowItWorks } from './sections/how-it-works'

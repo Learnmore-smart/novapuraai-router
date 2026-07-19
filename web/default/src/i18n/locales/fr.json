@@ -5687,5 +5687,15 @@
   "Send test email": "Envoyer l’e-mail de test",
   "Test email sent": "E-mail de test envoyé",
   "Failed to send test email": "Échec de l’envoi de l’e-mail de test",
-  "The test uses the selected transactional email provider.": "Le test utilise le fournisseur d’e-mails transactionnels sélectionné."
+  "The test uses the selected transactional email provider.": "Le test utilise le fournisseur d’e-mails transactionnels sélectionné.",
+  "Questions, answered clearly.": "Des réponses claires à vos questions.",
+  "Everything you need to know before creating a key, choosing a model, or adding credits.": "Tout ce qu’il faut savoir avant de créer une clé, choisir un modèle ou ajouter des crédits.",
+  "Loading FAQ": "Chargement de la FAQ",
+  "Refer friends. Earn API credits.": "Parrainez vos proches. Gagnez des crédits API.",
+  "Share your personal link, earn rewards when friends join, and transfer those rewards to your API balance.": "Partagez votre lien personnel, gagnez des récompenses lorsque vos proches s’inscrivent et transférez-les vers votre solde API.",
+  "Open referral program": "Ouvrir le programme de parrainage",
+  "GLM 5.2": "GLM 5.2",
+  "DeepSeek V4 Pro": "DeepSeek V4 Pro",
+  "Kimi K2.6": "Kimi K2.6",
+  "Nemotron 3 Ultra": "Nemotron 3 Ultra"
 }

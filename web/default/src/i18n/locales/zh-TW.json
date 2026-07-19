@@ -5687,5 +5687,15 @@
   "Send test email": "傳送測試郵件",
   "Test email sent": "測試郵件已傳送",
   "Failed to send test email": "傳送測試郵件失敗",
-  "The test uses the selected transactional email provider.": "測試將使用目前選取的交易郵件供應商。"
+  "The test uses the selected transactional email provider.": "測試將使用目前選取的交易郵件供應商。",
+  "Questions, answered clearly.": "常見問題，清楚解答。",
+  "Everything you need to know before creating a key, choosing a model, or adding credits.": "建立 API 金鑰、選擇模型或儲值前，你需要了解的內容都在這裡。",
+  "Loading FAQ": "正在載入常見問題",
+  "Refer friends. Earn API credits.": "邀請好友，賺取 API 額度。",
+  "Share your personal link, earn rewards when friends join, and transfer those rewards to your API balance.": "分享你的專屬連結，好友註冊後即可獲得獎勵，並可將獎勵轉入 API 餘額。",
+  "Open referral program": "開啟推薦計畫",
+  "GLM 5.2": "GLM 5.2",
+  "DeepSeek V4 Pro": "DeepSeek V4 Pro",
+  "Kimi K2.6": "Kimi K2.6",
+  "Nemotron 3 Ultra": "Nemotron 3 Ultra"
 }

@@ -1624,7 +1624,7 @@
     "Each tier supports 0~2 conditions (over len, p, c); the last tier is the catch-all without conditions. Use len (full input length, including cache hits) for tier conditions to avoid mis-routing when cache hits reduce p.": "每个档位支持 0~2 个条件（针对 len、p、c），最后一档为兜底档无需条件。建议条件使用 len（完整输入长度，含缓存命中），避免缓存命中降低 p 导致档位误判。",
     "Each tier supports up to 2 conditions; the last tier is the catch-all without conditions. Use full input length for tier conditions to avoid mis-routing when cache hits reduce billable input tokens.": "每个档位最多支持 2 个条件；最后一个档位是不带条件的兜底档。建议使用完整输入长度作为档位条件，避免缓存命中减少计费输入 token 后误判档位。",
     "Each tier supports up to 2 conditions. The last tier without conditions is the fallback.": "每个阶梯最多支持 2 个条件。最后一个无条件阶梯作为兜底。",
-    "Earn rewards when users join through your referral link. Transfer accumulated rewards to your balance anytime.": "用户通过您的推荐链接注册后，您即可获得奖励。可随时将累计奖励转入余额。",
+    "Earn ¥100 in API credits for both you and each friend you invite, once they verify their email and complete their first billable request.": "邀请好友成功，双方各得 ¥100 API 额度——好友完成邮箱验证并产生首次计费请求后发放。",
     "Edit": "编辑",
     "Edit {{title}}": "编辑{{title}}",
     "Edit all channels with tag:": "编辑所有带有标签的渠道：",
@@ -4534,6 +4534,7 @@
     "Sign out": "登出",
     "Sign up": "注册",
     "Sign up and complete the verification required by your deployment.": "注册并完成当前部署所要求的验证。",
+    "Sign up now to get ¥50 in API credits": "立即注册，赠送 ¥50 API 额度",
     "Sign up, complete verification, and open a prepaid workspace. Cash and promotional credit stay separate.": "注册并完成验证，开通预付费工作区。现金与促销额度分开。",
     "Signed in": "已登录",
     "Signed in successfully!": "登录成功！",
@@ -5687,5 +5688,15 @@
   "Send test email": "发送测试邮件",
   "Test email sent": "测试邮件已发送",
   "Failed to send test email": "发送测试邮件失败",
-  "The test uses the selected transactional email provider.": "测试将使用当前选定的事务邮件提供商。"
+  "The test uses the selected transactional email provider.": "测试将使用当前选定的事务邮件提供商。",
+  "Questions, answered clearly.": "常见问题，清楚解答。",
+  "Everything you need to know before creating a key, choosing a model, or adding credits.": "创建 API 密钥、选择模型或充值前，你需要了解的内容都在这里。",
+  "Loading FAQ": "正在加载常见问题",
+  "Refer friends. Earn API credits.": "邀请好友，赚取 API 额度。",
+  "Invite a friend with your personal link. Once they verify their email, create a token, and make their first billable request, you both receive ¥100 in API credits.": "使用您的个人链接邀请好友。好友完成邮箱验证、创建令牌并产生首次计费请求后，您与好友各获 ¥100 API 额度。",
+  "Open referral program": "打开推荐计划",
+  "GLM 5.2": "GLM 5.2",
+  "DeepSeek V4 Pro": "DeepSeek V4 Pro",
+  "Kimi K2.6": "Kimi K2.6",
+  "Nemotron 3 Ultra": "Nemotron 3 Ultra"
 }

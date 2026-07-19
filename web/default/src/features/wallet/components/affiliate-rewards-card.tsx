@@ -55,7 +55,7 @@ export function AffiliateRewardsCard({
             </h3>
             <p className='text-muted-foreground line-clamp-1 text-xs'>
               {t(
-                'Earn rewards when users join through your referral link. Transfer accumulated rewards to your balance anytime.'
+                'Earn ¥100 in API credits for both you and each friend you invite, once they verify their email and complete their first billable request.'
               )}
             </p>
           </div>

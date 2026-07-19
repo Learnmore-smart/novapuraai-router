@@ -66,6 +66,7 @@ type ModelRatioFormProps = {
   isSaving: boolean
   isResetting: boolean
   variant?: 'default' | 'unset'
+  onAutoSaveModelDiscount?: (value: string) => Promise<void>
 }
 
 export const ModelRatioForm = memo(function ModelRatioForm({
@@ -76,6 +77,7 @@ export const ModelRatioForm = memo(function ModelRatioForm({
   isSaving,
   isResetting,
   variant = 'default',
+  onAutoSaveModelDiscount,
 }: ModelRatioFormProps) {
   const { t } = useTranslation()
   const isUnsetVariant = variant === 'unset'
@@ -86,6 +88,17 @@ export const ModelRatioForm = memo(function ModelRatioForm({
   const visualEditorRef = useRef<ModelRatioVisualEditorHandle>(null)
   const fieldsEditorRef = useRef<ModelPricingFieldsJsonEditorHandle>(null)
   const unifiedEditorRef = useRef<ModelPricingUnifiedJsonEditorHandle>(null)
+  const discountSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  )
+
+  useEffect(() => {
+    return () => {
+      if (discountSaveTimerRef.current !== null) {
+        clearTimeout(discountSaveTimerRef.current)
+      }
+    }
+  }, [])
 
   const enabledModelsQuery = useQuery({
     queryKey: ['enabled-models'],
@@ -205,20 +218,44 @@ export const ModelRatioForm = memo(function ModelRatioForm({
   }, [globalDiscount.rate])
 
   const updateGlobalDiscount = useCallback(
-    (enabled: boolean, rateText: string) => {
+    (
+      enabled: boolean,
+      rateText: string,
+      saveMode: 'immediate' | 'debounced' | 'none' = 'none'
+    ) => {
       const rate = Number(rateText)
+      let nextValue: string
       try {
-        handleFieldChange(
-          'ModelDiscount',
-          setGlobalDiscountDraft(form.getValues('ModelDiscount'), enabled, rate)
+        nextValue = setGlobalDiscountDraft(
+          form.getValues('ModelDiscount'),
+          enabled,
+          rate
         )
       } catch {
         toast.error(
           t('Global discount rate must be greater than 0 and at most 1.')
         )
+        return
+      }
+      handleFieldChange('ModelDiscount', nextValue)
+
+      if (!onAutoSaveModelDiscount || saveMode === 'none') return
+      // Switch toggles save immediately; typed input debounces. Any pending
+      // debounced save is cancelled so the latest intent wins.
+      if (discountSaveTimerRef.current !== null) {
+        clearTimeout(discountSaveTimerRef.current)
+        discountSaveTimerRef.current = null
+      }
+      if (saveMode === 'immediate') {
+        void onAutoSaveModelDiscount(nextValue)
+      } else {
+        discountSaveTimerRef.current = setTimeout(() => {
+          discountSaveTimerRef.current = null
+          void onAutoSaveModelDiscount(nextValue)
+        }, 500)
       }
     },
-    [form, handleFieldChange, t]
+    [form, handleFieldChange, onAutoSaveModelDiscount, t]
   )
 
   const commitActiveJsonEditor = useCallback(() => {
@@ -374,7 +411,7 @@ export const ModelRatioForm = memo(function ModelRatioForm({
                   rate > 0 &&
                   rate <= 1
                 ) {
-                  updateGlobalDiscount(true, nextValue)
+                  updateGlobalDiscount(true, nextValue, 'debounced')
                 }
               }}
               placeholder='0.8'
@@ -382,7 +419,7 @@ export const ModelRatioForm = memo(function ModelRatioForm({
             <Switch
               checked={globalDiscount.enabled}
               onCheckedChange={(checked) =>
-                updateGlobalDiscount(checked, globalDiscountRate)
+                updateGlobalDiscount(checked, globalDiscountRate, 'immediate')
               }
               aria-label={t('Apply discount to all models')}
             />

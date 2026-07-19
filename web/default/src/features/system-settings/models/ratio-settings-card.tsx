@@ -340,6 +340,28 @@ export function RatioSettingsCard({
     [t, updateOption]
   )
 
+  const handleAutoSaveModelDiscount = useCallback(
+    async (value: string) => {
+      const normalized = normalizeJsonString(value)
+      if (normalized === modelNormalizedDefaults.current.ModelDiscount) return
+      await updateOption.mutateAsync({
+        key: 'ModelDiscount',
+        value: normalized,
+      })
+      // Sync local cache so the next diff (save button / reset) compares
+      // against the just-persisted value instead of the stale pre-save one.
+      modelNormalizedDefaults.current = {
+        ...modelNormalizedDefaults.current,
+        ModelDiscount: normalized,
+      }
+      setSavedModelValues((prev) => ({
+        ...prev,
+        ModelDiscount: normalized,
+      }))
+    },
+    [updateOption]
+  )
+
   const saveGroupRatios = useCallback(
     async (values: GroupFormValues) => {
       const normalized = {
@@ -411,6 +433,7 @@ export function RatioSettingsCard({
           isSaving={updateOption.isPending}
           isResetting={resetMutation.isPending}
           variant={tab === 'unset-models' ? 'unset' : 'default'}
+          onAutoSaveModelDiscount={handleAutoSaveModelDiscount}
         />
       )
     }

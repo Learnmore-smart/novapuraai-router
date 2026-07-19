@@ -52,8 +52,9 @@ func exchangeRateForCampaign() float64 {
 	return common.DefaultUSDExchangeRate
 }
 
-// TryGrantRegisterPromo grants first-N verified users a promo balance (atomic).
+// TryGrantRegisterPromo grants verified users a promo balance (atomic).
 // Safe under concurrency: unique claim per user + counter UPDATE WHERE count < max.
+// When RegisterPromoMax <= 0 the promo is unlimited (no counter check).
 func TryGrantRegisterPromo(userId int) (granted bool, amount int, err error) {
 	if !common.RegisterPromoEnabled || !common.EmailVerificationEnabled || userId <= 0 {
 		return false, 0, nil
@@ -63,9 +64,7 @@ func TryGrantRegisterPromo(userId int) (granted bool, amount int, err error) {
 		return false, 0, nil
 	}
 	max := common.RegisterPromoMax
-	if max <= 0 {
-		return false, 0, nil
-	}
+	unlimited := max <= 0
 
 	err = DB.Transaction(func(tx *gorm.DB) error {
 		var user User
@@ -74,17 +73,6 @@ func TryGrantRegisterPromo(userId int) (granted bool, amount int, err error) {
 		}
 		if user.Email == "" {
 			return nil
-		}
-
-		counter := CampaignCounter{Name: CounterRegisterPromo}
-		if e := tx.Clauses(clause.OnConflict{
-			Columns:   []clause.Column{{Name: "name"}},
-			DoNothing: true,
-		}).Create(&counter).Error; e != nil {
-			return e
-		}
-		if e := lockForUpdate(tx).Where("name = ?", CounterRegisterPromo).First(&counter).Error; e != nil {
-			return e
 		}
 
 		claim := CampaignClaim{
@@ -104,14 +92,27 @@ func TryGrantRegisterPromo(userId int) (granted bool, amount int, err error) {
 			return nil
 		}
 
-		res := tx.Model(&CampaignCounter{}).
-			Where("name = ? AND count < ?", CounterRegisterPromo, max).
-			Update("count", gorm.Expr("count + 1"))
-		if res.Error != nil {
-			return res.Error
-		}
-		if res.RowsAffected == 0 {
-			return errRegisterPromoFull
+		if !unlimited {
+			counter := CampaignCounter{Name: CounterRegisterPromo}
+			if e := tx.Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "name"}},
+				DoNothing: true,
+			}).Create(&counter).Error; e != nil {
+				return e
+			}
+			if e := lockForUpdate(tx).Where("name = ?", CounterRegisterPromo).First(&counter).Error; e != nil {
+				return e
+			}
+
+			res := tx.Model(&CampaignCounter{}).
+				Where("name = ? AND count < ?", CounterRegisterPromo, max).
+				Update("count", gorm.Expr("count + 1"))
+			if res.Error != nil {
+				return res.Error
+			}
+			if res.RowsAffected == 0 {
+				return errRegisterPromoFull
+			}
 		}
 
 		// Credit promo in same tx
@@ -131,7 +132,11 @@ func TryGrantRegisterPromo(userId int) (granted bool, amount int, err error) {
 		return false, 0, err
 	}
 	if granted {
-		RecordLog(userId, LogTypeSystem, fmt.Sprintf("注册活动赠送 %s（前 %d 名）", logger.LogQuota(amount), max))
+		if unlimited {
+			RecordLog(userId, LogTypeSystem, fmt.Sprintf("注册活动赠送 %s", logger.LogQuota(amount)))
+		} else {
+			RecordLog(userId, LogTypeSystem, fmt.Sprintf("注册活动赠送 %s（前 %d 名）", logger.LogQuota(amount), max))
+		}
 		_ = invalidateUserCache(userId)
 	}
 	return granted, amount, nil

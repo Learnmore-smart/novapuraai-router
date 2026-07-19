@@ -510,12 +510,17 @@ function ModelHeader(props: { model: PricingModel }) {
   const model = props.model
   const modelIconKey = model.icon || model.vendor_icon
   const modelIcon = modelIconKey ? getLobeIcon(modelIconKey, 20) : null
+  const initial = model.model_name?.charAt(0).toUpperCase() || '?'
   const description = model.description || model.vendor_description || null
 
   return (
     <header className='pb-4'>
       <div className='flex items-center gap-2.5'>
-        {modelIcon}
+        {modelIcon || (
+          <span className='text-muted-foreground text-sm font-bold'>
+            {initial}
+          </span>
+        )}
         <h1 className='font-mono text-xl font-bold tracking-tight sm:text-2xl'>
           {model.model_name}
         </h1>

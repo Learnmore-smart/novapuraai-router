@@ -218,8 +218,8 @@ export function formatPrice(
   const localized = formatModelBillingAmount(model, price, 6)
   if (localized) return localized
   return formatCurrencyFromUSD(price, {
-    digitsLarge: 4,
-    digitsSmall: 6,
+    digitsLarge: 2,
+    digitsSmall: 2,
     abbreviate: false,
   })
 }
@@ -261,8 +261,8 @@ export function formatGroupPrice(
   const localized = formatModelBillingAmount(model, price, 6)
   if (localized) return localized
   return formatCurrencyFromUSD(price, {
-    digitsLarge: 4,
-    digitsSmall: 6,
+    digitsLarge: 2,
+    digitsSmall: 2,
     abbreviate: false,
   })
 }
@@ -305,8 +305,8 @@ export function formatFixedPrice(
   if (localized) return localized
 
   return formatCurrencyFromUSD(priceInUSD, {
-    digitsLarge: 4,
-    digitsSmall: 4,
+    digitsLarge: 2,
+    digitsSmall: 2,
     abbreviate: false,
   })
 }
@@ -350,8 +350,8 @@ export function formatRequestPrice(
   if (localized) return localized
 
   return formatCurrencyFromUSD(priceInUSD, {
-    digitsLarge: 4,
-    digitsSmall: 4,
+    digitsLarge: 2,
+    digitsSmall: 2,
     abbreviate: false,
   })
 }

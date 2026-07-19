@@ -138,16 +138,17 @@ var PreConsumedQuota = 500
 var RetryTimes = 0
 
 // --- NovaPura campaign defaults (MVP §9) ---
-// RegisterPromoEnabled grants promo to first RegisterPromoMax verified users.
+// RegisterPromoEnabled grants promo to verified users with email.
+// RegisterPromoMax <= 0 means unlimited (all qualifying new users receive the promo).
 var RegisterPromoEnabled = true
-var RegisterPromoMax = 1000
-var RegisterPromoCNYYuan = 200.0
+var RegisterPromoMax = 0
+var RegisterPromoCNYYuan = 50.0
 
 // MaxValidInvites caps paid invite rewards per inviter.
 var MaxValidInvites = 10
 
-// InviteRewardCNYYuan is ¥50 each side when delayed invite qualifies.
-var InviteRewardCNYYuan = 50.0
+// InviteRewardCNYYuan is ¥100 each side when delayed invite qualifies.
+var InviteRewardCNYYuan = 100.0
 
 // DelayedInviteReward: wait for email verified + token + first billable success before paying.
 var DelayedInviteReward = true

@@ -5687,5 +5687,15 @@
   "Send test email": "テストメールを送信",
   "Test email sent": "テストメールを送信しました",
   "Failed to send test email": "テストメールを送信できませんでした",
-  "The test uses the selected transactional email provider.": "テストでは選択中のトランザクションメールプロバイダーを使用します。"
+  "The test uses the selected transactional email provider.": "テストでは選択中のトランザクションメールプロバイダーを使用します。",
+  "Questions, answered clearly.": "よくある質問に、明確に回答します。",
+  "Everything you need to know before creating a key, choosing a model, or adding credits.": "API キーの作成、モデルの選択、クレジットの追加前に必要な情報をまとめています。",
+  "Loading FAQ": "FAQ を読み込み中",
+  "Refer friends. Earn API credits.": "友達を招待して API クレジットを獲得。",
+  "Share your personal link, earn rewards when friends join, and transfer those rewards to your API balance.": "専用リンクを共有し、友達の登録で報酬を獲得して API 残高へ移行できます。",
+  "Open referral program": "紹介プログラムを開く",
+  "GLM 5.2": "GLM 5.2",
+  "DeepSeek V4 Pro": "DeepSeek V4 Pro",
+  "Kimi K2.6": "Kimi K2.6",
+  "Nemotron 3 Ultra": "Nemotron 3 Ultra"
 }

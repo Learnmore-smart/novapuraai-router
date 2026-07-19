@@ -4,12 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 
-const SAMPLE_MODELS = [
-  { name: 'GPT-class models', note: 'Pay per token' },
-  { name: 'Claude-class models', note: 'Pay per token' },
-  { name: 'Gemini-class models', note: 'Pay per token' },
-  { name: 'Open & regional models', note: 'Listed in catalogue' },
-] as const
+import { LANDING_MODEL_ROWS } from '../../constants'
 
 export function PricingTeaser() {
   const { t } = useTranslation()
@@ -45,11 +40,11 @@ export function PricingTeaser() {
             <span>{t('Billing')}</span>
           </div>
           <ul>
-            {SAMPLE_MODELS.map((row, index) => (
+            {LANDING_MODEL_ROWS.map((row, index) => (
               <li
                 key={row.name}
                 className={
-                  index < SAMPLE_MODELS.length - 1
+                  index < LANDING_MODEL_ROWS.length - 1
                     ? 'border-border hover:bg-muted/40 grid grid-cols-[1fr_auto] items-center gap-4 border-b px-5 py-4 transition-colors sm:px-6'
                     : 'hover:bg-muted/40 grid grid-cols-[1fr_auto] items-center gap-4 px-5 py-4 transition-colors sm:px-6'
                 }
