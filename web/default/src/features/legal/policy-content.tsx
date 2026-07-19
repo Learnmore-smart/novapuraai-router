@@ -35,10 +35,17 @@ const TERMS_BY_LANG: Record<string, { terms: PolicyBundle }> = {
   'zh-TW': termsZh as { terms: PolicyBundle },
 }
 
+/** Locales that ship full legal policy JSON. Others fall back to English. */
+const LOCALIZED_POLICY_LANGS = new Set(['en', 'zh'])
+
 function resolveLang(language: string | undefined): string {
   if (!language) return 'en'
   if (language.startsWith('zh')) return 'zh'
   return language.split('-')[0] || 'en'
+}
+
+function hasLocalizedPolicy(language: string | undefined): boolean {
+  return LOCALIZED_POLICY_LANGS.has(resolveLang(language))
 }
 
 function getPolicy(kind: PolicyKind, language: string | undefined): PolicyBundle {
@@ -155,6 +162,7 @@ export function PolicyContent({ kind }: PolicyContentProps) {
     () => getPolicy(kind, i18n.language),
     [kind, i18n.language]
   )
+  const showingEnglishFallback = !hasLocalizedPolicy(i18n.language)
 
   const pageTitle =
     policy.title ||
@@ -167,6 +175,13 @@ export function PolicyContent({ kind }: PolicyContentProps) {
           <h1 className='text-3xl font-semibold tracking-tight'>{pageTitle}</h1>
           {policy.lastUpdated ? (
             <p className='text-muted-foreground text-sm'>{policy.lastUpdated}</p>
+          ) : null}
+          {showingEnglishFallback ? (
+            <p className='text-muted-foreground bg-muted/50 mt-3 rounded-md px-3 py-2 text-sm'>
+              {t(
+                'Full legal text is currently available in English and Chinese. Displaying the English version.'
+              )}
+            </p>
           ) : null}
         </header>
 

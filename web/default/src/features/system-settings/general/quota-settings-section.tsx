@@ -265,7 +265,9 @@ export function QuotaSettingsSection({
                     />
                   </FormControl>
                   <FormDescription>
-                    {t('Link to your documentation site')}
+                    {t(
+                      'Optional external documentation URL (shown in the footer as API Documentation). The main Docs nav item opens the in-app /docs guide.'
+                    )}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

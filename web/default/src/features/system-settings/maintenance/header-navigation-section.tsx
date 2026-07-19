@@ -33,6 +33,7 @@ import {
 const headerNavSchema = z.object({
   home: z.boolean(),
   console: z.boolean(),
+  docs: z.boolean(),
   pricingEnabled: z.boolean(),
   pricingRequireAuth: z.boolean(),
   rankingsEnabled: z.boolean(),
@@ -53,6 +54,8 @@ const toFormValues = (config: HeaderNavModulesConfig): HeaderNavFormValues => ({
     config.console === undefined
       ? HEADER_NAV_DEFAULT.console
       : Boolean(config.console),
+  docs:
+    config.docs === undefined ? HEADER_NAV_DEFAULT.docs : Boolean(config.docs),
   pricingEnabled:
     config.pricing?.enabled === undefined
       ? HEADER_NAV_DEFAULT.pricing.enabled
@@ -93,8 +96,8 @@ export function HeaderNavigationSection({
       ...config,
       home: values.home,
       console: values.console,
-      // Docs and About product pages are retired; always persist as off.
-      docs: false,
+      docs: values.docs,
+      // About product page remains retired from navigation.
       about: false,
       pricing: {
         ...(config.pricing ?? HEADER_NAV_DEFAULT.pricing),
@@ -137,6 +140,13 @@ export function HeaderNavigationSection({
       key: 'console',
       title: t('Console'),
       description: t('User dashboard and quota controls.'),
+    },
+    {
+      key: 'docs',
+      title: t('Docs'),
+      description: t(
+        'In-app developer documentation at /docs. Always available when enabled.'
+      ),
     },
   ]
 

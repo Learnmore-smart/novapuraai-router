@@ -129,6 +129,15 @@ export default defineConfig(({ envMode }) => {
             autoCodeSplitting: isProd,
           }),
         ],
+        module: {
+          rules: [
+            // Official docs markdown is imported as raw UTF-8 strings.
+            {
+              test: /\.md$/,
+              type: 'asset/source',
+            },
+          ],
+        },
         // Reliable file watching on Windows (and when explicitly requested).
         ...(!isProd && useWatchPolling
           ? {

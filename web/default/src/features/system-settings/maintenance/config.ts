@@ -31,7 +31,7 @@ export const HEADER_NAV_DEFAULT: HeaderNavModulesConfig = {
     enabled: true,
     requireAuth: false,
   },
-  docs: false,
+  docs: true,
   about: false,
 }
 

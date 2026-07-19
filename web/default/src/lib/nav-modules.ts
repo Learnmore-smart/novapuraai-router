@@ -19,8 +19,9 @@ const DEFAULT_HEADER_NAV_MODULES: HeaderNavModules = {
   console: true,
   pricing: { enabled: true, requireAuth: false },
   rankings: { enabled: true, requireAuth: false },
-  // Docs and About pages are retired from product navigation.
-  docs: false,
+  // Docs opens general_setting.docs_link when non-empty.
+  docs: true,
+  // About product page remains retired from navigation.
   about: false,
 }
 

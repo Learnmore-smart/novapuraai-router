@@ -164,8 +164,12 @@ export function Footer(props: FooterProps) {
   const isDemoSiteMode = Boolean(demoSiteEnabled)
   const currentYear = new Date().getFullYear()
 
-  const productColumns = useMemo<FooterColumnProps[]>(
-    () => [
+  const { status } = useStatus()
+  const docsLink =
+    typeof status?.docs_link === 'string' ? status.docs_link.trim() : ''
+
+  const productColumns = useMemo<FooterColumnProps[]>(() => {
+    const columns: FooterColumnProps[] = [
       {
         title: t('Product'),
         links: [
@@ -182,9 +186,27 @@ export function Footer(props: FooterProps) {
           { text: t('Forgot password'), href: '/forgot-password' },
         ],
       },
-    ],
-    [t]
-  )
+    ]
+
+    const docsLinks: FooterLink[] = [
+      { text: 'Docs', href: '/docs' },
+      { text: 'Terms and Conditions', href: '/user-agreement' },
+      { text: 'Privacy Policy', href: '/privacy-policy' },
+      { text: 'Refund Policy', href: '/refund-policy' },
+    ]
+    if (docsLink) {
+      docsLinks.splice(1, 0, {
+        text: 'footer.columns.docs.links.apiDocs',
+        href: docsLink,
+      })
+    }
+    columns.push({
+      title: 'footer.columns.docs.title',
+      links: docsLinks,
+    })
+
+    return columns
+  }, [docsLink, t])
 
   const fallbackColumns = useMemo<FooterColumnProps[]>(
     () => [

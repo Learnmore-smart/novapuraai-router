@@ -23,7 +23,8 @@ export type TopNavLink = {
  * Auth policy:
  * - Logged-out users never see Dashboard/Console in the nav.
  * - Logged-in users may see Console when enabled (CTA in header shows Dashboard).
- * - Docs and About are removed from product navigation.
+ * - Docs points to the in-app documentation at /docs when the module is enabled.
+ * - About remains retired from product navigation.
  */
 export function useTopNavLinks(): TopNavLink[] {
   const { status } = useStatus()
@@ -57,6 +58,13 @@ export function useTopNavLinks(): TopNavLink[] {
   if (rankings && typeof rankings === 'object' && rankings.enabled) {
     const requiresAuth = rankings.requireAuth && !isAuthed
     links.push({ title: 'Rankings', href: '/rankings', requiresAuth })
+  }
+
+  if (modules?.docs !== false) {
+    links.push({
+      title: 'Docs',
+      href: '/docs',
+    })
   }
 
   return links

@@ -341,6 +341,18 @@ function RequestPreview(props: {
           )
         })}
       </div>
+
+      <div className='border-border mt-3 border-t pt-3'>
+        <Button
+          variant='link'
+          size='sm'
+          className='h-auto p-0'
+          render={<Link to='/docs' />}
+        >
+          {t('Read the docs')}
+          <ArrowRight data-icon='inline-end' className='size-3.5' />
+        </Button>
+      </div>
     </motion.div>
   )
 }
@@ -696,6 +708,15 @@ export function OverviewDashboard() {
                   {visibleQuickActions.map((action) => (
                     <CompactQuickAction key={action.title} action={action} />
                   ))}
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    className='h-8'
+                    render={<Link to='/docs' />}
+                  >
+                    <BookOpen data-icon='inline-start' />
+                    {t('Docs')}
+                  </Button>
                   <Button
                     variant='outline'
                     size='sm'
