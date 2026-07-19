@@ -3,7 +3,6 @@ import { ChevronRight } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 
@@ -108,21 +107,5 @@ export function DocsSidebar(props: DocsSidebarProps) {
         </div>
       </ScrollArea>
     </nav>
-  )
-}
-
-export function DocsMobileSidebarTrigger(props: {
-  onClick: () => void
-  label: string
-}) {
-  return (
-    <Button
-      variant='outline'
-      size='sm'
-      className='lg:hidden'
-      onClick={props.onClick}
-    >
-      {props.label}
-    </Button>
   )
 }

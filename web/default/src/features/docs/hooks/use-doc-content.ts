@@ -3,11 +3,15 @@ import { useTranslation } from 'react-i18next'
 
 // Rsbuild already maps `import './x.md'` to a raw string (rsbuild.config.ts).
 // `import.meta.glob` lets us lazy-load only the (section, lang) the user opens.
-const docModules = import.meta.glob<string>('@/i18n/docs/*/*.md', {
-  query: '?raw',
-  import: 'default',
-  eager: false,
-})
+// Note: glob patterns do not expand the `@/` alias — use a relative path.
+const docModules = import.meta.glob<string>(
+  '../../../i18n/docs/*/*.md',
+  {
+    query: '?raw',
+    import: 'default',
+    eager: false,
+  }
+)
 
 // Map i18next language code to docs folder name.
 const LANG_FOLDER: Record<string, string> = {
@@ -41,13 +45,18 @@ interface LoaderEntry {
 
 function resolveLoader(sectionId: string, folder: string): LoaderEntry | null {
   const key = moduleKey(sectionId, folder)
-  const loader = docModules[key]
-  if (loader) return { key, loader }
+  // `docModules` is typed as `Record<string, () => Promise<string>>`, so a
+  // truthiness check on `docModules[key]` is always true at compile time.
+  // Use `Object.hasOwn` to actually verify the module exists at runtime.
+  if (Object.hasOwn(docModules, key)) {
+    return { key, loader: docModules[key] }
+  }
   // Fall back to English if the requested language is missing.
   if (folder !== 'en') {
     const enKey = moduleKey(sectionId, 'en')
-    const enLoader = docModules[enKey]
-    if (enLoader) return { key: enKey, loader: enLoader }
+    if (Object.hasOwn(docModules, enKey)) {
+      return { key: enKey, loader: docModules[enKey] }
+    }
   }
   return null
 }
