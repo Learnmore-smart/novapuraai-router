@@ -63,6 +63,14 @@ interface RechargeFormCardProps {
   waffoMinTopup?: number
   onWaffoMethodSelect?: (method: WaffoPayMethod, index: number) => void
   enableWaffoPancakeTopup?: boolean
+  /**
+   * Whether StripeTopupCard is actually rendering and serving checkout.
+   * Lifted from the shared `billing-topup-config` TanStack Query in index.tsx
+   * (runtime `config.enabled`), NOT the topup-info settings flag. Used to
+   * decide whether to show the "online topup not enabled" alert and the
+   * "Use the Stripe top-up card above" description.
+   */
+  stripeTopupActuallyEnabled?: boolean
 }
 
 export function RechargeFormCard({
@@ -93,6 +101,7 @@ export function RechargeFormCard({
   waffoMinTopup,
   onWaffoMethodSelect,
   enableWaffoPancakeTopup,
+  stripeTopupActuallyEnabled = false,
 }: RechargeFormCardProps) {
   const { t } = useTranslation()
   const [localAmount, setLocalAmount] = useState(topupAmount.toString())
@@ -123,9 +132,15 @@ export function RechargeFormCard({
   const minTopup = getMinTopupAmount(topupInfo)
   const redemptionEnabled = topupInfo?.enable_redemption !== false
   // Product Stripe Checkout is rendered by StripeTopupCard above this form.
-  // Suppress the false “online topup not enabled” alert when that path is live.
+  // Suppress the false "online topup not enabled" alert only when that card is
+  // actually serving checkout (runtime billing-topup-config `config.enabled`),
+  // NOT merely when the settings flag is on — otherwise an admin who enabled
+  // Product in settings but has not completed credentials/currency sees an
+  // empty card with a misleading "Use the Stripe top-up card above" description.
   const showLegacyOnlineSection = hasAnyTopup
-  const showOnlineDisabledAlert = !hasAnyTopup && !hasProductStripeTopup
+  const showOnlineDisabledAlert = !hasAnyTopup && !stripeTopupActuallyEnabled
+  // `hasProductStripeTopup` retained for future diagnostics; not used in UX.
+  void hasProductStripeTopup
 
   if (loading) {
     return (
@@ -179,7 +194,7 @@ export function RechargeFormCard({
   }
 
   const cardDescription =
-    hasProductStripeTopup && !showLegacyOnlineSection
+    stripeTopupActuallyEnabled && !showLegacyOnlineSection
       ? t('Use the Stripe top-up card above, or redeem a code below.')
       : t('Choose an amount and payment method')
 
