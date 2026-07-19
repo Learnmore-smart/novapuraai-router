@@ -1,4 +1,4 @@
-在对应渠道启用时，NovaPuraAI 会代理图像、音频与重排等媒体接口。
+当对应渠道已启用时，NovaPuraAI 会代理选定的媒体端点。
 
 ## 图像
 
@@ -15,9 +15,9 @@ curl https://www.novapuraai.com/v1/images/generations \
   }'
 ```
 
-## 语音转写
+## 音频转写
 
-`POST /v1/audio/transcriptions` (multipart form)
+`POST /v1/audio/transcriptions`（multipart 表单）
 
 ```bash
 curl https://www.novapuraai.com/v1/audio/transcriptions \
@@ -28,12 +28,12 @@ curl https://www.novapuraai.com/v1/audio/transcriptions \
 
 ## 语音合成
 
-`POST /v1/audio/speech` returns audio bytes for supported TTS models.
+`POST /v1/audio/speech` 对受支持的 TTS 模型返回音频字节。
 
-## 重排
+## 重排序（Rerank）
 
-`POST /v1/rerank` accepts query + documents for Cohere/Jina-style rerankers when configured.
+`POST /v1/rerank` 在已配置时接受 query 与 documents，用于 Cohere / Jina 风格的重排序器。
 
 ## 计费说明
 
-Media endpoints often bill by image count, seconds, or document count — not only tokens. Check Model Square before bulk jobs.
+媒体端点通常按图像数量、秒数或文档数量计费，而不仅是 token。批量任务前请先查看模型广场。

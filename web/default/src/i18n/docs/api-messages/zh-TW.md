@@ -1,4 +1,4 @@
-`POST /v1/messages` 接受 Anthropic Messages 風格請求體，用於閘道中設定的 Claude 相容模型。
+`POST /v1/messages` 接受 Anthropic Messages 風格的負載，用於閘道上已設定的 Claude 相容模型。
 
 ## 範例
 
@@ -18,10 +18,10 @@ curl https://www.novapuraai.com/v1/messages \
 
 ## 說明
 
-- Model names must exist in your NovaPuraAI catalog.
-- Some Anthropic-only headers are accepted and forwarded when relevant.
-- You can often call the same Claude models via OpenAI chat format if the channel adapter supports it — prefer the format your SDK expects.
+- 模型名稱必須存在於你的 NovaPuraAI 目錄中。
+- 部分僅 Anthropic 使用的請求標頭在相關時會被接受並轉發。
+- 若渠道轉接器支援，通常也可透過 OpenAI 對話格式呼叫同一 Claude 模型——請優先使用你的 SDK 期望的格式。
 
 ## 錯誤
 
-Invalid schema or unsupported fields return `4xx` with a JSON error body. Check that `max_tokens` is present when required by the Messages API.
+無效 schema 或不支援的欄位會回傳帶 JSON 錯誤主體的 `4xx`。請確認 Messages API 要求時已提供 `max_tokens`。

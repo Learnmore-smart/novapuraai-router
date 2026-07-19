@@ -106,8 +106,13 @@ export interface WaffoPayMethod {
 export interface TopupInfo {
   /** Whether online topup is enabled */
   enable_online_topup: boolean
-  /** Whether Stripe topup is enabled */
+  /** Whether legacy fixed-Price Stripe topup is enabled */
   enable_stripe_topup: boolean
+  /**
+   * Whether multi-currency product Stripe Checkout top-up is enabled.
+   * Payment UI for this path lives on StripeTopupCard, not RechargeFormCard.
+   */
+  enable_stripe_product_topup?: boolean
   /** Available payment methods */
   pay_methods: PaymentMethod[]
   /** Minimum topup amount for online topup */

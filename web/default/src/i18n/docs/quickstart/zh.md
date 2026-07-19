@@ -14,8 +14,6 @@ OpenAI 兼容 SDK 请将 `base_url` / `baseURL` 设为站点源站并加上 `/v1
 https://www.novapuraai.com/v1
 ```
 
-自托管时请替换为你的 Cloud Run 或反向代理域名。
-
 ## 创建密钥
 
 1. 登录控制台。

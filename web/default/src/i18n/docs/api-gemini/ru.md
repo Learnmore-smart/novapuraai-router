@@ -1,10 +1,6 @@
-Gemini-совместимый трафик доступен по путям `/v1beta`, если администратор включил соответствующие каналы.
+Gemini-совместимый трафик доступен через пути в стиле Google под `/v1beta`, когда администраторы включают каналы Gemini.
 
-> Примеры кода и пути API сохранены на английском (технические идентификаторы).
-
-Gemini-compatible traffic is available through Google-style paths under `/v1beta` when administrators enable Gemini channels.
-
-## Generate content
+## Генерация контента
 
 ```bash
 curl "https://www.novapuraai.com/v1beta/models/gemini-2.0-flash:generateContent" \
@@ -18,12 +14,12 @@ curl "https://www.novapuraai.com/v1beta/models/gemini-2.0-flash:generateContent"
   }'
 ```
 
-## Tips
+## Советы
 
-- Exact model IDs depend on your deployment’s channel configuration.
-- Multimodal parts (inline data / file URIs) follow Gemini request shapes; keep payloads within gateway body limits.
-- You may also access some Gemini models through OpenAI-compatible chat if a channel adapter maps them.
+- Точные идентификаторы моделей зависят от конфигурации каналов на вашей стороне.
+- Мультимодальные части (inline data / file URI) следуют формату запросов Gemini; соблюдайте лимиты размера тела запроса шлюза.
+- Некоторые модели Gemini также доступны через OpenAI-совместимый чат, если адаптер канала их сопоставляет.
 
-## Auth
+## Аутентификация
 
-Use the same NovaPuraAI `sk-` key. Do not send Google AI Studio keys to NovaPuraAI unless you are an admin configuring upstream channels.
+Используйте тот же ключ NovaPuraAI с префиксом `sk-`. Не отправляйте ключи Google AI Studio в NovaPuraAI, если вы не администратор, настраивающий upstream-каналы.

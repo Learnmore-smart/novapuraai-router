@@ -5426,6 +5426,7 @@
     "Use the full-width table to scan prices, then select a row to edit it here.": "Use the full-width table to scan prices, then select a row to edit it here.",
     "Use the group set on the token. If the token has no group, use the user group. The auto group tries the auto assignment order from top to bottom.": "Use the group set on the token. If the token has no group, use the user group. The auto group tries the auto assignment order from top to bottom.",
     "Use the pricing group table to manage the ratio and whether the group appears in the token creation dropdown.": "Use the pricing group table to manage the ratio and whether the group appears in the token creation dropdown.",
+    "Use the Stripe top-up card above, or redeem a code below.": "Use the Stripe top-up card above, or redeem a code below.",
     "Use this callback URL pattern when registering a custom OAuth provider.": "Use this callback URL pattern when registering a custom OAuth provider.",
     "Use this token for API authentication": "Use this token for API authentication",
     "Use your Passkey": "Use your Passkey",

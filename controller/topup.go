@@ -92,12 +92,13 @@ func GetTopUpInfo(c *gin.Context) {
 	}
 
 	data := gin.H{
-		"enable_online_topup":        isEpayTopUpEnabled(),
-		"enable_stripe_topup":        isLegacyStripeTopUpEnabled(),
-		"enable_creem_topup":         isCreemTopUpEnabled(),
-		"enable_waffo_topup":         enableWaffo,
-		"enable_waffo_pancake_topup": enableWaffoPancake,
-		"enable_redemption":          true,
+		"enable_online_topup":         isEpayTopUpEnabled(),
+		"enable_stripe_topup":         isLegacyStripeTopUpEnabled(),
+		"enable_stripe_product_topup": isProductStripeTopUpEnabled(),
+		"enable_creem_topup":          isCreemTopUpEnabled(),
+		"enable_waffo_topup":          enableWaffo,
+		"enable_waffo_pancake_topup":  enableWaffoPancake,
+		"enable_redemption":           true,
 		"waffo_pay_methods": func() interface{} {
 			if enableWaffo {
 				return setting.GetWaffoPayMethods()

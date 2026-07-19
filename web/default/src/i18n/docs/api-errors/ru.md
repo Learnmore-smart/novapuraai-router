@@ -1,21 +1,17 @@
-Ошибки возвращаются как JSON с HTTP-кодом. Текст может быть локализован или приходить от upstream.
+Ошибки возвращаются в формате JSON вместе с HTTP-кодом состояния. Текст сообщения может быть локализован или зависеть от провайдера.
 
-> Примеры кода и пути API сохранены на английском (технические идентификаторы).
+## Распространённые коды состояния
 
-Errors are returned as JSON with an HTTP status code. Message text may be localized or provider-specific.
-
-## Common status codes
-
-| Code | Meaning |
+| Код | Значение |
 | --- | --- |
-| 400 | Invalid request body or parameters |
-| 401 | Missing or invalid API key |
-| 403 | Not allowed (model, module, or permission) |
-| 404 | Unknown route or model |
-| 429 | Rate limited |
-| 500 / 502 / 503 | Gateway or upstream failure |
+| 400 | Некорректное тело запроса или параметры |
+| 401 | Отсутствует или недействителен API-ключ |
+| 403 | Нет доступа (модель, модуль или права) |
+| 404 | Неизвестный маршрут или модель |
+| 429 | Превышен лимит частоты запросов |
+| 500 / 502 / 503 | Сбой шлюза или upstream |
 
-## Example error body
+## Пример тела ошибки
 
 ```json
 {
@@ -27,11 +23,11 @@ Errors are returned as JSON with an HTTP status code. Message text may be locali
 }
 ```
 
-Some endpoints use `{ "success": false, "message": "..." }` for console APIs. Relay routes prefer OpenAI-style error objects.
+Некоторые эндпоинты консоли используют `{ "success": false, "message": "..." }`. Маршруты ретрансляции предпочитают объекты ошибок в стиле OpenAI.
 
-## Debugging checklist
+## Чек-лист отладки
 
-1. Log the request id if the response or console logs expose one.
-2. Retry idempotent GETs; be careful with POST retries.
-3. Compare working curl from the dashboard “First API request” card.
-4. Verify channel health with your administrator if only some models fail.
+1. Зафиксируйте request id, если он есть в ответе или журналах консоли.
+2. Повторяйте идемпотентные GET-запросы; с POST-повторами будьте осторожны.
+3. Сверьте рабочий curl с карточкой «Первый API-запрос» на панели.
+4. Если сбоят только отдельные модели, проверьте состояние каналов у администратора.

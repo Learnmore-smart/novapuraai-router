@@ -1,17 +1,17 @@
-错误以 JSON 与 HTTP 状态码返回。文案可能来自平台或上游。
+错误以 JSON 返回，并带有 HTTP 状态码。消息文本可能已本地化，也可能来自上游提供商。
 
 ## 常见状态码
 
-| Code | Meaning |
+| 状态码 | 含义 |
 | --- | --- |
-| 400 | Invalid request body or parameters |
-| 401 | Missing or invalid API key |
-| 403 | Not allowed (model, module, or permission) |
-| 404 | Unknown route or model |
-| 429 | Rate limited |
-| 500 / 502 / 503 | Gateway or upstream failure |
+| 400 | 请求体或参数无效 |
+| 401 | 缺少或无效的 API 密钥 |
+| 403 | 不允许（模型、模块或权限） |
+| 404 | 未知路由或模型 |
+| 429 | 触发速率限制 |
+| 500 / 502 / 503 | 网关或上游故障 |
 
-## 示例 error body
+## 错误体示例
 
 ```json
 {
@@ -23,11 +23,11 @@
 }
 ```
 
-Some endpoints use `{ "success": false, "message": "..." }` for console APIs. Relay routes prefer OpenAI-style error objects.
+部分控制台 API 使用 `{ "success": false, "message": "..." }`。中继（relay）路由优先采用 OpenAI 风格的错误对象。
 
 ## 调试清单
 
-1. Log the request id if the response or console logs expose one.
-2. Retry idempotent GETs; be careful with POST retries.
-3. Compare working curl from the dashboard “First API request” card.
-4. Verify channel health with your administrator if only some models fail.
+1. 若响应或控制台日志提供了请求 ID，请记录下来。
+2. 对幂等的 GET 可重试；对 POST 重试需谨慎。
+3. 与控制台「第一个 API 请求」卡片中可用的 curl 示例对照。
+4. 若仅部分模型失败，请联系管理员检查渠道健康状态。

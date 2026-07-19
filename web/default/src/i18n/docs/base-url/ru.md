@@ -11,8 +11,6 @@ NovaPuraAI serves a unified gateway. Clients point at your public origin; the ga
 | OpenAI SDK / OpenAI-compatible tools | `https://www.novapuraai.com/v1` |
 | Raw HTTP (path already includes `/v1/...`) | `https://www.novapuraai.com` |
 
-Replace the host with your deployment domain when self-hosting.
-
 ## Primary endpoints
 
 | Method | Path | Purpose |

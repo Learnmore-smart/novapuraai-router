@@ -1,4 +1,4 @@
-`POST /v1/embeddings` 用於產生向量，適用於檢索、RAG 與分群。
+`POST /v1/embeddings` 用於產生向量嵌入，適用於搜尋、RAG 與分群等場景。
 
 ## 範例
 
@@ -14,9 +14,9 @@ curl https://www.novapuraai.com/v1/embeddings \
 
 ## 說明
 
-- `input` may be a string or an array of strings (subject to provider limits).
-- Dimensions and normalization depend on the upstream embedding model.
-- Billing is typically proportional to input tokens.
+- `input` 可以是字串或字串陣列（受供應商限制約束）。
+- 維度與正規化方式取決於上游嵌入模型。
+- 計費通常與輸入 token 量成正比。
 
 ## Python
 

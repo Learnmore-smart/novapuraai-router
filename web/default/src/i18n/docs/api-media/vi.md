@@ -1,10 +1,6 @@
-NovaPuraAI proxy các endpoint media (ảnh, âm thanh, rerank) khi kênh tương ứng được bật.
+NovaPuraAI proxy các endpoint media đã chọn khi kênh tương ứng được bật.
 
-> Ví dụ mã và đường dẫn API giữ nguyên tiếng Anh (định danh kỹ thuật).
-
-NovaPuraAI proxies selected media endpoints when corresponding channels are enabled.
-
-## Images
+## Hình ảnh
 
 `POST /v1/images/generations`
 
@@ -19,7 +15,7 @@ curl https://www.novapuraai.com/v1/images/generations \
   }'
 ```
 
-## Audio transcription
+## Phiên âm âm thanh
 
 `POST /v1/audio/transcriptions` (multipart form)
 
@@ -30,14 +26,14 @@ curl https://www.novapuraai.com/v1/audio/transcriptions \
   -F model="whisper-1"
 ```
 
-## Speech synthesis
+## Tổng hợp giọng nói
 
-`POST /v1/audio/speech` returns audio bytes for supported TTS models.
+`POST /v1/audio/speech` trả về dữ liệu âm thanh cho các mô hình TTS được hỗ trợ.
 
-## Rerank
+## Xếp hạng lại (Rerank)
 
-`POST /v1/rerank` accepts query + documents for Cohere/Jina-style rerankers when configured.
+`POST /v1/rerank` nhận query và documents cho reranker kiểu Cohere/Jina khi đã cấu hình.
 
-## Billing note
+## Ghi chú thanh toán
 
-Media endpoints often bill by image count, seconds, or document count — not only tokens. Check Model Square before bulk jobs.
+Endpoint media thường tính phí theo số ảnh, giây hoặc số tài liệu — không chỉ token. Kiểm tra Model Square trước các tác vụ hàng loạt.

@@ -109,6 +109,7 @@ export function RechargeFormCard({
     }
   }
 
+  const hasProductStripeTopup = !!topupInfo?.enable_stripe_product_topup
   const hasConfigurableTopup =
     topupInfo?.enable_online_topup ||
     topupInfo?.enable_stripe_topup ||
@@ -121,6 +122,10 @@ export function RechargeFormCard({
     Array.isArray(waffoPayMethods) && waffoPayMethods.length > 0
   const minTopup = getMinTopupAmount(topupInfo)
   const redemptionEnabled = topupInfo?.enable_redemption !== false
+  // Product Stripe Checkout is rendered by StripeTopupCard above this form.
+  // Suppress the false “online topup not enabled” alert when that path is live.
+  const showLegacyOnlineSection = hasAnyTopup
+  const showOnlineDisabledAlert = !hasAnyTopup && !hasProductStripeTopup
 
   if (loading) {
     return (
@@ -173,10 +178,15 @@ export function RechargeFormCard({
     )
   }
 
+  const cardDescription =
+    hasProductStripeTopup && !showLegacyOnlineSection
+      ? t('Use the Stripe top-up card above, or redeem a code below.')
+      : t('Choose an amount and payment method')
+
   return (
     <TitledCard
       title={t('Add Funds')}
-      description={t('Choose an amount and payment method')}
+      description={cardDescription}
       icon={<WalletCards className='h-4 w-4' />}
       iconTone='success'
       disableHoverEffect
@@ -195,8 +205,8 @@ export function RechargeFormCard({
       }
       contentClassName='space-y-4 sm:space-y-6'
     >
-      {/* Online Topup Section */}
-      {hasAnyTopup ? (
+      {/* Online Topup Section (legacy multi-provider; product Stripe is separate) */}
+      {showLegacyOnlineSection ? (
         <div className='space-y-4 sm:space-y-6'>
           {hasConfigurableTopup && (
             <>
@@ -453,7 +463,7 @@ export function RechargeFormCard({
             </>
           )}
         </div>
-      ) : (
+      ) : showOnlineDisabledAlert ? (
         <Alert>
           <AlertDescription>
             {t(
@@ -461,7 +471,7 @@ export function RechargeFormCard({
             )}
           </AlertDescription>
         </Alert>
-      )}
+      ) : null}
 
       {/* Creem Products Section */}
       {enableCreemTopup &&

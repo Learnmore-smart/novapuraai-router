@@ -1,10 +1,6 @@
-`POST /v1/chat/completions` — основной OpenAI-совместимый chat endpoint.
+`POST /v1/chat/completions` — основной OpenAI-совместимый эндпоинт чата.
 
-> Примеры кода и пути API сохранены на английском (технические идентификаторы).
-
-`POST /v1/chat/completions` is the primary OpenAI-compatible chat endpoint.
-
-## Request
+## Запрос
 
 ```bash
 curl https://www.novapuraai.com/v1/chat/completions \
@@ -21,21 +17,21 @@ curl https://www.novapuraai.com/v1/chat/completions \
   }'
 ```
 
-## Important fields
+## Важные поля
 
-| Field | Notes |
+| Поле | Описание |
 | --- | --- |
-| `model` | Required. Must be enabled for your account |
-| `messages` | OpenAI chat messages array |
-| `stream` | `true` for SSE token streaming |
-| `temperature` / `top_p` | Sampling controls |
-| `max_tokens` / `max_completion_tokens` | Output bounds (provider-dependent) |
-| `tools` / `tool_choice` | Function calling when the upstream model supports it |
+| `model` | Обязательно. Должна быть включена для вашей учётной записи |
+| `messages` | Массив сообщений в формате OpenAI chat |
+| `stream` | `true` для потоковой передачи токенов по SSE |
+| `temperature` / `top_p` | Параметры сэмплирования |
+| `max_tokens` / `max_completion_tokens` | Ограничения длины ответа (зависят от провайдера) |
+| `tools` / `tool_choice` | Function calling, если upstream-модель поддерживает его |
 
-## Streaming
+## Потоковая передача
 
-Set `"stream": true`. The response is `text/event-stream` with `data: {...}` chunks ending in `data: [DONE]`.
+Укажите `"stream": true`. Ответ — `text/event-stream` с фрагментами `data: {...}`, завершающийся `data: [DONE]`.
 
-## Compatibility
+## Совместимость
 
-Most tools that accept a custom OpenAI base URL work unchanged. Point them at `https://www.novapuraai.com/v1` and use your NovaPuraAI key.
+Большинство инструментов, принимающих пользовательский base URL OpenAI, работают без изменений. Укажите `https://www.novapuraai.com/v1` и используйте ключ NovaPuraAI.

@@ -5426,6 +5426,7 @@
     "Use the full-width table to scan prices, then select a row to edit it here.": "Parcourez les prix dans le tableau, puis sélectionnez une ligne pour la modifier ici.",
     "Use the group set on the token. If the token has no group, use the user group. The auto group tries the auto assignment order from top to bottom.": "Utilisez le groupe défini sur le jeton. S’il n’en a pas, utilisez le groupe de l’utilisateur. Le groupe auto essaie l’ordre d’affectation automatique de haut en bas.",
     "Use the pricing group table to manage the ratio and whether the group appears in the token creation dropdown.": "Utilisez le tableau des groupes tarifaires pour gérer le ratio et l’apparition du groupe dans la liste de création de jeton.",
+    "Use the Stripe top-up card above, or redeem a code below.": "Utilisez la carte de rechargement Stripe ci-dessus, ou saisissez un code ci-dessous.",
     "Use this callback URL pattern when registering a custom OAuth provider.": "Utilisez ce modèle d'URL de rappel lors de l'enregistrement d'un fournisseur OAuth personnalisé.",
     "Use this token for API authentication": "Utilisez ce jeton pour l'authentification API",
     "Use your Passkey": "Utiliser votre clé d'accès (Passkey)",

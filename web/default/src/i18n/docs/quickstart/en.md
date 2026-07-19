@@ -14,8 +14,6 @@ For OpenAI-compatible SDKs, set `base_url` / `baseURL` to your site origin plus 
 https://www.novapuraai.com/v1
 ```
 
-Self-hosting? Replace the host with your Cloud Run or reverse-proxy domain.
-
 ## Create a key
 
 1. Sign in to the console.

@@ -7,8 +7,6 @@ NovaPuraAI serves a unified gateway. Clients point at your public origin; the ga
 | OpenAI SDK / OpenAI-compatible tools | `https://www.novapuraai.com/v1` |
 | Raw HTTP (path already includes `/v1/...`) | `https://www.novapuraai.com` |
 
-Replace the host with your deployment domain when self-hosting.
-
 ## Primary endpoints
 
 | Method | Path | Purpose |
@@ -37,4 +35,4 @@ Authorization: Bearer sk-YOUR_KEY
 
 ## Health of the gateway
 
-The admin console and public status endpoints report whether the site is ready. For production on Cloud Run, pair the container with Cloud SQL and Redis — do not rely on container-local SQLite.
+The admin console and public status endpoints report whether the site is ready. Keep the gateway and database highly available in production; do not rely on ephemeral local storage for billing-critical data.

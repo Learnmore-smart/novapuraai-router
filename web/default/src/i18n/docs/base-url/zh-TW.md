@@ -7,8 +7,6 @@ NovaPuraAI 是統一閘道。客戶端只需存取你的公開網域，由閘道
 | OpenAI SDK / OpenAI-compatible tools | `https://www.novapuraai.com/v1` |
 | Raw HTTP (path already includes `/v1/...`) | `https://www.novapuraai.com` |
 
-Replace the host with your deployment domain when self-hosting.
-
 ## 主要端點
 
 | Method | Path | Purpose |

@@ -66,4 +66,4 @@ curl "$NOVAPURA_BASE/v1/chat/completions" \
 
 1. Confirm the model name exactly matches an enabled model.
 2. Confirm the base URL includes `/v1` for OpenAI SDKs.
-3. Confirm HTTPS and that Cloud Run / CDN allows long-running streams if you stream.
+3. Confirm HTTPS and that your reverse proxy / CDN allows long-running streams if you stream.

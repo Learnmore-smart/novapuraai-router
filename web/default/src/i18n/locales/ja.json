@@ -5426,6 +5426,7 @@
     "Use the full-width table to scan prices, then select a row to edit it here.": "表で価格を確認し、行を選択してここで編集します。",
     "Use the group set on the token. If the token has no group, use the user group. The auto group tries the auto assignment order from top to bottom.": "トークンに設定されたグループを使います。トークンにグループがなければユーザーグループを使います。auto グループは自動割り当て順を上から順に試します。",
     "Use the pricing group table to manage the ratio and whether the group appears in the token creation dropdown.": "料金グループ表で倍率と、トークン作成ドロップダウンに表示するかどうかを管理します。",
+    "Use the Stripe top-up card above, or redeem a code below.": "上の Stripe チャージカードを使うか、下で引き換えコードを入力してください。",
     "Use this callback URL pattern when registering a custom OAuth provider.": "カスタム OAuth プロバイダーを登録するときは、このコールバック URL 形式を使用します。",
     "Use this token for API authentication": "API認証にはこのトークンを使用してください",
     "Use your Passkey": "パスキーを使用",

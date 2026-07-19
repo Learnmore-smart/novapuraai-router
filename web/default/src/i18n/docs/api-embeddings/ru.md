@@ -1,10 +1,6 @@
-`POST /v1/embeddings` создаёт векторные представления для поиска, RAG и кластеризации.
+`POST /v1/embeddings` создаёт векторные эмбеддинги для поиска, RAG и кластеризации.
 
-> Примеры кода и пути API сохранены на английском (технические идентификаторы).
-
-`POST /v1/embeddings` creates vector embeddings for search, RAG, and clustering.
-
-## Example
+## Пример
 
 ```bash
 curl https://www.novapuraai.com/v1/embeddings \
@@ -16,11 +12,11 @@ curl https://www.novapuraai.com/v1/embeddings \
   }'
 ```
 
-## Notes
+## Примечания
 
-- `input` may be a string or an array of strings (subject to provider limits).
-- Dimensions and normalization depend on the upstream embedding model.
-- Billing is typically proportional to input tokens.
+- `input` может быть строкой или массивом строк (с учётом лимитов провайдера).
+- Размерность и нормализация зависят от upstream-модели эмбеддингов.
+- Биллинг обычно пропорционален числу входных токенов.
 
 ## Python
 

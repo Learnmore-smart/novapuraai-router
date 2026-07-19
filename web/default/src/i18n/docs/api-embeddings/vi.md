@@ -1,10 +1,6 @@
-`POST /v1/embeddings` tạo vector cho tìm kiếm, RAG và phân cụm.
+`POST /v1/embeddings` tạo vector embedding cho tìm kiếm, RAG và phân cụm.
 
-> Ví dụ mã và đường dẫn API giữ nguyên tiếng Anh (định danh kỹ thuật).
-
-`POST /v1/embeddings` creates vector embeddings for search, RAG, and clustering.
-
-## Example
+## Ví dụ
 
 ```bash
 curl https://www.novapuraai.com/v1/embeddings \
@@ -16,11 +12,11 @@ curl https://www.novapuraai.com/v1/embeddings \
   }'
 ```
 
-## Notes
+## Ghi chú
 
-- `input` may be a string or an array of strings (subject to provider limits).
-- Dimensions and normalization depend on the upstream embedding model.
-- Billing is typically proportional to input tokens.
+- `input` có thể là chuỗi hoặc mảng chuỗi (tuân theo giới hạn của nhà cung cấp).
+- Số chiều và chuẩn hóa phụ thuộc mô hình embedding upstream.
+- Thanh toán thường tỷ lệ với số token đầu vào.
 
 ## Python
 

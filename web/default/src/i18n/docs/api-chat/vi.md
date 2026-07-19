@@ -1,10 +1,6 @@
-`POST /v1/chat/completions` là endpoint chat tương thích OpenAI chính.
+`POST /v1/chat/completions` là endpoint chat chính tương thích OpenAI.
 
-> Ví dụ mã và đường dẫn API giữ nguyên tiếng Anh (định danh kỹ thuật).
-
-`POST /v1/chat/completions` is the primary OpenAI-compatible chat endpoint.
-
-## Request
+## Yêu cầu
 
 ```bash
 curl https://www.novapuraai.com/v1/chat/completions \
@@ -21,21 +17,21 @@ curl https://www.novapuraai.com/v1/chat/completions \
   }'
 ```
 
-## Important fields
+## Các trường quan trọng
 
-| Field | Notes |
+| Trường | Ghi chú |
 | --- | --- |
-| `model` | Required. Must be enabled for your account |
-| `messages` | OpenAI chat messages array |
-| `stream` | `true` for SSE token streaming |
-| `temperature` / `top_p` | Sampling controls |
-| `max_tokens` / `max_completion_tokens` | Output bounds (provider-dependent) |
-| `tools` / `tool_choice` | Function calling when the upstream model supports it |
+| `model` | Bắt buộc. Phải được bật cho tài khoản của bạn |
+| `messages` | Mảng tin nhắn chat theo định dạng OpenAI |
+| `stream` | `true` để streaming token qua SSE |
+| `temperature` / `top_p` | Điều khiển sampling |
+| `max_tokens` / `max_completion_tokens` | Giới hạn đầu ra (phụ thuộc nhà cung cấp) |
+| `tools` / `tool_choice` | Function calling khi mô hình upstream hỗ trợ |
 
 ## Streaming
 
-Set `"stream": true`. The response is `text/event-stream` with `data: {...}` chunks ending in `data: [DONE]`.
+Đặt `"stream": true`. Phản hồi là `text/event-stream` với các đoạn `data: {...}`, kết thúc bằng `data: [DONE]`.
 
-## Compatibility
+## Tương thích
 
-Most tools that accept a custom OpenAI base URL work unchanged. Point them at `https://www.novapuraai.com/v1` and use your NovaPuraAI key.
+Hầu hết công cụ chấp nhận base URL OpenAI tùy chỉnh đều hoạt động không cần chỉnh sửa. Trỏ tới `https://www.novapuraai.com/v1` và dùng khóa NovaPuraAI của bạn.

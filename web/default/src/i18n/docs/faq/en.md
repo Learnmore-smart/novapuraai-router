@@ -10,7 +10,7 @@ The official developer documentation UI is at **`/docs`** on your deployment (fo
 
 ## What base URL should I use?
 
-- **Origin**: `https://www.novapuraai.com` (or your self-hosted origin)
+- **Origin**: `https://www.novapuraai.com` 
 - **OpenAI SDK `base_url`**: `https://www.novapuraai.com/v1`
 
 See [Base URL & Endpoints](/docs/base-url).
@@ -51,10 +51,6 @@ No. **429** means slow down; insufficient quota means add balance. See [Rate Lim
 ## Can I use the official OpenAI SDKs?
 
 Yes—set the API key to your NovaPuraAI key and `base_url` / `baseURL` to `{ORIGIN}/v1`. Examples: [Python](/docs/sdk-python), [Node.js](/docs/sdk-node), [Go](/docs/sdk-go), [curl](/docs/sdk-curl).
-
-## Can I self-host?
-
-NovaPuraAI can be deployed on your own infrastructure (for example Cloud Run). Replace example hosts in these docs with **your deployment origin**. Feature availability still depends on your admin configuration.
 
 ## Is streaming supported?
 

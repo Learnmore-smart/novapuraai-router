@@ -1,10 +1,6 @@
-NovaPuraAI проксирует медиа-эндпоинты (изображения, аудио, rerank), когда соответствующие каналы включены.
+NovaPuraAI проксирует выбранные медиа-эндпоинты, когда соответствующие каналы включены.
 
-> Примеры кода и пути API сохранены на английском (технические идентификаторы).
-
-NovaPuraAI proxies selected media endpoints when corresponding channels are enabled.
-
-## Images
+## Изображения
 
 `POST /v1/images/generations`
 
@@ -19,7 +15,7 @@ curl https://www.novapuraai.com/v1/images/generations \
   }'
 ```
 
-## Audio transcription
+## Транскрипция аудио
 
 `POST /v1/audio/transcriptions` (multipart form)
 
@@ -30,14 +26,14 @@ curl https://www.novapuraai.com/v1/audio/transcriptions \
   -F model="whisper-1"
 ```
 
-## Speech synthesis
+## Синтез речи
 
-`POST /v1/audio/speech` returns audio bytes for supported TTS models.
+`POST /v1/audio/speech` возвращает аудиоданные для поддерживаемых TTS-моделей.
 
-## Rerank
+## Ранжирование (Rerank)
 
-`POST /v1/rerank` accepts query + documents for Cohere/Jina-style rerankers when configured.
+`POST /v1/rerank` принимает запрос и документы для reranker в стиле Cohere/Jina, если они настроены.
 
-## Billing note
+## Примечание по биллингу
 
-Media endpoints often bill by image count, seconds, or document count — not only tokens. Check Model Square before bulk jobs.
+Медиа-эндпоинты часто тарифицируются по числу изображений, секундам или количеству документов — не только по токенам. Перед массовыми заданиями проверьте Model Square.

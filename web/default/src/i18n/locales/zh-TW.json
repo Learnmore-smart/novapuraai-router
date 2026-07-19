@@ -5426,6 +5426,7 @@
     "Use the full-width table to scan prices, then select a row to edit it here.": "先在表格中快速瀏覽價格，然後選擇一行在這裡編輯。",
     "Use the group set on the token. If the token has no group, use the user group. The auto group tries the auto assignment order from top to bottom.": "使用令牌上設定的分組；令牌未設定分組時，使用用戶分組。auto 分組會按自動分組順序從上到下嘗試。",
     "Use the pricing group table to manage the ratio and whether the group appears in the token creation dropdown.": "使用定價分組表管理倍率，以及該分組是否出現在建立令牌的下拉框中。",
+    "Use the Stripe top-up card above, or redeem a code below.": "Use the Stripe top-up card above, or redeem a code below.",
     "Use this callback URL pattern when registering a custom OAuth provider.": "註冊自訂 OAuth 提供商時使用此回呼 URL 格式。",
     "Use this token for API authentication": "使用此令牌進行 API 身份驗證",
     "Use your Passkey": "使用您的通行金鑰",

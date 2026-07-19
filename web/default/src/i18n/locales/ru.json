@@ -5426,6 +5426,7 @@
     "Use the full-width table to scan prices, then select a row to edit it here.": "Просмотрите цены в таблице, затем выберите строку для редактирования здесь.",
     "Use the group set on the token. If the token has no group, use the user group. The auto group tries the auto assignment order from top to bottom.": "Используется группа токена. Если у токена нет группы — группа пользователя. Группа auto перебирает порядок автоназначения сверху вниз.",
     "Use the pricing group table to manage the ratio and whether the group appears in the token creation dropdown.": "Используйте таблицу групп тарификации, чтобы управлять коэффициентом и отображением группы в списке создания токена.",
+    "Use the Stripe top-up card above, or redeem a code below.": "Используйте карточку пополнения Stripe выше или введите код ниже.",
     "Use this callback URL pattern when registering a custom OAuth provider.": "Используйте этот формат URL обратного вызова при регистрации пользовательского провайдера OAuth.",
     "Use this token for API authentication": "Используйте этот токен для аутентификации API",
     "Use your Passkey": "Используйте свой ключ доступа",

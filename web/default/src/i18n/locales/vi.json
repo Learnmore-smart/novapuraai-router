@@ -5426,6 +5426,7 @@
     "Use the full-width table to scan prices, then select a row to edit it here.": "Duyệt giá trong bảng, rồi chọn một hàng để chỉnh sửa tại đây.",
     "Use the group set on the token. If the token has no group, use the user group. The auto group tries the auto assignment order from top to bottom.": "Dùng nhóm đặt trên token. Nếu token không có nhóm, dùng nhóm người dùng. Nhóm auto thử theo thứ tự gán tự động từ trên xuống dưới.",
     "Use the pricing group table to manage the ratio and whether the group appears in the token creation dropdown.": "Dùng bảng nhóm định giá để quản lý tỷ lệ và việc nhóm có xuất hiện trong danh sách tạo token hay không.",
+    "Use the Stripe top-up card above, or redeem a code below.": "Dùng thẻ nạp Stripe phía trên, hoặc nhập mã đổi bên dưới.",
     "Use this callback URL pattern when registering a custom OAuth provider.": "Dùng mẫu URL callback này khi đăng ký nhà cung cấp OAuth tùy chỉnh.",
     "Use this token for API authentication": "Sử dụng token này để xác thực API",
     "Use your Passkey": "Sử dụng Passkey của bạn",

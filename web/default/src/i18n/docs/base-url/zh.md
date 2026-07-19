@@ -7,8 +7,6 @@ NovaPuraAI 是统一网关。客户端只访问你的公网域名，由网关路
 | OpenAI SDK / OpenAI-compatible tools | `https://www.novapuraai.com/v1` |
 | Raw HTTP (path already includes `/v1/...`) | `https://www.novapuraai.com` |
 
-Replace the host with your deployment domain when self-hosting.
-
 ## 主要端点
 
 | Method | Path | Purpose |

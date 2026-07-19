@@ -66,6 +66,7 @@ func TestLegacyStripeTopUpSurfaceIsSuppressedByProductCheckout(t *testing.T) {
 	setting.StripeTopupEnabled = true
 
 	assert.False(t, isLegacyStripeTopUpEnabled())
+	assert.True(t, isProductStripeTopUpEnabled())
 	assert.True(t, isStripeWebhookEnabled())
 }
 
