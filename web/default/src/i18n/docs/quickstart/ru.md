@@ -1,29 +1,27 @@
-> Примеры кода и пути API сохранены на английском (технические идентификаторы).
+NovaPuraAI предоставляет OpenAI-совместимый HTTP API. С действительным API-ключом и доступной квотой вы можете вызывать модели через один base URL.
 
-NovaPuraAI exposes an OpenAI-compatible HTTP API. With a valid API key and available quota, you can call models through one base URL.
+## Что нужно
 
-## What you need
-
-1. A NovaPuraAI account on your deployment (for example `https://www.novapuraai.com`).
-2. An API key (`sk-...`) from **Console → API Keys**.
-3. Balance or quota for the models you want to use.
+1. Учётная запись NovaPuraAI (например, на `https://www.novapuraai.com`).
+2. API-ключ (`sk-...`) из **Console → API Keys**.
+3. Баланс или квота для нужных моделей.
 
 ## Base URL
 
-For OpenAI-compatible SDKs, set `base_url` / `baseURL` to your site origin plus `/v1`:
+Для OpenAI-совместимых SDK задайте `base_url` / `baseURL` как origin сайта плюс `/v1`:
 
 ```text
 https://www.novapuraai.com/v1
 ```
 
-## Create a key
+## Создание ключа
 
-1. Sign in to the console.
-2. Open **API Keys** (tokens).
-3. Create a key. Optionally restrict models, set a quota, and set an expiry.
-4. Copy the secret once and store it as an environment variable. Never commit it.
+1. Войдите в консоль.
+2. Откройте **API Keys** (tokens).
+3. Создайте ключ. При необходимости ограничьте модели, задайте квоту и срок действия.
+4. Скопируйте секрет один раз и сохраните в переменной окружения. Никогда не коммитьте его.
 
-## First chat request
+## Первый chat-запрос
 
 ```bash
 curl https://www.novapuraai.com/v1/chat/completions \
@@ -35,7 +33,7 @@ curl https://www.novapuraai.com/v1/chat/completions \
   }'
 ```
 
-## Official OpenAI SDK
+## Официальный OpenAI SDK
 
 ```python
 from openai import OpenAI
@@ -67,8 +65,8 @@ const resp = await client.chat.completions.create({
 console.log(resp.choices[0].message.content);
 ```
 
-## Next steps
+## Дальнейшие шаги
 
-- [Authentication](/docs/authentication)
-- [Your First Request](/docs/first-request)
-- [Base URL & Endpoints](/docs/base-url)
+- [Аутентификация](/docs/authentication)
+- [Первый запрос](/docs/first-request)
+- [Базовый URL и эндпоинты](/docs/base-url)

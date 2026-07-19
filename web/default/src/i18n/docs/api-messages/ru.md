@@ -1,10 +1,6 @@
-`POST /v1/messages` принимает payload в стиле Anthropic Messages для моделей Claude на шлюзе.
+`POST /v1/messages` принимает полезную нагрузку в стиле Anthropic Messages для Claude-совместимых моделей, настроенных на шлюзе.
 
-> Примеры кода и пути API сохранены на английском (технические идентификаторы).
-
-`POST /v1/messages` accepts Anthropic Messages-style payloads for Claude-compatible models configured on the gateway.
-
-## Example
+## Пример
 
 ```bash
 curl https://www.novapuraai.com/v1/messages \
@@ -20,12 +16,12 @@ curl https://www.novapuraai.com/v1/messages \
   }'
 ```
 
-## Notes
+## Примечания
 
-- Model names must exist in your NovaPuraAI catalog.
-- Some Anthropic-only headers are accepted and forwarded when relevant.
-- You can often call the same Claude models via OpenAI chat format if the channel adapter supports it — prefer the format your SDK expects.
+- Имена моделей должны присутствовать в каталоге NovaPuraAI.
+- Некоторые заголовки, специфичные для Anthropic, принимаются и пересылаются при необходимости.
+- Те же модели Claude часто можно вызывать через формат OpenAI chat, если адаптер канала это поддерживает — выбирайте формат, ожидаемый вашим SDK.
 
-## Errors
+## Ошибки
 
-Invalid schema or unsupported fields return `4xx` with a JSON error body. Check that `max_tokens` is present when required by the Messages API.
+Неверная схема или неподдерживаемые поля возвращают `4xx` с JSON-телом ошибки. Убедитесь, что `max_tokens` указан, когда этого требует Messages API.

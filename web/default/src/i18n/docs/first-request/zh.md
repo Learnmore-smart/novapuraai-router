@@ -2,9 +2,9 @@
 
 ## 检查清单
 
-- [ ] You have a key starting with `sk-`
-- [ ] Your account has positive balance / quota
-- [ ] You know at least one enabled model name (see **Model Square** or `GET /v1/models`)
+- [ ] 你已拥有以 `sk-` 开头的密钥
+- [ ] 账号余额 / 额度为正
+- [ ] 你知道至少一个已启用的模型名称（见 **模型广场** 或 `GET /v1/models`）
 
 ## curl
 
@@ -48,7 +48,7 @@ curl "$NOVAPURA_BASE/v1/chat/completions" \
 
 ## 流式输出
 
-Add `"stream": true` and read Server-Sent Events:
+添加 `"stream": true` 并读取 Server-Sent Events：
 
 ```bash
 curl "$NOVAPURA_BASE/v1/chat/completions" \
@@ -64,6 +64,6 @@ curl "$NOVAPURA_BASE/v1/chat/completions" \
 
 ## 排障
 
-1. Confirm the model name exactly matches an enabled model.
-2. Confirm the base URL includes `/v1` for OpenAI SDKs.
-3. Confirm HTTPS and that Cloud Run / CDN allows long-running streams if you stream.
+1. 确认模型名称与已启用模型完全一致。
+2. 确认 OpenAI SDK 的 Base URL 包含 `/v1`。
+3. 确认使用 HTTPS；若使用流式输出，请确保网关或 CDN 允许长连接。

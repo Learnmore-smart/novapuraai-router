@@ -1,26 +1,22 @@
-`GET /v1/models` liệt kê model khả dụng với key đã xác thực.
+`GET /v1/models` liệt kê các mô hình khả dụng với khóa đã xác thực.
 
-> Ví dụ mã và đường dẫn API giữ nguyên tiếng Anh (định danh kỹ thuật).
-
-`GET /v1/models` lists models available to the authenticated key.
-
-## Example
+## Ví dụ
 
 ```bash
 curl https://www.novapuraai.com/v1/models \
   -H "Authorization: Bearer sk-YOUR_KEY"
 ```
 
-## Response shape
+## Hình dạng phản hồi
 
-The payload follows OpenAI’s list object with `data[]` entries containing at least `id` and `object`. Additional metadata may appear depending on gateway version and settings.
+Payload theo đối tượng danh sách OpenAI với các mục `data[]` chứa ít nhất `id` và `object`. Metadata bổ sung có thể xuất hiện tùy phiên bản gateway và cấu hình.
 
-## When a model is missing
+## Khi thiếu mô hình
 
-1. Confirm the model is enabled in admin channels / abilities for your group.
-2. Confirm your key is not restricted away from that model.
-3. Refresh Model Square in the UI for pricing and availability.
+1. Xác nhận mô hình đã được bật trong kênh / abilities quản trị cho nhóm của bạn.
+2. Xác nhận khóa không bị hạn chế khỏi mô hình đó.
+3. Làm mới Model Square trên giao diện để xem giá và tình trạng sẵn có.
 
-## Caching
+## Bộ nhớ đệm
 
-Clients may cache the list for a short TTL. Re-fetch after admin changes or on `404 model_not_found` errors.
+Client có thể cache danh sách trong TTL ngắn. Gọi lại sau thay đổi quản trị hoặc khi gặp lỗi `404 model_not_found`.

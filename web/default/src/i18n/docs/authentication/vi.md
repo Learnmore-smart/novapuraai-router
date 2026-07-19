@@ -1,44 +1,40 @@
-Mọi yêu cầu relay phải kèm API key NovaPuraAI. Key được quản lý trong console và xác thực bởi middleware của gateway.
+Mọi yêu cầu relay phải trình bày API key NovaPuraAI. Khóa được quản lý trong console và được `TokenAuth` xác thực trên gateway.
 
-> Ví dụ mã và đường dẫn API giữ nguyên tiếng Anh (định danh kỹ thuật).
+## Định dạng header
 
-Every relay request must present a NovaPuraAI API key. Keys are managed in the console and validated by `TokenAuth` on the gateway.
-
-## Header format
-
-Send the key as a Bearer token:
+Gửi khóa dưới dạng Bearer token:
 
 ```http
 Authorization: Bearer sk-xxxxxxxx
 Content-Type: application/json
 ```
 
-Some OpenAI clients also accept `api_key` in the SDK constructor — that value becomes the same Authorization header.
+Một số client OpenAI cũng chấp nhận `api_key` trong constructor SDK — giá trị đó trở thành cùng header Authorization.
 
-## Where to create keys
+## Nơi tạo khóa
 
-1. Sign in → **API Keys**.
-2. Create a key with an optional name.
-3. Configure model allowlists, remaining quota, IP limits, and expiry if needed.
-4. Save the secret immediately. The full secret is only shown once.
+1. Đăng nhập → **API Keys**.
+2. Tạo khóa với tên tùy chọn.
+3. Cấu hình allowlist mô hình, quota còn lại, giới hạn IP và hạn dùng nếu cần.
+4. Lưu secret ngay. Secret đầy đủ chỉ hiện một lần.
 
-## Security best practices
+## Thực hành bảo mật tốt
 
-- Prefer environment variables (`NOVAPURA_API_KEY`) over hard-coding.
-- Use separate keys per environment (dev / staging / production).
-- Rotate keys if a client is compromised.
-- Restrict keys to the minimum set of models your app needs.
-- Do not embed keys in public frontend bundles.
+- Ưu tiên biến môi trường (`NOVAPURA_API_KEY`) thay vì hard-code.
+- Dùng khóa riêng cho từng môi trường (dev / staging / production).
+- Xoay vòng khóa nếu client bị lộ.
+- Giới hạn khóa ở tập mô hình tối thiểu mà ứng dụng cần.
+- Không nhúng khóa vào bundle frontend công khai.
 
-## Common failures
+## Lỗi thường gặp
 
-| Symptom | Likely cause |
+| Triệu chứng | Nguyên nhân có thể |
 | --- | --- |
-| `401 Unauthorized` | Missing/invalid key, revoked key, or wrong header |
-| `403 Forbidden` | Model not allowed for this key, or module disabled |
-| `429` | Rate limit exceeded |
-| Insufficient quota | Balance too low or key quota exhausted |
+| `401 Unauthorized` | Thiếu/khóa không hợp lệ, khóa bị thu hồi hoặc sai header |
+| `403 Forbidden` | Mô hình không được phép cho khóa này, hoặc module bị tắt |
+| `429` | Vượt rate limit |
+| Không đủ quota | Số dư quá thấp hoặc quota khóa đã hết |
 
-## Multi-user setups
+## Thiết lập nhiều người dùng
 
-Administrators can issue keys to end users with independent quotas. Each key is billed against its owner’s balance according to platform settings.
+Quản trị viên có thể cấp khóa cho người dùng cuối với quota độc lập. Mỗi khóa được tính phí vào số dư chủ sở hữu theo cấu hình nền tảng.

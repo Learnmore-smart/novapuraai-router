@@ -1,25 +1,21 @@
-Giới hạn tốc độ bảo vệ nền tảng và upstream. Có thể áp dụng theo IP, user hoặc token tùy cấu hình.
+Giới hạn tần suất bảo vệ nền tảng và nhà cung cấp upstream. Hạn mức có thể áp dụng ở cấp IP, người dùng hoặc token tùy cấu hình quản trị.
 
-> Ví dụ mã và đường dẫn API giữ nguyên tiếng Anh (định danh kỹ thuật).
-
-Rate limits protect the platform and upstream providers. Limits may apply at IP, user, or token level depending on admin settings.
-
-## Typical symptoms
+## Triệu chứng thường gặp
 
 - HTTP `429 Too Many Requests`
-- Error messages mentioning rate limit or frequency
+- Thông báo lỗi đề cập rate limit hoặc tần suất
 
-## Client guidance
+## Hướng dẫn cho client
 
-1. Exponential backoff with jitter on `429` and transient `5xx`.
-2. Reuse HTTP connections; avoid opening a new TLS session per tiny request when possible.
-3. Batch work when the API supports it (for example embeddings arrays).
-4. Cache model lists and static configuration.
+1. Exponential backoff kèm jitter với `429` và `5xx` tạm thời.
+2. Tái sử dụng kết nối HTTP; tránh mở phiên TLS mới cho mỗi yêu cầu nhỏ khi có thể.
+3. Gộp việc theo lô khi API hỗ trợ (ví dụ mảng embeddings).
+4. Cache danh sách mô hình và cấu hình tĩnh.
 
 ## Streaming
 
-Long-lived streams hold a connection. Design concurrency limits so you do not open more parallel streams than your plan allows.
+Stream kéo dài giữ kết nối. Thiết kế giới hạn đồng thời để không mở nhiều stream song song hơn mức gói cho phép.
 
-## Admin-side knobs
+## Nút điều chỉnh phía quản trị
 
-Administrators can tune global and model-specific rate limits in system settings. Contact your site operator if legitimate traffic is throttled too aggressively.
+Quản trị viên có thể tinh chỉnh rate limit toàn cục và theo mô hình trong cài đặt hệ thống. Liên hệ nhà vận hành site nếu lưu lượng hợp lệ bị chặn quá chặt.

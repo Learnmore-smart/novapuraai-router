@@ -1,14 +1,10 @@
-Trang này hướng dẫn lời gọi thành công đầu tiên và cách đọc phản hồi.
+Trang này hướng dẫn một lời gọi thành công đầu tiên đầy đủ và cách đọc phản hồi.
 
-> Ví dụ mã và đường dẫn API giữ nguyên tiếng Anh (định danh kỹ thuật).
+## Danh sách kiểm tra
 
-This page walks through a complete first successful call and how to read the response.
-
-## Checklist
-
-- [ ] You have a key starting with `sk-`
-- [ ] Your account has positive balance / quota
-- [ ] You know at least one enabled model name (see **Model Square** or `GET /v1/models`)
+- [ ] Bạn có khóa bắt đầu bằng `sk-`
+- [ ] Tài khoản có số dư / quota dương
+- [ ] Bạn biết ít nhất một tên mô hình đã bật (xem **Model Square** hoặc `GET /v1/models`)
 
 ## curl
 
@@ -29,7 +25,7 @@ curl "$NOVAPURA_BASE/v1/chat/completions" \
   }'
 ```
 
-## Successful response (shape)
+## Phản hồi thành công (hình dạng)
 
 ```json
 {
@@ -52,7 +48,7 @@ curl "$NOVAPURA_BASE/v1/chat/completions" \
 
 ## Streaming
 
-Add `"stream": true` and read Server-Sent Events:
+Thêm `"stream": true` và đọc Server-Sent Events:
 
 ```bash
 curl "$NOVAPURA_BASE/v1/chat/completions" \
@@ -66,8 +62,8 @@ curl "$NOVAPURA_BASE/v1/chat/completions" \
   }'
 ```
 
-## Troubleshooting
+## Khắc phục sự cố
 
-1. Confirm the model name exactly matches an enabled model.
-2. Confirm the base URL includes `/v1` for OpenAI SDKs.
-3. Confirm HTTPS and that Cloud Run / CDN allows long-running streams if you stream.
+1. Xác nhận tên mô hình khớp chính xác với mô hình đã bật.
+2. Xác nhận base URL có `/v1` cho OpenAI SDK.
+3. Xác nhận HTTPS và reverse proxy / CDN cho phép stream dài nếu bạn streaming.

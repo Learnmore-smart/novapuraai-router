@@ -1,31 +1,27 @@
-Использование учитывается по запросам. Шлюз оценивает стоимость, при необходимости предварительно списывает квоту и затем делает окончательный расчёт.
+Использование тарифицируется по каждому запросу. Шлюз оценивает стоимость, при необходимости предварительно удерживает квоту (pre-consume), затем выполняет окончательный расчёт (settle) после ответа upstream.
 
-> Примеры кода и пути API сохранены на английском (технические идентификаторы).
+## Понятия
 
-Usage is metered per request. The gateway estimates cost, pre-consumes quota when required, then settles after the upstream response.
+- **Баланс / квота** — предоплаченный кредит на учётной записи пользователя (и при необходимости на ключе).
+- **Цены моделей** — настраиваются администраторами (токен-коэффициенты, фиксированные цены или правила на выражениях).
+- **Pre-consume** — удерживает оценочную квоту, чтобы параллельные запросы не перерасходовали средства.
+- **Settle** — корректирует итоговое списание по фактическому числу токенов, когда оно доступно.
 
-## Concepts
+## Что важно клиентам
 
-- **Balance / quota** — prepaid credit on the user account (and optionally per key).
-- **Model pricing** — configured by administrators (token ratios, fixed prices, or expression-based rules).
-- **Pre-consume** — holds estimated quota so concurrent requests cannot overspend.
-- **Settle** — adjusts the final charge from actual token usage when available.
+1. Успешный вызов API всё ещё может завершиться ошибкой, если upstream вернёт сбой после pre-consume (неиспользованное удержание возвращается согласно логике платформы).
+2. Потоковые ответы тарифицируются по завершённому использованию, когда провайдер сообщает токены.
+3. Продукты изображений, аудио и видео могут тарифицироваться по количеству, длительности или множителям разрешения — всегда сверяйтесь с Model Square.
 
-## What clients should know
+## Пополнение кошелька
 
-1. A successful API call may still fail later if upstream returns an error after pre-consume (unused hold is refunded according to platform logic).
-2. Streaming responses bill on completed usage when the provider reports tokens.
-3. Image, audio, and video products may bill by count, duration, or resolution multipliers — always check Model Square.
+Конечные пользователи пополняют баланс на странице **Wallet**, когда включены платёжные шлюзы (например, Stripe). Администраторы управляют валютами, акциями и лимитами.
 
-## Wallet top-ups
+## Мониторинг расходов
 
-End users top up from the **Wallet** page when payment gateways are enabled (for example Stripe). Administrators control currencies, promotions, and limits.
+- Журналы использования в консоли показывают модель, токены и изменение квоты по каждому запросу.
+- Используйте отдельные API-ключи для разных продуктов, чтобы проще атрибутировать расходы.
 
-## Monitoring spend
+## Недостаточная квота
 
-- Console usage logs show model, tokens, and quota delta per request.
-- Keep separate API keys per product so spend is easy to attribute.
-
-## Insufficient quota
-
-If a request is rejected for quota, top up the wallet or ask an admin to increase limits. Creating a new key does not create free balance.
+Если запрос отклонён из-за квоты, пополните кошелёк или попросите администратора увеличить лимиты. Создание нового ключа не даёт бесплатного баланса.

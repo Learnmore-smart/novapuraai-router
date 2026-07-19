@@ -1,35 +1,72 @@
-Частые вопросы при подключении к NovaPuraAI.
+Ответы на частые вопросы об API-шлюзе NovaPuraAI. По вопросам интерфейса продукта вне API обращайтесь в каналы поддержки консоли вашего развёртывания.
 
-> Примеры кода и пути API сохранены на английском (технические идентификаторы).
+## Что такое NovaPuraAI?
 
-## Do I need to deploy a separate API service?
+NovaPuraAI — OpenAI-совместимый API-шлюз (продукт на базе new-api). Вы отправляете запросы на единый base URL с API-ключом; шлюз аутентифицирует, маршрутизирует по модели, списывает квоту и ведёт журнал использования.
 
-No. NovaPuraAI **is** the API gateway. After you deploy the app (for example on Google Cloud Run) and create keys, clients call your domain directly.
+## Где документация?
 
-## What is the difference between docs_link and /docs?
+Официальный интерфейс документации для разработчиков доступен по **`/docs`** (например, `https://www.novapuraai.com/docs`).
 
-`/docs` is the in-app official guide on this site. The optional **Documentation Link** setting is an external URL that can appear in the footer for additional resources.
+## Какой base URL использовать?
 
-## Why do I get 401?
+- **Origin**: `https://www.novapuraai.com`
+- **OpenAI SDK `base_url`**: `https://www.novapuraai.com/v1`
 
-The Authorization header is missing, the key is wrong, or the key was deleted/disabled.
+См. [Базовый URL и эндпоинты](/docs/base-url).
 
-## Why do I get model_not_found?
+## Как получить API-ключ?
 
-The model string is not enabled for your group, or the key’s model whitelist excludes it.
+Войдите → **Dashboard → API Keys / Tokens** → создайте ключ → скопируйте секрет `sk-...`. Подробности: [Аутентификация](/docs/authentication).
 
-## Can I use the same key in production and local dev?
+## Почему возникает 401 Unauthorized?
 
-Yes, but separate keys are safer for rotation and spend tracking.
+Типичные причины: отсутствует заголовок `Authorization`, обрезанный ключ, отключённый токен или использование ключа OpenAI Platform вместо ключа NovaPuraAI.
 
-## Does Cloud Run work?
+## Почему модель не найдена?
 
-Yes. Use Cloud SQL (or another managed database), Redis for multi-instance cache, and stable `SESSION_SECRET` / `CRYPTO_SECRET`. Do not rely on SQLite inside the container for production.
+Каталоги моделей зависят от развёртывания и группы. Вызовите `GET /v1/models` и используйте `id` из ответа. Также может потребоваться обновить конфигурацию каналов администратора.
 
-## Where is usage shown?
+## Поддерживаются ли нативные API Claude / Gemini?
 
-Console → usage logs / dashboard. Administrators see system-wide metrics.
+Да:
 
-## Is the API OpenAI compatible?
+- Claude Messages: `POST /v1/messages`
+- Gemini: `/v1beta/models/{model}:{action}`
 
-Yes for the main chat, embeddings, images, and audio routes. Additional Anthropic and Gemini surfaces are also available for supported models.
+OpenAI Chat Completions остаётся наиболее распространённым путём для приложений с несколькими провайдерами.
+
+## Как рассчитывается биллинг?
+
+По правилам цен моделей, настроенным на шлюзе — обычно токены для chat/embeddings и модально-специфичные единицы для изображений/аудио. См. [Биллинг и квота](/docs/billing) и журналы использования в консоли для итоговых сумм.
+
+## Что будет, если закончится квота?
+
+Запросы завершаются ошибкой в стиле insufficient-quota. Пополните баланс или активируйте кредиты в консоли, затем повторите. Лимиты на ключ могут исчерпаться раньше баланса учётной записи.
+
+## Rate limit — это то же самое, что квота?
+
+Нет. **429** означает «замедлитесь»; insufficient quota — «пополните баланс». См. [Лимиты частоты](/docs/rate-limits).
+
+## Можно ли использовать официальные OpenAI SDK?
+
+Да — укажите API-ключ NovaPuraAI и `base_url` / `baseURL` как `{ORIGIN}/v1`. Примеры: [Python](/docs/sdk-python), [Node.js](/docs/sdk-node), [Go](/docs/sdk-go), [curl](/docs/sdk-curl).
+
+## Поддерживается ли потоковая передача?
+
+Да для моделей/каналов, которые её поддерживают. Используйте `"stream": true` в Chat Completions или нативные streaming-эндпоинты Claude/Gemini.
+
+## Как защитить ключи в production?
+
+Храните ключи на серверах или в secret store, ротируйте после утечек, применяйте IP- и model-allowlist при наличии, не встраивайте секреты в мобильные/веб-клиенты.
+
+## Где посмотреть историю запросов?
+
+В **журналах использования** консоли (и на графиках dashboard, если включены). При эскалации администратору указывайте временные метки и тела ошибок — никогда не отправляйте сырые ключи.
+
+## Всё ещё не получается?
+
+1. Воспроизведите запрос через curl из [Первый запрос](/docs/first-request).
+2. Проверьте [Ошибки](/docs/api-errors).
+3. Убедитесь в доступности моделей, квоты и rate limits в консоли.
+4. Обратитесь к администратору с обезличенными деталями запроса.

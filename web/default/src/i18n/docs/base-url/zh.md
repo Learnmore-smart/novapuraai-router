@@ -1,38 +1,38 @@
-NovaPuraAI 是统一网关。客户端只访问你的公网域名，由网关路由到上游供应商。
+NovaPuraAI 提供统一网关。客户端指向公开源站；网关再路由到上游提供商。
 
 ## 推荐 Base URL
 
-| Client type | Base URL |
+| 客户端类型 | Base URL |
 | --- | --- |
-| OpenAI SDK / OpenAI-compatible tools | `https://www.novapuraai.com/v1` |
-| Raw HTTP (path already includes `/v1/...`) | `https://www.novapuraai.com` |
+| OpenAI SDK / OpenAI 兼容工具 | `https://www.novapuraai.com/v1` |
+| 原始 HTTP（路径已包含 `/v1/...`） | `https://www.novapuraai.com` |
 
 ## 主要端点
 
-| Method | Path | Purpose |
+| 方法 | 路径 | 用途 |
 | --- | --- | --- |
-| POST | `/v1/chat/completions` | Chat (OpenAI) |
-| POST | `/v1/completions` | Text completions |
+| POST | `/v1/chat/completions` | 对话（OpenAI） |
+| POST | `/v1/completions` | 文本补全 |
 | POST | `/v1/responses` | OpenAI Responses API |
 | POST | `/v1/messages` | Anthropic Messages |
-| POST | `/v1/embeddings` | Embeddings |
-| POST | `/v1/images/generations` | Image generation |
-| POST | `/v1/audio/transcriptions` | Speech-to-text |
-| POST | `/v1/audio/speech` | Text-to-speech |
-| POST | `/v1/rerank` | Rerank |
-| GET | `/v1/models` | List models |
-| POST | `/v1beta/models/{model}:generateContent` | Gemini-style |
+| POST | `/v1/embeddings` | 嵌入向量 |
+| POST | `/v1/images/generations` | 图像生成 |
+| POST | `/v1/audio/transcriptions` | 语音转文字 |
+| POST | `/v1/audio/speech` | 文字转语音 |
+| POST | `/v1/rerank` | 重排序 |
+| GET | `/v1/models` | 列出模型 |
+| POST | `/v1beta/models/{model}:generateContent` | Gemini 风格 |
 
-Midjourney and other task routes may also be available depending on admin configuration.
+根据管理员配置，Midjourney 及其他任务路由也可能可用。
 
 ## 每次调用都需要鉴权
 
-All of the paths above require:
+上述所有路径都需要：
 
 ```http
 Authorization: Bearer sk-YOUR_KEY
 ```
 
-## 网关健康
+## 网关健康状态
 
-The admin console and public status endpoints report whether the site is ready. For production on Cloud Run, pair the container with Cloud SQL and Redis — do not rely on container-local SQLite.
+管理控制台与公开状态端点会报告站点是否就绪。生产环境中请保持网关与数据库高可用；计费关键数据不要依赖临时本地存储。

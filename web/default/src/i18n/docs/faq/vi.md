@@ -1,35 +1,72 @@
-Các câu hỏi thường gặp khi tích hợp NovaPuraAI.
+Câu trả lời cho các câu hỏi thường gặp về API gateway NovaPuraAI. Với trợ giúp giao diện sản phẩm ngoài API, hãy dùng kênh hỗ trợ console của hệ thống.
 
-> Ví dụ mã và đường dẫn API giữ nguyên tiếng Anh (định danh kỹ thuật).
+## NovaPuraAI là gì?
 
-## Do I need to deploy a separate API service?
+NovaPuraAI là API gateway tương thích OpenAI (sản phẩm dựa trên new-api). Bạn gửi yêu cầu tới một base URL duy nhất kèm API key; gateway xác thực, định tuyến theo mô hình, tính quota và ghi nhật ký sử dụng.
 
-No. NovaPuraAI **is** the API gateway. After you deploy the app (for example on Google Cloud Run) and create keys, clients call your domain directly.
+## Tài liệu ở đâu?
 
-## What is the difference between docs_link and /docs?
+Giao diện tài liệu nhà phát triển chính thức nằm tại **`/docs`** (ví dụ `https://www.novapuraai.com/docs`).
 
-`/docs` is the in-app official guide on this site. The optional **Documentation Link** setting is an external URL that can appear in the footer for additional resources.
+## Nên dùng base URL nào?
 
-## Why do I get 401?
+- **Origin**: `https://www.novapuraai.com`
+- **OpenAI SDK `base_url`**: `https://www.novapuraai.com/v1`
 
-The Authorization header is missing, the key is wrong, or the key was deleted/disabled.
+Xem [Base URL và endpoint](/docs/base-url).
 
-## Why do I get model_not_found?
+## Làm sao lấy API key?
 
-The model string is not enabled for your group, or the key’s model whitelist excludes it.
+Đăng nhập → **Dashboard → API Keys / Tokens** → tạo khóa → sao chép secret `sk-...`. Chi tiết: [Xác thực](/docs/authentication).
 
-## Can I use the same key in production and local dev?
+## Vì sao nhận 401 Unauthorized?
 
-Yes, but separate keys are safer for rotation and spend tracking.
+Nguyên nhân thường gặp: thiếu header `Authorization`, khóa bị cắt, token bị tắt, hoặc đang dùng khóa OpenAI Platform thay vì khóa NovaPuraAI.
 
-## Does Cloud Run work?
+## Vì sao mô hình không tìm thấy?
 
-Yes. Use Cloud SQL (or another managed database), Redis for multi-instance cache, and stable `SESSION_SECRET` / `CRYPTO_SECRET`. Do not rely on SQLite inside the container for production.
+Danh mục mô hình phụ thuộc triển khai và nhóm. Gọi `GET /v1/models` và dùng `id` trong phản hồi. Cấu hình kênh quản trị cũng có thể cần cập nhật.
 
-## Where is usage shown?
+## Có hỗ trợ API gốc Claude / Gemini không?
 
-Console → usage logs / dashboard. Administrators see system-wide metrics.
+Có:
 
-## Is the API OpenAI compatible?
+- Claude Messages: `POST /v1/messages`
+- Gemini: `/v1beta/models/{model}:{action}`
 
-Yes for the main chat, embeddings, images, and audio routes. Additional Anthropic and Gemini surfaces are also available for supported models.
+OpenAI Chat Completions vẫn là đường dẫn phổ biến nhất cho ứng dụng đa nhà cung cấp.
+
+## Thanh toán được tính như thế nào?
+
+Theo quy tắc giá mô hình cấu hình trên gateway — thường là token cho chat/embeddings và đơn vị theo modality cho ảnh/âm thanh. Xem [Thanh toán và quota](/docs/billing) cùng nhật ký sử dụng trên console để biết số liệu chính thức.
+
+## Hết quota thì sao?
+
+Yêu cầu thất bại với lỗi kiểu insufficient-quota. Nạp hoặc đổi tín dụng trong console rồi thử lại. Hạn mức theo khóa có thể hết trước số dư tài khoản.
+
+## Rate limit có giống quota không?
+
+Không. **429** nghĩa là cần chậm lại; insufficient quota nghĩa là cần nạp số dư. Xem [Giới hạn tần suất](/docs/rate-limits).
+
+## Có dùng được SDK OpenAI chính thức không?
+
+Có — đặt API key thành khóa NovaPuraAI và `base_url` / `baseURL` thành `{ORIGIN}/v1`. Ví dụ: [Python](/docs/sdk-python), [Node.js](/docs/sdk-node), [Go](/docs/sdk-go), [curl](/docs/sdk-curl).
+
+## Có hỗ trợ streaming không?
+
+Có với mô hình/kênh hỗ trợ streaming. Dùng `"stream": true` trên Chat Completions hoặc endpoint streaming gốc của Claude/Gemini.
+
+## Bảo mật khóa trong production thế nào?
+
+Giữ khóa trên máy chủ hoặc secret store, xoay vòng sau khi lộ, áp dụng allowlist IP và mô hình khi có, tránh nhúng secret vào client mobile/web.
+
+## Xem lịch sử yêu cầu ở đâu?
+
+Trong **nhật ký sử dụng** trên console (và biểu đồ dashboard khi được bật). Khi báo quản trị viên, kèm timestamp và thân lỗi — không bao giờ gửi khóa thô.
+
+## Vẫn kẹt?
+
+1. Tái hiện bằng curl từ [Yêu cầu đầu tiên](/docs/first-request).
+2. Kiểm tra [Lỗi](/docs/api-errors).
+3. Xác nhận mô hình, quota và rate limit trong console.
+4. Liên hệ quản trị viên với chi tiết yêu cầu đã che thông tin nhạy cảm.

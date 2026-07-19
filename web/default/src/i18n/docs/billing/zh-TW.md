@@ -1,27 +1,27 @@
-用量依請求計量。閘道會預估費用並在需要時預扣額度，再在上游回應後結算。
+用量依請求計量。閘道會估算費用，在需要時預扣額度，再於上游回應後結算。
 
 ## 概念
 
-- **Balance / quota** — prepaid credit on the user account (and optionally per key).
-- **Model pricing** — configured by administrators (token ratios, fixed prices, or expression-based rules).
-- **Pre-consume** — holds estimated quota so concurrent requests cannot overspend.
-- **Settle** — adjusts the final charge from actual token usage when available.
+- **餘額 / 額度** — 使用者帳戶上的預付額度（也可依金鑰限制）。
+- **模型定價** — 由管理員設定（token 倍率、固定價格或運算式規則）。
+- **預扣** — 鎖定預估額度，防止並行請求超支。
+- **結算** — 在可取得實際 token 用量時，依實際用量調整最終扣費。
 
 ## 用戶端需要了解
 
-1. A successful API call may still fail later if upstream returns an error after pre-consume (unused hold is refunded according to platform logic).
-2. Streaming responses bill on completed usage when the provider reports tokens.
-3. Image, audio, and video products may bill by count, duration, or resolution multipliers — always check Model Square.
+1. 即便 API 呼叫先成功，若上游在預扣之後回傳錯誤，仍可能失敗（未使用的預扣會依平台邏輯退回）。
+2. 串流回應會在供應商回報 token 後，依完成用量計費。
+3. 影像、音訊與影片產品可能依數量、時長或解析度倍率計費——請務必查看模型廣場。
 
 ## 錢包儲值
 
-End users top up from the **Wallet** page when payment gateways are enabled (for example Stripe). Administrators control currencies, promotions, and limits.
+當支付閘道已啟用時（例如 Stripe），終端使用者可從 **錢包** 頁面儲值。管理員可控制幣別、活動與限額。
 
-## 監控消耗
+## 監控支出
 
-- Console usage logs show model, tokens, and quota delta per request.
-- Keep separate API keys per product so spend is easy to attribute.
+- 主控台用量日誌會顯示每次請求的模型、token 與額度變動。
+- 依產品使用不同 API 金鑰，便於歸屬與核算支出。
 
 ## 額度不足
 
-If a request is rejected for quota, top up the wallet or ask an admin to increase limits. Creating a new key does not create free balance.
+若請求因額度被拒絕，請儲值錢包或請管理員提高限額。新建金鑰不會自動產生免費餘額。

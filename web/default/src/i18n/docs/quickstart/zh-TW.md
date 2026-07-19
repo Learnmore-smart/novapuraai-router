@@ -1,14 +1,14 @@
-NovaPuraAI exposes an OpenAI-compatible HTTP API. With a valid API key and available quota, you can call models through one base URL.
+NovaPuraAI 提供 OpenAI 相容的 HTTP API。持有有效 API 金鑰與可用額度時，即可透過統一 Base URL 呼叫模型。
 
 ## 你需要準備
 
-1. A NovaPuraAI account on your deployment (for example `https://www.novapuraai.com`).
-2. An API key (`sk-...`) from **Console → API Keys**.
-3. Balance or quota for the models you want to use.
+1. 部署站點上的 NovaPuraAI 帳號（例如 `https://www.novapuraai.com`）。
+2. 在 **主控台 → API 金鑰** 建立的 API 金鑰（`sk-...`）。
+3. 目標模型對應的餘額或額度。
 
 ## Base URL
 
-For OpenAI-compatible SDKs, set `base_url` / `baseURL` to your site origin plus `/v1`:
+OpenAI 相容 SDK 請將 `base_url` / `baseURL` 設為站點來源站並加上 `/v1`：
 
 ```text
 https://www.novapuraai.com/v1
@@ -16,12 +16,12 @@ https://www.novapuraai.com/v1
 
 ## 建立金鑰
 
-1. Sign in to the console.
-2. Open **API Keys** (tokens).
-3. Create a key. Optionally restrict models, set a quota, and set an expiry.
-4. Copy the secret once and store it as an environment variable. Never commit it.
+1. 登入主控台。
+2. 開啟 **API 金鑰**（權杖）。
+3. 建立金鑰。可限制模型、設定額度與到期時間。
+4. 金鑰僅顯示一次，請儲存到環境變數，切勿提交到程式碼儲存庫。
 
-## 第一个對話請求
+## 第一個對話請求
 
 ```bash
 curl https://www.novapuraai.com/v1/chat/completions \
@@ -67,6 +67,6 @@ console.log(resp.choices[0].message.content);
 
 ## 下一步
 
-- [Authentication](/docs/authentication)
-- [Your First Request](/docs/first-request)
-- [Base URL & Endpoints](/docs/base-url)
+- [身份驗證](/docs/authentication)
+- [第一個請求](/docs/first-request)
+- [Base URL 與端點](/docs/base-url)

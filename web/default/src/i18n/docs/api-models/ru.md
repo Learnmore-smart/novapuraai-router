@@ -1,26 +1,22 @@
-`GET /v1/models` возвращает модели, доступные аутентифицированному ключу.
+`GET /v1/models` возвращает список моделей, доступных для аутентифицированного ключа.
 
-> Примеры кода и пути API сохранены на английском (технические идентификаторы).
-
-`GET /v1/models` lists models available to the authenticated key.
-
-## Example
+## Пример
 
 ```bash
 curl https://www.novapuraai.com/v1/models \
   -H "Authorization: Bearer sk-YOUR_KEY"
 ```
 
-## Response shape
+## Форма ответа
 
-The payload follows OpenAI’s list object with `data[]` entries containing at least `id` and `object`. Additional metadata may appear depending on gateway version and settings.
+Полезная нагрузка следует объекту списка OpenAI: элементы `data[]` содержат как минимум `id` и `object`. Дополнительные метаданные могут появляться в зависимости от версии шлюза и настроек.
 
-## When a model is missing
+## Если модель отсутствует
 
-1. Confirm the model is enabled in admin channels / abilities for your group.
-2. Confirm your key is not restricted away from that model.
-3. Refresh Model Square in the UI for pricing and availability.
+1. Убедитесь, что модель включена в каналах / abilities администратора для вашей группы.
+2. Убедитесь, что ключ не ограничен и не исключает эту модель.
+3. Обновите Model Square в интерфейсе для проверки цен и доступности.
 
-## Caching
+## Кэширование
 
-Clients may cache the list for a short TTL. Re-fetch after admin changes or on `404 model_not_found` errors.
+Клиенты могут кэшировать список на короткий TTL. Запрашивайте заново после изменений администратора или при ошибках `404 model_not_found`.

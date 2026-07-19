@@ -1,32 +1,28 @@
-Khi client yêu cầu một model, NovaPuraAI chọn kênh upstream phù hợp theo nhóm người dùng, tình trạng kênh và quy tắc quản trị.
+Khi client yêu cầu một tên mô hình, NovaPuraAI chọn kênh upstream có thể phục vụ mô hình đó, với điều kiện quyền nhóm, tình trạng kênh và quy tắc định tuyến quản trị.
 
-> Ví dụ mã và đường dẫn API giữ nguyên tiếng Anh (định danh kỹ thuật).
+## Tên mô hình
 
-When a client requests a model name, NovaPuraAI selects an upstream channel that can serve that model, subject to group permissions, channel health, and admin routing rules.
+- Dùng định danh mô hình hiển thị trong **Model Square** hoặc `GET /v1/models`.
+- Tên phân biệt chữ hoa/thường và phải khớp cấu hình quản trị.
+- Cùng một mô hình logic có thể được phục vụ bởi nhiều khóa upstream để failover.
 
-## Model names
+## Cách định tuyến hoạt động (khái niệm)
 
-- Use the model identifiers shown in **Model Square** or `GET /v1/models`.
-- Names are case-sensitive and must match admin configuration.
-- The same logical model may be served by multiple upstream keys for failover.
+1. Xác thực API key và xác định nhóm người dùng.
+2. Tìm các kênh cung cấp mô hình được yêu cầu cho nhóm đó.
+3. Ưu tiên kênh khỏe; bỏ qua kênh tắt hoặc đang lỗi.
+4. Chuyển tiếp yêu cầu, chuyển đổi định dạng nhà cung cấp khi cần, và tính phí sử dụng.
 
-## How routing works (conceptual)
+## Failover và độ tin cậy
 
-1. Authenticate the API key and resolve the user group.
-2. Find channels that expose the requested model for that group.
-3. Prefer healthy channels; skip disabled or failing channels.
-4. Forward the request, translate provider formats when needed, and bill usage.
+Quản trị viên có thể cấu hình retry, cooldown và quy tắc tự tắt. Từ phía client bạn vẫn gọi một base URL ổn định — NovaPuraAI hấp thụ biến động nhà cung cấp khi có nhiều kênh.
 
-## Failover & reliability
+## Nhóm
 
-Administrators can configure retries, cooldowns, and auto-disable rules. From the client perspective you still call one stable base URL — NovaPuraAI absorbs provider churn when multiple channels are available.
+Người dùng có thể thuộc các nhóm với danh mục mô hình và tỷ lệ khác nhau. Nếu mô hình hoạt động với tài khoản này nhưng không với tài khoản kia, so sánh abilities nhóm và hạn chế khóa.
 
-## Groups
+## Thực hành tốt
 
-Users may belong to groups with different model catalogs and ratios. If a model works for one account but not another, compare group abilities and key restrictions.
-
-## Best practices
-
-- Pin model names in config, not hard-coded one-off strings across many services.
-- Prefer listing models via API at startup if your product needs dynamic discovery.
-- Handle `5xx` and timeouts with client-side retries for idempotent reads; avoid blind retries for non-idempotent side effects.
+- Ghim tên mô hình trong config, không hard-code chuỗi rời rạc trên nhiều dịch vụ.
+- Ưu tiên liệt kê mô hình qua API lúc khởi động nếu sản phẩm cần khám phá động.
+- Xử lý `5xx` và timeout bằng retry phía client cho đọc idempotent; tránh retry mù cho tác dụng phụ không idempotent.

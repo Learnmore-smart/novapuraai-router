@@ -1,29 +1,27 @@
-> Ví dụ mã và đường dẫn API giữ nguyên tiếng Anh (định danh kỹ thuật).
+NovaPuraAI cung cấp HTTP API tương thích OpenAI. Với API key hợp lệ và quota sẵn có, bạn có thể gọi mô hình qua một base URL duy nhất.
 
-NovaPuraAI exposes an OpenAI-compatible HTTP API. With a valid API key and available quota, you can call models through one base URL.
+## Bạn cần gì
 
-## What you need
-
-1. A NovaPuraAI account on your deployment (for example `https://www.novapuraai.com`).
-2. An API key (`sk-...`) from **Console → API Keys**.
-3. Balance or quota for the models you want to use.
+1. Tài khoản NovaPuraAI (ví dụ trên `https://www.novapuraai.com`).
+2. API key (`sk-...`) từ **Console → API Keys**.
+3. Số dư hoặc quota cho các mô hình bạn muốn dùng.
 
 ## Base URL
 
-For OpenAI-compatible SDKs, set `base_url` / `baseURL` to your site origin plus `/v1`:
+Với SDK tương thích OpenAI, đặt `base_url` / `baseURL` là origin site cộng `/v1`:
 
 ```text
 https://www.novapuraai.com/v1
 ```
 
-## Create a key
+## Tạo khóa
 
-1. Sign in to the console.
-2. Open **API Keys** (tokens).
-3. Create a key. Optionally restrict models, set a quota, and set an expiry.
-4. Copy the secret once and store it as an environment variable. Never commit it.
+1. Đăng nhập console.
+2. Mở **API Keys** (tokens).
+3. Tạo khóa. Tùy chọn hạn chế mô hình, đặt quota và hạn dùng.
+4. Sao chép secret một lần và lưu vào biến môi trường. Không bao giờ commit secret.
 
-## First chat request
+## Yêu cầu chat đầu tiên
 
 ```bash
 curl https://www.novapuraai.com/v1/chat/completions \
@@ -35,7 +33,7 @@ curl https://www.novapuraai.com/v1/chat/completions \
   }'
 ```
 
-## Official OpenAI SDK
+## OpenAI SDK chính thức
 
 ```python
 from openai import OpenAI
@@ -67,8 +65,8 @@ const resp = await client.chat.completions.create({
 console.log(resp.choices[0].message.content);
 ```
 
-## Next steps
+## Bước tiếp theo
 
-- [Authentication](/docs/authentication)
-- [Your First Request](/docs/first-request)
-- [Base URL & Endpoints](/docs/base-url)
+- [Xác thực](/docs/authentication)
+- [Yêu cầu đầu tiên](/docs/first-request)
+- [Base URL và endpoint](/docs/base-url)

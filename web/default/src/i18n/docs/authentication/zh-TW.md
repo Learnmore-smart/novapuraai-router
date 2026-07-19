@@ -1,40 +1,40 @@
-每個中繼請求都必須攜帶 NovaPuraAI API Key。金鑰在控制台管理，並由閘道的 Token 鑑權中介層校驗。
+每一次中繼請求都必須攜帶 NovaPuraAI API 金鑰。金鑰在主控台中管理，並由閘道上的 `TokenAuth` 驗證。
 
-## 請求头格式
+## 請求標頭格式
 
-Send the key as a Bearer token:
+以 Bearer token 方式傳送金鑰：
 
 ```http
 Authorization: Bearer sk-xxxxxxxx
 Content-Type: application/json
 ```
 
-Some OpenAI clients also accept `api_key` in the SDK constructor — that value becomes the same Authorization header.
+部分 OpenAI 用戶端也接受在 SDK 建構函式中傳入 `api_key`——該值最終會變成相同的 Authorization 請求標頭。
 
-## 在哪里建立金鑰
+## 在哪裡建立金鑰
 
-1. Sign in → **API Keys**.
-2. Create a key with an optional name.
-3. Configure model allowlists, remaining quota, IP limits, and expiry if needed.
-4. Save the secret immediately. The full secret is only shown once.
+1. 登入 → **API 金鑰**。
+2. 建立金鑰，可填寫選用名稱。
+3. 依需求設定模型允許清單、剩餘額度、IP 限制與到期時間。
+4. 立即儲存完整金鑰。完整金鑰通常僅顯示一次。
 
-## 安全最佳實踐
+## 安全最佳實務
 
-- Prefer environment variables (`NOVAPURA_API_KEY`) over hard-coding.
-- Use separate keys per environment (dev / staging / production).
-- Rotate keys if a client is compromised.
-- Restrict keys to the minimum set of models your app needs.
-- Do not embed keys in public frontend bundles.
+- 優先使用環境變數（`NOVAPURA_API_KEY`），避免硬編碼。
+- 為不同環境使用不同金鑰（開發 / 預發 / 正式）。
+- 用戶端外洩後及時輪替金鑰。
+- 將金鑰限制在應用所需的最少模型集合。
+- 不要把金鑰嵌入公開前端打包產物。
 
 ## 常見失敗
 
-| Symptom | Likely cause |
+| 現象 | 可能原因 |
 | --- | --- |
-| `401 Unauthorized` | Missing/invalid key, revoked key, or wrong header |
-| `403 Forbidden` | Model not allowed for this key, or module disabled |
-| `429` | Rate limit exceeded |
-| Insufficient quota | Balance too low or key quota exhausted |
+| `401 Unauthorized` | 缺少/無效金鑰、金鑰已撤銷，或請求標頭錯誤 |
+| `403 Forbidden` | 該金鑰不允許使用此模型，或相關模組已停用 |
+| `429` | 超過速率限制 |
+| 額度不足 | 餘額過低或金鑰額度已用盡 |
 
 ## 多使用者場景
 
-Administrators can issue keys to end users with independent quotas. Each key is billed against its owner’s balance according to platform settings.
+管理員可為終端使用者簽發具有獨立額度的金鑰。每個金鑰依平台設定從其擁有者餘額扣費。

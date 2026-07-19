@@ -1,9 +1,9 @@
-NovaPuraAI 提供 OpenAI 兼容的 HTTP API。持有有效 API Key 与可用额度时，即可通过统一 Base URL 调用模型。
+NovaPuraAI 提供 OpenAI 兼容的 HTTP API。持有有效 API 密钥与可用额度时，即可通过统一 Base URL 调用模型。
 
 ## 你需要准备
 
-1. 部署站点上的 NovaPuraAI 账号（例如 `https://www.novapuraai.com`).
-2. 在 **控制台 → API 密钥** 创建的 API Key（`sk-...`）。
+1. 部署站点上的 NovaPuraAI 账号（例如 `https://www.novapuraai.com`）。
+2. 在 **控制台 → API 密钥** 创建的 API 密钥（`sk-...`）。
 3. 目标模型对应的余额或额度。
 
 ## Base URL

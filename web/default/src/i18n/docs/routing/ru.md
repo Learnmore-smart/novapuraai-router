@@ -1,32 +1,28 @@
-При запросе имени модели NovaPuraAI выбирает upstream-канал, доступный вашей группе, с учётом здоровья каналов и правил администратора.
+Когда клиент запрашивает имя модели, NovaPuraAI выбирает upstream-канал, способный обслужить эту модель, с учётом прав группы, состояния канала и правил маршрутизации администратора.
 
-> Примеры кода и пути API сохранены на английском (технические идентификаторы).
+## Имена моделей
 
-When a client requests a model name, NovaPuraAI selects an upstream channel that can serve that model, subject to group permissions, channel health, and admin routing rules.
+- Используйте идентификаторы моделей из **Model Square** или `GET /v1/models`.
+- Имена чувствительны к регистру и должны совпадать с конфигурацией администратора.
+- Одна и та же логическая модель может обслуживаться несколькими upstream-ключами для отказоустойчивости.
 
-## Model names
+## Как работает маршрутизация (концептуально)
 
-- Use the model identifiers shown in **Model Square** or `GET /v1/models`.
-- Names are case-sensitive and must match admin configuration.
-- The same logical model may be served by multiple upstream keys for failover.
+1. Аутентифицировать API-ключ и определить группу пользователя.
+2. Найти каналы, предоставляющие запрошенную модель для этой группы.
+3. Предпочитать здоровые каналы; пропускать отключённые или сбойные.
+4. Переслать запрос, при необходимости преобразовать форматы провайдера и списать использование.
 
-## How routing works (conceptual)
+## Отказоустойчивость и надёжность
 
-1. Authenticate the API key and resolve the user group.
-2. Find channels that expose the requested model for that group.
-3. Prefer healthy channels; skip disabled or failing channels.
-4. Forward the request, translate provider formats when needed, and bill usage.
+Администраторы могут настраивать повторы, кулдауны и правила автоотключения. С точки зрения клиента вы по-прежнему вызываете один стабильный base URL — NovaPuraAI сглаживает смену провайдеров, когда доступно несколько каналов.
 
-## Failover & reliability
+## Группы
 
-Administrators can configure retries, cooldowns, and auto-disable rules. From the client perspective you still call one stable base URL — NovaPuraAI absorbs provider churn when multiple channels are available.
+Пользователи могут входить в группы с разными каталогами моделей и коэффициентами. Если модель работает для одной учётной записи, но не для другой, сравните abilities групп и ограничения ключей.
 
-## Groups
+## Рекомендации
 
-Users may belong to groups with different model catalogs and ratios. If a model works for one account but not another, compare group abilities and key restrictions.
-
-## Best practices
-
-- Pin model names in config, not hard-coded one-off strings across many services.
-- Prefer listing models via API at startup if your product needs dynamic discovery.
-- Handle `5xx` and timeouts with client-side retries for idempotent reads; avoid blind retries for non-idempotent side effects.
+- Фиксируйте имена моделей в конфигурации, а не разрозненные hard-coded строки в множестве сервисов.
+- Если продукту нужно динамическое обнаружение, предпочитайте список моделей через API при старте.
+- Обрабатывайте `5xx` и таймауты клиентскими повторами для идемпотентных чтений; избегайте слепых повторов для неидемпотентных побочных эффектов.

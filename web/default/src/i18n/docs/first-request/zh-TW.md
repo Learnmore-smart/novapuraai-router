@@ -2,9 +2,9 @@
 
 ## 檢查清單
 
-- [ ] You have a key starting with `sk-`
-- [ ] Your account has positive balance / quota
-- [ ] You know at least one enabled model name (see **Model Square** or `GET /v1/models`)
+- [ ] 你已擁有以 `sk-` 開頭的金鑰
+- [ ] 帳號餘額 / 額度為正
+- [ ] 你知道至少一個已啟用的模型名稱（見 **模型廣場** 或 `GET /v1/models`）
 
 ## curl
 
@@ -25,7 +25,7 @@ curl "$NOVAPURA_BASE/v1/chat/completions" \
   }'
 ```
 
-## 成功回應结构
+## 成功回應結構
 
 ```json
 {
@@ -48,7 +48,7 @@ curl "$NOVAPURA_BASE/v1/chat/completions" \
 
 ## 串流輸出
 
-Add `"stream": true` and read Server-Sent Events:
+新增 `"stream": true` 並讀取 Server-Sent Events：
 
 ```bash
 curl "$NOVAPURA_BASE/v1/chat/completions" \
@@ -62,8 +62,8 @@ curl "$NOVAPURA_BASE/v1/chat/completions" \
   }'
 ```
 
-## 排障
+## 疑難排解
 
-1. Confirm the model name exactly matches an enabled model.
-2. Confirm the base URL includes `/v1` for OpenAI SDKs.
-3. Confirm HTTPS and that Cloud Run / CDN allows long-running streams if you stream.
+1. 確認模型名稱與已啟用模型完全一致。
+2. 確認 OpenAI SDK 的 Base URL 包含 `/v1`。
+3. 確認使用 HTTPS；若使用串流輸出，請確保閘道或 CDN 允許長連線。

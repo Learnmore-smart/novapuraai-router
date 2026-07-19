@@ -1,25 +1,21 @@
-Лимиты частоты защищают платформу и провайдеров. Они могут действовать на уровне IP, пользователя или токена.
+Лимиты частоты защищают платформу и upstream-провайдеров. Ограничения могут действовать на уровне IP, пользователя или токена — в зависимости от настроек администратора.
 
-> Примеры кода и пути API сохранены на английском (технические идентификаторы).
-
-Rate limits protect the platform and upstream providers. Limits may apply at IP, user, or token level depending on admin settings.
-
-## Typical symptoms
+## Типичные симптомы
 
 - HTTP `429 Too Many Requests`
-- Error messages mentioning rate limit or frequency
+- Сообщения об ошибке, упоминающие rate limit или частоту
 
-## Client guidance
+## Рекомендации клиентам
 
-1. Exponential backoff with jitter on `429` and transient `5xx`.
-2. Reuse HTTP connections; avoid opening a new TLS session per tiny request when possible.
-3. Batch work when the API supports it (for example embeddings arrays).
-4. Cache model lists and static configuration.
+1. Экспоненциальный backoff с jitter при `429` и временных `5xx`.
+2. Переиспользуйте HTTP-соединения; по возможности не открывайте новую TLS-сессию на каждый мелкий запрос.
+3. Пакетно обрабатывайте работу, когда API это поддерживает (например, массивы embeddings).
+4. Кэшируйте списки моделей и статическую конфигурацию.
 
-## Streaming
+## Потоковая передача
 
-Long-lived streams hold a connection. Design concurrency limits so you do not open more parallel streams than your plan allows.
+Долгоживущие потоки удерживают соединение. Проектируйте лимиты параллелизма так, чтобы не открывать больше параллельных потоков, чем допускает ваш план.
 
-## Admin-side knobs
+## Настройки на стороне администратора
 
-Administrators can tune global and model-specific rate limits in system settings. Contact your site operator if legitimate traffic is throttled too aggressively.
+Администраторы могут настраивать глобальные и модельно-специфичные rate limits в системных параметрах. Свяжитесь с оператором сайта, если легитимный трафик ограничивается слишком агрессивно.

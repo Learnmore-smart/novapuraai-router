@@ -1,31 +1,27 @@
-Mức dùng được đo theo từng request. Gateway ước tính chi phí, pre-consume hạn mức khi cần, rồi quyết toán sau phản hồi upstream.
+Mức sử dụng được đo theo từng yêu cầu. Gateway ước tính chi phí, pre-consume quota khi cần, rồi settle sau phản hồi upstream.
 
-> Ví dụ mã và đường dẫn API giữ nguyên tiếng Anh (định danh kỹ thuật).
+## Khái niệm
 
-Usage is metered per request. The gateway estimates cost, pre-consumes quota when required, then settles after the upstream response.
+- **Số dư / quota** — tín dụng trả trước trên tài khoản người dùng (và tùy chọn theo khóa).
+- **Giá mô hình** — do quản trị viên cấu hình (tỷ lệ token, giá cố định hoặc quy tắc dựa trên biểu thức).
+- **Pre-consume** — giữ quota ước tính để các yêu cầu đồng thời không chi vượt.
+- **Settle** — điều chỉnh khoản trừ cuối theo số token thực tế khi có.
 
-## Concepts
+## Client cần biết
 
-- **Balance / quota** — prepaid credit on the user account (and optionally per key).
-- **Model pricing** — configured by administrators (token ratios, fixed prices, or expression-based rules).
-- **Pre-consume** — holds estimated quota so concurrent requests cannot overspend.
-- **Settle** — adjusts the final charge from actual token usage when available.
+1. Lời gọi API thành công vẫn có thể lỗi sau nếu upstream trả lỗi sau pre-consume (phần giữ chưa dùng được hoàn theo logic nền tảng).
+2. Phản hồi streaming tính phí theo mức dùng hoàn tất khi nhà cung cấp báo token.
+3. Sản phẩm ảnh, âm thanh và video có thể tính theo số lượng, thời lượng hoặc hệ số độ phân giải — luôn kiểm tra Model Square.
 
-## What clients should know
+## Nạp ví
 
-1. A successful API call may still fail later if upstream returns an error after pre-consume (unused hold is refunded according to platform logic).
-2. Streaming responses bill on completed usage when the provider reports tokens.
-3. Image, audio, and video products may bill by count, duration, or resolution multipliers — always check Model Square.
+Người dùng cuối nạp từ trang **Wallet** khi cổng thanh toán được bật (ví dụ Stripe). Quản trị viên kiểm soát tiền tệ, khuyến mãi và hạn mức.
 
-## Wallet top-ups
+## Theo dõi chi tiêu
 
-End users top up from the **Wallet** page when payment gateways are enabled (for example Stripe). Administrators control currencies, promotions, and limits.
+- Nhật ký sử dụng trên console hiển thị mô hình, token và chênh lệch quota theo từng yêu cầu.
+- Tách API key theo sản phẩm để dễ quy chi phí.
 
-## Monitoring spend
+## Không đủ quota
 
-- Console usage logs show model, tokens, and quota delta per request.
-- Keep separate API keys per product so spend is easy to attribute.
-
-## Insufficient quota
-
-If a request is rejected for quota, top up the wallet or ask an admin to increase limits. Creating a new key does not create free balance.
+Nếu yêu cầu bị từ chối vì quota, hãy nạp ví hoặc nhờ quản trị viên tăng hạn mức. Tạo khóa mới không tạo số dư miễn phí.

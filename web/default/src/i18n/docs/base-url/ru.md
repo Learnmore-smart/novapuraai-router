@@ -1,42 +1,38 @@
-NovaPuraAI — единый API-шлюз. Клиенты обращаются к вашему публичному домену; шлюз маршрутизирует запросы к upstream-провайдерам.
+NovaPuraAI предоставляет единый шлюз. Клиенты обращаются к публичному origin; шлюз маршрутизирует запросы к upstream-провайдерам.
 
-> Примеры кода и пути API сохранены на английском (технические идентификаторы).
+## Рекомендуемый base URL
 
-NovaPuraAI serves a unified gateway. Clients point at your public origin; the gateway routes to upstream providers.
-
-## Recommended base URL
-
-| Client type | Base URL |
+| Тип клиента | Base URL |
 | --- | --- |
-| OpenAI SDK / OpenAI-compatible tools | `https://www.novapuraai.com/v1` |
-| Raw HTTP (path already includes `/v1/...`) | `https://www.novapuraai.com` |
+| OpenAI SDK / OpenAI-совместимые инструменты | `https://www.novapuraai.com/v1` |
+| «Сырой» HTTP (путь уже содержит `/v1/...`) | `https://www.novapuraai.com` |
 
-## Primary endpoints
+## Основные эндпоинты
 
-| Method | Path | Purpose |
+| Метод | Путь | Назначение |
 | --- | --- | --- |
-| POST | `/v1/chat/completions` | Chat (OpenAI) |
-| POST | `/v1/completions` | Text completions |
+| POST | `/v1/chat/completions` | Чат (OpenAI) |
+| POST | `/v1/completions` | Текстовые completions |
 | POST | `/v1/responses` | OpenAI Responses API |
 | POST | `/v1/messages` | Anthropic Messages |
-| POST | `/v1/embeddings` | Embeddings |
-| POST | `/v1/images/generations` | Image generation |
-| POST | `/v1/audio/transcriptions` | Speech-to-text |
-| POST | `/v1/audio/speech` | Text-to-speech |
-| POST | `/v1/rerank` | Rerank |
-| GET | `/v1/models` | List models |
-| POST | `/v1beta/models/{model}:generateContent` | Gemini-style |
+| POST | `/v1/embeddings` | Эмбеддинги |
+| POST | `/v1/images/generations` | Генерация изображений |
+| POST | `/v1/audio/transcriptions` | Речь в текст |
+| POST | `/v1/audio/speech` | Текст в речь |
+| POST | `/v1/rerank` | Ранжирование |
+| GET | `/v1/models` | Список моделей |
+| POST | `/v1beta/models/{model}:generateContent` | Стиль Gemini |
 
-Midjourney and other task routes may also be available depending on admin configuration.
+Маршруты Midjourney и другие task-маршруты также могут быть доступны в зависимости от конфигурации администратора.
 
-## Authentication on every call
+## Аутентификация при каждом вызове
 
-All of the paths above require:
+Все перечисленные пути требуют:
 
 ```http
 Authorization: Bearer sk-YOUR_KEY
 ```
 
-## Health of the gateway
+## Состояние шлюза
 
-The admin console and public status endpoints report whether the site is ready. For production on Cloud Run, pair the container with Cloud SQL and Redis — do not rely on container-local SQLite.
+Консоль администратора и публичные status-эндпоинты показывают, готов ли сайт. В production обеспечивайте высокую доступность шлюза и базы данных; не полагайтесь на эфемерное локальное хранилище для данных, критичных для биллинга.

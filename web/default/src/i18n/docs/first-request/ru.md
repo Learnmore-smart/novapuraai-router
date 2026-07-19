@@ -1,14 +1,10 @@
-Эта страница проводит через первый успешный вызов и показывает, как читать ответ.
+На этой странице — полный первый успешный вызов и как читать ответ.
 
-> Примеры кода и пути API сохранены на английском (технические идентификаторы).
+## Чек-лист
 
-This page walks through a complete first successful call and how to read the response.
-
-## Checklist
-
-- [ ] You have a key starting with `sk-`
-- [ ] Your account has positive balance / quota
-- [ ] You know at least one enabled model name (see **Model Square** or `GET /v1/models`)
+- [ ] У вас есть ключ, начинающийся с `sk-`
+- [ ] На учётной записи положительный баланс / квота
+- [ ] Известно хотя бы одно имя включённой модели (см. **Model Square** или `GET /v1/models`)
 
 ## curl
 
@@ -29,7 +25,7 @@ curl "$NOVAPURA_BASE/v1/chat/completions" \
   }'
 ```
 
-## Successful response (shape)
+## Успешный ответ (форма)
 
 ```json
 {
@@ -50,9 +46,9 @@ curl "$NOVAPURA_BASE/v1/chat/completions" \
 }
 ```
 
-## Streaming
+## Потоковая передача
 
-Add `"stream": true` and read Server-Sent Events:
+Добавьте `"stream": true` и читайте Server-Sent Events:
 
 ```bash
 curl "$NOVAPURA_BASE/v1/chat/completions" \
@@ -66,8 +62,8 @@ curl "$NOVAPURA_BASE/v1/chat/completions" \
   }'
 ```
 
-## Troubleshooting
+## Устранение неполадок
 
-1. Confirm the model name exactly matches an enabled model.
-2. Confirm the base URL includes `/v1` for OpenAI SDKs.
-3. Confirm HTTPS and that Cloud Run / CDN allows long-running streams if you stream.
+1. Убедитесь, что имя модели точно совпадает с включённой моделью.
+2. Убедитесь, что base URL для OpenAI SDK включает `/v1`.
+3. Убедитесь, что используется HTTPS и что reverse proxy / CDN допускает длительные потоки, если вы стримите.

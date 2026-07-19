@@ -1,44 +1,40 @@
-Каждый relay-запрос должен передавать API-ключ NovaPuraAI. Ключи создаются в консоли и проверяются middleware аутентификации шлюза.
+Каждый запрос к ретрансляции должен содержать API-ключ NovaPuraAI. Ключи создаются в консоли и проверяются `TokenAuth` на шлюзе.
 
-> Примеры кода и пути API сохранены на английском (технические идентификаторы).
+## Формат заголовка
 
-Every relay request must present a NovaPuraAI API key. Keys are managed in the console and validated by `TokenAuth` on the gateway.
-
-## Header format
-
-Send the key as a Bearer token:
+Передавайте ключ как Bearer-токен:
 
 ```http
 Authorization: Bearer sk-xxxxxxxx
 Content-Type: application/json
 ```
 
-Some OpenAI clients also accept `api_key` in the SDK constructor — that value becomes the same Authorization header.
+Некоторые OpenAI-клиенты также принимают `api_key` в конструкторе SDK — это значение становится тем же заголовком Authorization.
 
-## Where to create keys
+## Где создать ключи
 
-1. Sign in → **API Keys**.
-2. Create a key with an optional name.
-3. Configure model allowlists, remaining quota, IP limits, and expiry if needed.
-4. Save the secret immediately. The full secret is only shown once.
+1. Войдите → **API Keys**.
+2. Создайте ключ с необязательным именем.
+3. При необходимости настройте списки разрешённых моделей, оставшуюся квоту, IP-ограничения и срок действия.
+4. Сразу сохраните секрет. Полный секрет показывается только один раз.
 
-## Security best practices
+## Рекомендации по безопасности
 
-- Prefer environment variables (`NOVAPURA_API_KEY`) over hard-coding.
-- Use separate keys per environment (dev / staging / production).
-- Rotate keys if a client is compromised.
-- Restrict keys to the minimum set of models your app needs.
-- Do not embed keys in public frontend bundles.
+- Предпочитайте переменные окружения (`NOVAPURA_API_KEY`), а не жёсткую прошивку в коде.
+- Используйте отдельные ключи для сред (dev / staging / production).
+- Ротируйте ключи, если клиент скомпрометирован.
+- Ограничивайте ключи минимальным набором моделей, нужных приложению.
+- Не встраивайте ключи в публичные frontend-бандлы.
 
-## Common failures
+## Типичные сбои
 
-| Symptom | Likely cause |
+| Симптом | Вероятная причина |
 | --- | --- |
-| `401 Unauthorized` | Missing/invalid key, revoked key, or wrong header |
-| `403 Forbidden` | Model not allowed for this key, or module disabled |
-| `429` | Rate limit exceeded |
-| Insufficient quota | Balance too low or key quota exhausted |
+| `401 Unauthorized` | Отсутствует/недействителен ключ, отозванный ключ или неверный заголовок |
+| `403 Forbidden` | Модель не разрешена для этого ключа или модуль отключён |
+| `429` | Превышен rate limit |
+| Недостаточная квота | Слишком низкий баланс или исчерпана квота ключа |
 
-## Multi-user setups
+## Многопользовательские сценарии
 
-Administrators can issue keys to end users with independent quotas. Each key is billed against its owner’s balance according to platform settings.
+Администраторы могут выдавать ключи конечным пользователям с независимыми квотами. Каждый ключ списывается с баланса владельца согласно настройкам платформы.

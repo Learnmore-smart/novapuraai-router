@@ -1,13 +1,13 @@
-LangChain 与 LlamaIndex 可通过各自的 OpenAI 集成调用 NovaPuraAI：覆盖 base URL 与 API Key 即可。网关会把模型名路由到已配置的通道。
+LangChain 与 LlamaIndex 可通过其 OpenAI 集成调用 NovaPuraAI，只需覆盖 Base URL 与 API 密钥。网关随后会将模型名称路由到已配置的渠道。
 
 ## 共用配置
 
 ```bash
 export NOVAPURA_API_KEY="sk-xxxxxxxx"
-export NOVAPURA_BASE_URL="https://www.novapuraai.com"   # 仅源站
+export NOVAPURA_BASE_URL="https://www.novapuraai.com"   # origin only
 ```
 
-SDK 客户端通常需要 **带** `/v1` 的 `base_url`。
+SDK 客户端通常需要带 `/v1` 的 `base_url` / `baseURL`。
 
 ## LangChain（Python）
 
@@ -29,7 +29,7 @@ llm = ChatOpenAI(
 print(llm.invoke("Hello from NovaPuraAI").content)
 ```
 
-### LangChain Embeddings
+### 在 LangChain 中使用嵌入
 
 ```python
 from langchain_openai import OpenAIEmbeddings
@@ -89,17 +89,17 @@ embed = OpenAIEmbedding(
 print(llm.complete("Hello from NovaPuraAI"))
 ```
 
-参数名（`api_base` 与 `base_url`）在不同 LlamaIndex 版本中略有差异——请使用你安装包所接受的关键字。
+参数名（`api_base` 与 `base_url`）在不同 LlamaIndex 版本中略有差异——请使用你已安装包所接受的关键字参数。
 
-## RAG 检查清单
+## RAG 清单
 
-1. 建库与查询使用 **同一** embedding 模型。
+1. 建索引与查询阶段使用 **相同** 的嵌入模型。
 2. 将模型 ID 与向量索引元数据一并保存。
 3. 限制并发以遵守 [速率限制](/docs/rate-limits)。
-4. 评测检索质量时查看 NovaPuraAI 用量日志，使成本可预期。
+4. 在评估检索质量时监控 NovaPuraAI 用量日志，使成本可预期。
 
 ## 相关文档
 
 - [Python SDK](/docs/sdk-python)
-- [Embeddings](/docs/api-embeddings)
+- [嵌入](/docs/api-embeddings)
 - [计费与额度](/docs/billing)
