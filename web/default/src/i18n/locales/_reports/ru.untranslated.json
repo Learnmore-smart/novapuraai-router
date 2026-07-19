@@ -17,5 +17,8 @@
   "Skipped expression-billed models: {{models}}": "Skipped expression-billed models: {{models}}",
   "Stored securely and never returned by the settings API. If GITHUB_OAUTH_CLIENT_SECRET is set in the environment, it overrides this value.": "Stored securely and never returned by the settings API. If GITHUB_OAUTH_CLIENT_SECRET is set in the environment, it overrides this value.",
   "Updated pricing for {{count}} models": "Updated pricing for {{count}} models",
-  "Users see the original price struck through and pay the discounted price. Leave empty for no discount.": "Users see the original price struck through and pay the discounted price. Leave empty for no discount."
+  "Users see the original price struck through and pay the discounted price. Leave empty for no discount.": "Users see the original price struck through and pay the discounted price. Leave empty for no discount.",
+  "DeepSeek V4 Pro": "DeepSeek V4 Pro",
+  "Kimi K2.6": "Kimi K2.6",
+  "Nemotron 3 Ultra": "Nemotron 3 Ultra"
 }
