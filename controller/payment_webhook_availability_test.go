@@ -70,6 +70,37 @@ func TestLegacyStripeTopUpSurfaceIsSuppressedByProductCheckout(t *testing.T) {
 	assert.True(t, isStripeWebhookEnabled())
 }
 
+// TestLegacyStripeTopUpSurfaceIsSuppressedWhenProductIDMissing locks in the
+// fix for the wallet-page 409/200-success:false regression: when an admin
+// toggles StripeTopupEnabled on but has not yet configured StripeTopupProductID,
+// the legacy fixed-price endpoints are already blocked by the guard in
+// topup_stripe.go (which keys off StripeTopupEnabled directly). The topup-info
+// surface must agree, otherwise the wallet form renders a Stripe button that
+// produces a dead response and a raw-English toast on confirm.
+func TestLegacyStripeTopUpSurfaceIsSuppressedWhenProductIDMissing(t *testing.T) {
+	originalAPISecret := setting.StripeApiSecret
+	originalWebhookSecret := setting.StripeWebhookSecret
+	originalPriceID := setting.StripePriceId
+	originalProductID := setting.StripeTopupProductID
+	originalTopupEnabled := setting.StripeTopupEnabled
+	t.Cleanup(func() {
+		setting.StripeApiSecret = originalAPISecret
+		setting.StripeWebhookSecret = originalWebhookSecret
+		setting.StripePriceId = originalPriceID
+		setting.StripeTopupProductID = originalProductID
+		setting.StripeTopupEnabled = originalTopupEnabled
+	})
+
+	setting.StripeApiSecret = "sk_test_123"
+	setting.StripeWebhookSecret = "whsec_test"
+	setting.StripePriceId = "price_placeholder"
+	setting.StripeTopupProductID = ""
+	setting.StripeTopupEnabled = true
+
+	assert.False(t, isLegacyStripeTopUpEnabled())
+	assert.False(t, isProductStripeTopUpEnabled())
+}
+
 func TestCreemWebhookEnabledRequiresTopUpAndWebhookConfig(t *testing.T) {
 	originalAPIKey := setting.CreemApiKey
 	originalProducts := setting.CreemProducts
