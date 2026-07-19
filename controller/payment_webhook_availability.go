@@ -22,7 +22,15 @@ func isLegacyStripeTopUpEnabled() bool {
 	if strings.TrimSpace(setting.StripeApiSecret) == "" || strings.TrimSpace(setting.StripeWebhookSecret) == "" {
 		return false
 	}
-	return !isProductStripeTopUpEnabled() && strings.TrimSpace(setting.StripePriceId) != ""
+	// The legacy fixed-price endpoints (topup_stripe.go RequestAmount/RequestPay)
+	// are blocked as soon as StripeTopupEnabled is toggled on, even before a
+	// Product ID is configured. Hide the legacy Stripe payment method from the
+	// wallet form in that case so users don't see a button that produces a
+	// dead 200/success:false (previously 409) response.
+	if setting.StripeTopupEnabled {
+		return false
+	}
+	return strings.TrimSpace(setting.StripePriceId) != ""
 }
 
 func isStripeWebhookConfigured() bool {
