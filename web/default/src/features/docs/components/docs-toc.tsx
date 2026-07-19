@@ -10,7 +10,7 @@ interface TocItem {
 }
 
 interface DocsTocProps {
-  containerRef: React.RefObject<HTMLElement | null>
+  containerRef: React.RefObject<HTMLDivElement | null>
 }
 
 function slugify(text: string): string {

@@ -1,5 +1,4 @@
 import {
-  BookOpen,
   Compass,
   CreditCard,
   FileQuestion,
@@ -223,7 +222,19 @@ export const DOC_FLAT_ITEMS: DocNavItem[] = DOC_NAV_GROUPS.flatMap(
   (group) => group.items
 )
 
-export const DOC_DEFAULT_SECTION = 'quickstart'
+// Default landing section for `/docs`.
+export const DEFAULT_DOC_SECTION = 'quickstart'
+
+// Back-compat alias (older code may import DOC_DEFAULT_SECTION).
+export const DOC_DEFAULT_SECTION = DEFAULT_DOC_SECTION
+
+const DOC_SECTION_IDS: ReadonlySet<string> = new Set(
+  DOC_FLAT_ITEMS.map((item) => item.id)
+)
+
+export function isDocSectionId(sectionId: string | undefined): sectionId is string {
+  return typeof sectionId === 'string' && DOC_SECTION_IDS.has(sectionId)
+}
 
 export function findDocItem(sectionId: string): DocNavItem | undefined {
   return DOC_FLAT_ITEMS.find((item) => item.id === sectionId)
