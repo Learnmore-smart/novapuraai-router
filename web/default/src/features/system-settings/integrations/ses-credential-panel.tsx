@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronDown, KeyRound, Loader2, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -24,23 +24,38 @@ import {
   updateTransactionalEmailSESCredentials,
 } from '../api'
 import { buildSESCredentialUpdate } from './ses-credential-form'
+import { isValidEmailSender } from './email-sender'
 
 const MASK = '••••••••••••'
 
 export function SESCredentialPanel() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(true)
   const [removeOpen, setRemoveOpen] = useState(false)
   const [accessKeyId, setAccessKeyId] = useState('')
   const [secretAccessKey, setSecretAccessKey] = useState('')
   const [sessionToken, setSessionToken] = useState('')
   const [clearSessionToken, setClearSessionToken] = useState(false)
+  const [region, setRegion] = useState('')
+  const [fromAddress, setFromAddress] = useState('')
+  const [initialRegion, setInitialRegion] = useState('')
+  const [initialFromAddress, setInitialFromAddress] = useState('')
 
   const statusQuery = useQuery({
     queryKey: ['transactional-email-ses-credentials'],
     queryFn: getTransactionalEmailSESCredentials,
   })
+
+  useEffect(() => {
+    if (!statusQuery.data?.success || !statusQuery.data.data) return
+    const nextRegion = statusQuery.data.data.region ?? ''
+    const nextFrom = statusQuery.data.data.from_address ?? ''
+    setRegion(nextRegion)
+    setFromAddress(nextFrom)
+    setInitialRegion(nextRegion)
+    setInitialFromAddress(nextFrom)
+  }, [statusQuery.data])
 
   const refreshEmailState = async () => {
     await Promise.all([
@@ -50,6 +65,7 @@ export function SESCredentialPanel() {
       queryClient.invalidateQueries({
         queryKey: ['transactional-email-health'],
       }),
+      queryClient.invalidateQueries({ queryKey: ['system-options'] }),
     ])
   }
 
@@ -64,11 +80,11 @@ export function SESCredentialPanel() {
       setSecretAccessKey('')
       setSessionToken('')
       setClearSessionToken(false)
-      toast.success(t('SES credentials saved securely'))
+      toast.success(t('SES settings saved securely'))
       await refreshEmailState()
     },
     onError: (error: Error) => {
-      toast.error(error.message || t('Failed to save SES credentials'))
+      toast.error(error.message || t('Failed to save SES settings'))
     },
   })
 
@@ -99,20 +115,34 @@ export function SESCredentialPanel() {
   } else if (status?.source === 'database') {
     sourceLabel = t('Encrypted database')
   }
-  const hasChanges = Boolean(
+
+  const regionChanged = region.trim() !== initialRegion.trim()
+  const fromChanged = fromAddress.trim() !== initialFromAddress.trim()
+  const hasCredentialChanges = Boolean(
     accessKeyId.trim() || secretAccessKey || sessionToken || clearSessionToken
   )
+  const hasChanges = hasCredentialChanges || regionChanged || fromChanged
+  const fromValid =
+    fromAddress.trim() === '' || isValidEmailSender(fromAddress.trim())
 
   const submitCredentials = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (!fromValid) {
+      toast.error(t('Enter a valid verified sender address or leave blank'))
+      return
+    }
     const payload = buildSESCredentialUpdate({
       accessKeyId,
       secretAccessKey,
       sessionToken,
       clearSessionToken,
+      region,
+      fromAddress,
+      initialRegion,
+      initialFromAddress,
     })
     if (Object.keys(payload).length === 0) {
-      toast.error(t('Enter at least one credential change'))
+      toast.error(t('Enter at least one SES setting change'))
       return
     }
     saveMutation.mutate(payload)
@@ -127,14 +157,14 @@ export function SESCredentialPanel() {
             aria-hidden='true'
           />
           <span className='text-xs font-medium'>
-            {t('Configure SES credentials')}
+            {t('Configure Amazon SES API')}
           </span>
           {statusQuery.isPending && <Skeleton className='h-5 w-16' />}
           {!statusQuery.isPending && status?.configured && (
-            <Badge variant='outline'>{t('Configured')}</Badge>
+            <Badge variant='outline'>{t('Credentials configured')}</Badge>
           )}
           {!statusQuery.isPending && !status?.configured && (
-            <Badge variant='secondary'>{t('Not configured')}</Badge>
+            <Badge variant='secondary'>{t('Credentials not configured')}</Badge>
           )}
         </span>
         <ChevronDown
@@ -175,124 +205,167 @@ export function SESCredentialPanel() {
 
             <form className='space-y-3' onSubmit={submitCredentials}>
               <p className='text-muted-foreground text-xs'>
-                {status?.configured
-                  ? t('Leave a field blank to keep its current encrypted value.')
-                  : t(
-                      'Enter an SES access key ID and secret access key to configure the provider.'
-                    )}
+                {t(
+                  'Amazon SES API uses AWS SDK credentials, region, and a verified sender. Session token is optional and should stay blank for long-term IAM user keys.'
+                )}
               </p>
 
-                <div className='grid gap-3 md:grid-cols-2'>
-                  <div className='space-y-1.5'>
-                    <Label htmlFor='ses-access-key-id'>
-                      {t('AWS access key ID')}
-                    </Label>
-                    <Input
-                      id='ses-access-key-id'
-                      type='password'
-                      autoComplete='new-password'
-                      spellCheck={false}
-                      maxLength={4096}
-                      value={accessKeyId}
-                      onChange={(event) => setAccessKeyId(event.target.value)}
-                      placeholder={status?.configured ? MASK : 'AKIA...'}
-                    />
-                  </div>
-                  <div className='space-y-1.5'>
-                    <Label htmlFor='ses-secret-access-key'>
-                      {t('AWS secret access key')}
-                    </Label>
-                    <Input
-                      id='ses-secret-access-key'
-                      type='password'
-                      autoComplete='new-password'
-                      spellCheck={false}
-                      maxLength={4096}
-                      value={secretAccessKey}
-                      onChange={(event) =>
-                        setSecretAccessKey(event.target.value)
-                      }
-                      placeholder={
-                        status?.configured ? MASK : t('Enter secret access key')
-                      }
-                    />
-                  </div>
-                </div>
-
+              <div className='grid gap-3 md:grid-cols-2'>
                 <div className='space-y-1.5'>
-                  <Label htmlFor='ses-session-token'>
-                    {t('AWS session token (optional)')}
+                  <Label htmlFor='ses-access-key-id'>
+                    {t('AWS access key ID')}
                   </Label>
                   <Input
-                    id='ses-session-token'
+                    id='ses-access-key-id'
                     type='password'
                     autoComplete='new-password'
                     spellCheck={false}
                     maxLength={4096}
-                    value={sessionToken}
-                    onChange={(event) => {
-                      setSessionToken(event.target.value)
-                      if (event.target.value) setClearSessionToken(false)
-                    }}
+                    value={accessKeyId}
+                    onChange={(event) => setAccessKeyId(event.target.value)}
+                    placeholder={status?.configured ? MASK : 'AKIA...'}
+                  />
+                </div>
+                <div className='space-y-1.5'>
+                  <Label htmlFor='ses-secret-access-key'>
+                    {t('AWS secret access key')}
+                  </Label>
+                  <Input
+                    id='ses-secret-access-key'
+                    type='password'
+                    autoComplete='new-password'
+                    spellCheck={false}
+                    maxLength={4096}
+                    value={secretAccessKey}
+                    onChange={(event) =>
+                      setSecretAccessKey(event.target.value)
+                    }
                     placeholder={
-                      status?.has_session_token ? MASK : t('No session token')
+                      status?.configured ? MASK : t('Enter secret access key')
                     }
                   />
                 </div>
+              </div>
 
-                {status?.has_session_token && (
-                  <div className='flex items-center gap-2'>
-                    <Checkbox
-                      id='ses-clear-session-token'
-                      checked={clearSessionToken}
-                      disabled={Boolean(sessionToken)}
-                      onCheckedChange={setClearSessionToken}
-                    />
-                    <Label
-                      htmlFor='ses-clear-session-token'
-                      className='text-xs font-normal'
-                    >
-                      {t('Remove the saved session token')}
-                    </Label>
-                  </div>
-                )}
+              <div className='space-y-1.5'>
+                <Label htmlFor='ses-session-token'>
+                  {t('AWS session token (optional)')}
+                </Label>
+                <Input
+                  id='ses-session-token'
+                  type='password'
+                  autoComplete='new-password'
+                  spellCheck={false}
+                  maxLength={4096}
+                  value={sessionToken}
+                  onChange={(event) => {
+                    setSessionToken(event.target.value)
+                    if (event.target.value) setClearSessionToken(false)
+                  }}
+                  placeholder={
+                    status?.has_session_token
+                      ? MASK
+                      : t('Leave blank for long-term IAM credentials')
+                  }
+                />
+                <p className='text-muted-foreground text-xs'>
+                  {t(
+                    'Leave blank for long-term IAM user access keys. Only temporary STS credentials need a session token.'
+                  )}
+                </p>
+              </div>
 
-                <div className='flex flex-wrap items-center justify-between gap-2 pt-1'>
-                  <div>
-                    {status?.source === 'database' && (
-                      <Button
-                        type='button'
-                        variant='ghost'
-                        size='sm'
-                        className='text-destructive hover:text-destructive'
-                        onClick={() => setRemoveOpen(true)}
-                        disabled={
-                          saveMutation.isPending || deleteMutation.isPending
-                        }
-                      >
-                        <Trash2 aria-hidden='true' />
-                        {t('Remove saved credentials')}
-                      </Button>
-                    )}
-                  </div>
-                  <Button
-                    type='submit'
-                    size='sm'
-                    disabled={
-                      !hasChanges ||
-                      saveMutation.isPending ||
-                      deleteMutation.isPending
-                    }
+              {status?.has_session_token && (
+                <div className='flex items-center gap-2'>
+                  <Checkbox
+                    id='ses-clear-session-token'
+                    checked={clearSessionToken}
+                    disabled={Boolean(sessionToken)}
+                    onCheckedChange={setClearSessionToken}
+                  />
+                  <Label
+                    htmlFor='ses-clear-session-token'
+                    className='text-xs font-normal'
                   >
-                    {saveMutation.isPending && (
-                      <Loader2 className='animate-spin' aria-hidden='true' />
-                    )}
-                    {saveMutation.isPending
-                      ? t('Saving SES credentials...')
-                      : t('Save SES credentials')}
-                  </Button>
+                    {t('Remove the saved session token')}
+                  </Label>
                 </div>
-              </form>
+              )}
+
+              <div className='grid gap-3 md:grid-cols-2'>
+                <div className='space-y-1.5'>
+                  <Label htmlFor='ses-region'>{t('AWS region')}</Label>
+                  <Input
+                    id='ses-region'
+                    autoComplete='off'
+                    spellCheck={false}
+                    value={region}
+                    onChange={(event) => setRegion(event.target.value)}
+                    placeholder='us-east-2'
+                  />
+                  <p className='text-muted-foreground text-xs'>
+                    {t(
+                      'SES API region, for example us-east-2 or ap-southeast-1. Environment AWS_SES_REGION overrides the saved value when set.'
+                    )}
+                  </p>
+                </div>
+                <div className='space-y-1.5'>
+                  <Label htmlFor='ses-from-address'>
+                    {t('Verified sender address')}
+                  </Label>
+                  <Input
+                    id='ses-from-address'
+                    autoComplete='off'
+                    value={fromAddress}
+                    onChange={(event) => setFromAddress(event.target.value)}
+                    placeholder={t('NovaPuraAI <noreply@example.com>')}
+                    aria-invalid={!fromValid}
+                  />
+                  <p className='text-muted-foreground text-xs'>
+                    {t(
+                      'Must be a verified SES identity. Display form is allowed, for example NovaPuraAI <noreply@novapuraai.com>.'
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              <div className='flex flex-wrap items-center justify-between gap-2 pt-1'>
+                <div>
+                  {status?.source === 'database' && (
+                    <Button
+                      type='button'
+                      variant='ghost'
+                      size='sm'
+                      className='text-destructive hover:text-destructive'
+                      onClick={() => setRemoveOpen(true)}
+                      disabled={
+                        saveMutation.isPending || deleteMutation.isPending
+                      }
+                    >
+                      <Trash2 aria-hidden='true' />
+                      {t('Remove saved credentials')}
+                    </Button>
+                  )}
+                </div>
+                <Button
+                  type='submit'
+                  size='sm'
+                  disabled={
+                    !hasChanges ||
+                    !fromValid ||
+                    saveMutation.isPending ||
+                    deleteMutation.isPending
+                  }
+                >
+                  {saveMutation.isPending && (
+                    <Loader2 className='animate-spin' aria-hidden='true' />
+                  )}
+                  {saveMutation.isPending
+                    ? t('Saving SES settings...')
+                    : t('Save SES settings')}
+                </Button>
+              </div>
+            </form>
           </>
         )}
       </CollapsibleContent>

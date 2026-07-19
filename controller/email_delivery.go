@@ -175,8 +175,13 @@ func UpdateTransactionalEmailSESCredentials(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "invalid SES credential request"})
 		return
 	}
-	if request.AccessKeyID == "" && request.SecretAccessKey == "" && request.SessionToken == "" && !request.ClearSessionToken {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "at least one credential change is required"})
+	hasCredentialChange := request.AccessKeyID != "" ||
+		request.SecretAccessKey != "" ||
+		request.SessionToken != "" ||
+		request.ClearSessionToken
+	hasSettingsChange := request.Region != nil || request.FromAddress != nil
+	if !hasCredentialChange && !hasSettingsChange {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "at least one SES setting change is required"})
 		return
 	}
 	if request.SessionToken != "" && request.ClearSessionToken {
@@ -192,6 +197,10 @@ func UpdateTransactionalEmailSESCredentials(c *gin.Context) {
 
 	status, err := saveTransactionalEmailCredentials(c.Request.Context(), request)
 	if err != nil {
+		if strings.Contains(err.Error(), "invalid SES from address") {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "invalid verified sender address"})
+			return
+		}
 		common.SysError("failed to save SES credentials")
 		common.ApiErrorMsg(c, "failed to save SES credentials")
 		return
@@ -200,6 +209,8 @@ func UpdateTransactionalEmailSESCredentials(c *gin.Context) {
 		"access_key_replaced":   request.AccessKeyID != "",
 		"secret_key_replaced":   request.SecretAccessKey != "",
 		"session_token_changed": request.SessionToken != "" || request.ClearSessionToken,
+		"region_updated":        request.Region != nil,
+		"from_address_updated":  request.FromAddress != nil,
 	})
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,

@@ -16,14 +16,36 @@ type sesAPI interface {
 }
 
 type sesProvider struct {
-	client         sesAPI
-	fromAddress    string
-	replyToAddress string
-	configured     bool
+	client                sesAPI
+	fromAddress           string
+	replyToAddress        string
+	credentialsConfigured bool
+	regionConfigured      bool
+	senderConfigured      bool
 }
 
-func newSESProvider(client sesAPI, fromAddress string, configured bool) *sesProvider {
-	return &sesProvider{client: client, fromAddress: fromAddress, configured: configured}
+func newSESProvider(
+	client sesAPI,
+	fromAddress string,
+	credentialsConfigured bool,
+	regionConfigured bool,
+	senderConfigured bool,
+) *sesProvider {
+	return &sesProvider{
+		client:                client,
+		fromAddress:           fromAddress,
+		credentialsConfigured: credentialsConfigured,
+		regionConfigured:      regionConfigured,
+		senderConfigured:      senderConfigured,
+	}
+}
+
+func (provider *sesProvider) fullyConfigured() bool {
+	return provider.credentialsConfigured &&
+		provider.regionConfigured &&
+		provider.senderConfigured &&
+		provider.client != nil &&
+		provider.fromAddress != ""
 }
 
 func (provider *sesProvider) Name() ProviderName {
@@ -31,7 +53,7 @@ func (provider *sesProvider) Name() ProviderName {
 }
 
 func (provider *sesProvider) Send(ctx context.Context, message Message, idempotencyKey string) (ProviderResult, *DeliveryError) {
-	if !provider.configured || provider.client == nil || provider.fromAddress == "" {
+	if !provider.fullyConfigured() {
 		return ProviderResult{}, &DeliveryError{Reason: FailureConfiguration}
 	}
 
@@ -71,7 +93,13 @@ func (provider *sesProvider) Send(ctx context.Context, message Message, idempote
 }
 
 func (provider *sesProvider) Health(ctx context.Context) ProviderHealth {
-	health := ProviderHealth{Provider: ProviderSES, Configured: provider.configured && provider.client != nil && provider.fromAddress != ""}
+	health := ProviderHealth{
+		Provider:              ProviderSES,
+		CredentialsConfigured: provider.credentialsConfigured,
+		RegionConfigured:      provider.regionConfigured,
+		SenderConfigured:      provider.senderConfigured,
+		Configured:            provider.fullyConfigured(),
+	}
 	if !health.Configured {
 		health.FailureReason = FailureConfiguration
 		return health
@@ -91,6 +119,7 @@ func (provider *sesProvider) Health(ctx context.Context) ProviderHealth {
 	health.Reachable = true
 	health.SendingEnabled = output.SendingEnabled
 	health.ProductionAccess = output.ProductionAccessEnabled
+	health.SandboxRestricted = !output.ProductionAccessEnabled
 	switch {
 	case !health.SendingEnabled:
 		health.FailureReason = FailureProviderUnavailable

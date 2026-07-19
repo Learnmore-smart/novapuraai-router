@@ -81,6 +81,27 @@ export function getLobeIcon(
     )
   }
 
+  // Local image path (e.g. "/model-icons/meta.svg") or absolute URL. The
+  // backend vendor icon map uses these paths for vendors that have no
+  // matching @lobehub/icons export (Meta, NVIDIA, Poolside, Step, Sarvam).
+  if (
+    trimmedName.startsWith('/') ||
+    trimmedName.startsWith('http://') ||
+    trimmedName.startsWith('https://') ||
+    trimmedName.startsWith('data:')
+  ) {
+    return (
+      <img
+        src={trimmedName}
+        alt={trimmedName}
+        width={size}
+        height={size}
+        className='object-contain'
+        style={{ width: size, height: size }}
+      />
+    )
+  }
+
   // Parse component path and chained properties
   const segments = trimmedName.split('.')
   const baseKey = segments[0]

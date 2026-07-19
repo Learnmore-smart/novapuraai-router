@@ -10,7 +10,6 @@ const PROVIDERS = [
   { name: 'Gemini', icon: '/model-icons/gemini.png' },
   { name: 'Grok', icon: '/model-icons/grok.png' },
   { name: 'DeepSeek', icon: '/model-icons/deepseek.png' },
-  { name: 'Kimi', icon: '/model-icons/kimi.png' },
   { name: 'GLM', icon: '/model-icons/glm.png' },
   { name: 'MiniMax', icon: '/model-icons/minimax.png' },
   { name: 'Step', icon: '/model-icons/step.png' },
@@ -19,6 +18,8 @@ const PROVIDERS = [
   { name: 'Poolside', icon: '/model-icons/poolside.svg' },
   { name: 'Meta', icon: '/model-icons/meta.svg' },
   { name: 'Mistral', icon: '/model-icons/mistral.svg' },
+  { name: 'NVIDIA', icon: '/model-icons/nvidia-logo-horz.svg' },
+  { name: 'Sarvam', icon: '/model-icons/sarvam-ai-logo.png' },
   { name: 'Thinking Machines', icon: '/model-icons/thinkingmachine.png' },
 ] as const
 
@@ -38,12 +39,12 @@ export function ProviderStrip() {
           {t('Route to the providers you already use')}
         </p>
         <div className='np-marquee-viewport mt-8 overflow-hidden'>
-          <ul className='np-marquee-track flex w-max items-center gap-x-8 sm:gap-x-10'>
+          <ul className='np-marquee-track flex w-max items-center'>
             {track.map((item) => (
               <li
                 key={item.id}
                 aria-hidden={item.duplicate}
-                className='flex shrink-0 items-center gap-2.5'
+                className='flex shrink-0 items-center gap-2.5 pr-8 sm:pr-10'
               >
                 <img
                   src={item.icon}

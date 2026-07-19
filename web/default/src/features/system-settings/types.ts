@@ -28,8 +28,12 @@ export type EmailProviderHealth = {
   configured: boolean
   reachable: boolean
   ready: boolean
+  credentials_configured?: boolean
+  region_configured?: boolean
+  sender_configured?: boolean
   sending_enabled?: boolean
   production_access?: boolean
+  sandbox_restricted?: boolean
   failure_reason?: string
 }
 
@@ -87,6 +91,8 @@ export type SESCredentialStatus = {
   configured: boolean
   source: SESCredentialSource
   has_session_token: boolean
+  region?: string
+  from_address?: string
 }
 
 export type SESCredentialUpdateRequest = {
@@ -94,6 +100,8 @@ export type SESCredentialUpdateRequest = {
   secret_access_key?: string
   session_token?: string
   clear_session_token?: boolean
+  region?: string
+  from_address?: string
 }
 
 export type SESCredentialStatusResponse = {

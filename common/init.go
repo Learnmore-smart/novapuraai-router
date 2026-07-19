@@ -240,13 +240,12 @@ func initGitHubOAuthEnv() {
 // the admin API or trusted from the options table. Process environment (e.g.
 // Cloud Run + Secret Manager) takes precedence whenever it is configured.
 //
-// GitHubClientSecret is intentionally NOT in this set: it is env-preferred but
-// DB-writable. When GITHUB_OAUTH_CLIENT_SECRET is present in the environment it
-// still wins (see ApplyEnvManagedSecrets), otherwise the value persisted through
-// the admin settings UI is used. It is still scrubbed from OptionMap so the
-// settings API never echoes it back.
+// SMTPToken and GitHubClientSecret are intentionally NOT in this set: they are
+// env-preferred but DB-writable. When the corresponding environment variable is
+// present it still wins (see ApplyEnvManagedSecrets), otherwise the value
+// persisted through the admin settings UI is used. They are still scrubbed from
+// OptionMap so the settings API never echoes them back.
 var EnvManagedSecretOptionKeys = map[string]struct{}{
-	"SMTPToken":                 {},
 	"StripeApiSecret":           {},
 	"StripeWebhookSecret":       {},
 	"BREVO_API_KEY":             {},
@@ -279,12 +278,10 @@ func ApplyEnvManagedSecrets() {
 		TurnstileSecretKey = value
 	}
 
+	// SMTPToken is env-preferred and DB-writable. A Secret Manager value wins
+	// when present, while a Dashboard-saved value remains usable otherwise.
 	if value := firstNonEmptyEnv("SMTP_TOKEN", "SMTPToken"); value != "" {
 		SMTPToken = value
-	} else if _, loaded := os.LookupEnv("SMTP_TOKEN"); loaded {
-		SMTPToken = ""
-	} else if _, loaded := os.LookupEnv("SMTPToken"); loaded {
-		SMTPToken = ""
 	}
 
 	// Public fields: when present in env, win over DB so Cloud Run can fully

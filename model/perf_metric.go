@@ -122,6 +122,21 @@ func DeletePerfMetricsBefore(cutoffTs int64) error {
 	return DB.Where("bucket_ts < ?", cutoffTs).Delete(&PerfMetric{}).Error
 }
 
+// GetPerfMetricModelNamesSince returns the set of model names that have at
+// least one perf_metric bucket since `sinceTs`. Used by the auto-test
+// backfill task to skip models that already have recent data.
+func GetPerfMetricModelNamesSince(sinceTs int64) ([]string, error) {
+	var names []string
+	err := DB.Model(&PerfMetric{}).
+		Select("DISTINCT model_name").
+		Where("bucket_ts >= ? AND request_count > 0", sinceTs).
+		Pluck("model_name", &names).Error
+	if err != nil {
+		return nil, err
+	}
+	return names, nil
+}
+
 func PerfMetricStartTime(hours int) int64 {
 	if hours <= 0 {
 		hours = 24

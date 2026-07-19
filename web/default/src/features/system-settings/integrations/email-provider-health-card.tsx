@@ -17,12 +17,15 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
 import {
-	getTransactionalEmailHealth,
-	retryTransactionalEmailQueue,
-	sendTransactionalEmailTest,
+  getTransactionalEmailHealth,
+  retryTransactionalEmailQueue,
+  sendTransactionalEmailTest,
   switchTransactionalEmailProvider,
 } from '../api'
-import type { TransactionalEmailProvider } from '../types'
+import type {
+  EmailProviderHealth,
+  TransactionalEmailProvider,
+} from '../types'
 import {
   getEmailProviderSwitchState,
   isValidTestEmailRecipient,
@@ -31,10 +34,16 @@ import { SESCredentialPanel } from './ses-credential-panel'
 
 const PROVIDER_ORDER: TransactionalEmailProvider[] = ['brevo', 'ses']
 
+function yesNo(value: boolean | undefined, t: (key: string) => string) {
+  if (value === true) return t('Yes')
+  if (value === false) return t('No')
+  return t('Unknown')
+}
+
 export function EmailProviderHealthCard() {
   const { t } = useTranslation()
-	const queryClient = useQueryClient()
-	const [testRecipient, setTestRecipient] = useState('noahzh52@gmail.com')
+  const queryClient = useQueryClient()
+  const [testRecipient, setTestRecipient] = useState('noahzh52@gmail.com')
   const healthQuery = useQuery({
     queryKey: ['transactional-email-health'],
     queryFn: getTransactionalEmailHealth,
@@ -152,12 +161,12 @@ export function EmailProviderHealthCard() {
   )
 
   const providerLabel = (provider: TransactionalEmailProvider) =>
-    provider === 'brevo' ? 'Brevo' : 'Amazon SES'
+    provider === 'brevo' ? 'Brevo' : t('Amazon SES API')
 
   const failureLabel = (reason?: string) => {
     switch (reason) {
       case 'configuration':
-        return t('Credentials or sender are not configured')
+        return t('One or more SES settings are incomplete')
       case 'authentication':
         return t('Provider authentication failed')
       case 'production_access_required':
@@ -168,6 +177,40 @@ export function EmailProviderHealthCard() {
         return t('Provider is not ready')
     }
   }
+
+  const renderSESDetails = (provider: EmailProviderHealth) => (
+    <div className='text-muted-foreground mt-2 grid gap-1 text-xs sm:grid-cols-2'>
+      <span>
+        {t('Credentials configured')}:{' '}
+        {yesNo(provider.credentials_configured, t)}
+      </span>
+      <span>
+        {t('Region configured')}: {yesNo(provider.region_configured, t)}
+      </span>
+      <span>
+        {t('Sender configured')}: {yesNo(provider.sender_configured, t)}
+      </span>
+      <span>
+        {t('Sending enabled')}: {yesNo(provider.sending_enabled, t)}
+      </span>
+      <span>
+        {t('Production access')}:{' '}
+        {provider.production_access
+          ? t('Approved')
+          : provider.reachable
+            ? t('Pending')
+            : t('Unknown')}
+      </span>
+      <span>
+        {t('Sandbox restrictions')}:{' '}
+        {provider.sandbox_restricted
+          ? t('Restricted (sandbox)')
+          : provider.reachable && provider.production_access
+            ? t('None')
+            : t('Unknown')}
+      </span>
+    </div>
+  )
 
   const renderProvider = (name: TransactionalEmailProvider) => {
     const provider = report.providers.find((item) => item.provider === name)
@@ -196,7 +239,7 @@ export function EmailProviderHealthCard() {
         )}
       >
         <div className='flex items-start justify-between gap-3'>
-          <div>
+          <div className='min-w-0 flex-1'>
             <div className='flex flex-wrap items-center gap-2'>
               <span className='text-sm font-semibold'>
                 {providerLabel(provider.provider)}
@@ -213,18 +256,7 @@ export function EmailProviderHealthCard() {
                 ? t('Configured and reachable')
                 : failureLabel(provider.failure_reason)}
             </p>
-            {provider.provider === 'ses' && (
-              <div className='text-muted-foreground mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs'>
-                <span>
-                  {t('Sending enabled')}:{' '}
-                  {provider.sending_enabled ? t('Yes') : t('No')}
-                </span>
-                <span>
-                  {t('Production access')}:{' '}
-                  {provider.production_access ? t('Approved') : t('Pending')}
-                </span>
-              </div>
-            )}
+            {provider.provider === 'ses' && renderSESDetails(provider)}
           </div>
           <Button
             type='button'
@@ -269,7 +301,7 @@ export function EmailProviderHealthCard() {
           </div>
           <p className='text-muted-foreground mt-1 max-w-2xl text-xs'>
             {t(
-              'Brevo is the production fallback. Switch to Amazon SES only after production access is approved.'
+              'Brevo is the production fallback. Switch to Amazon SES API only after production access is approved and credentials, region, and verified sender are configured.'
             )}
           </p>
         </div>

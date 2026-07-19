@@ -63,3 +63,35 @@ func TestDefaultEmailSenderRejectsMalformedDisplayAddress(t *testing.T) {
 
 	assert.Empty(t, address)
 }
+
+func TestDefaultSESRegionPrefersEnvironmentOverOption(t *testing.T) {
+	common.OptionMapRWMutex.Lock()
+	previous := common.OptionMap
+	common.OptionMap = map[string]string{"AWS_SES_REGION": "ap-southeast-1"}
+	common.OptionMapRWMutex.Unlock()
+	t.Cleanup(func() {
+		common.OptionMapRWMutex.Lock()
+		common.OptionMap = previous
+		common.OptionMapRWMutex.Unlock()
+	})
+
+	t.Setenv("AWS_SES_REGION", "us-east-2")
+	assert.Equal(t, "us-east-2", defaultSESRegion())
+
+	t.Setenv("AWS_SES_REGION", "")
+	assert.Equal(t, "ap-southeast-1", defaultSESRegion())
+}
+
+func TestDefaultEmailFromRawDoesNotRequireLegacySMTPHost(t *testing.T) {
+	previousSMTPFrom := common.SMTPFrom
+	previousSMTPServer := common.SMTPServer
+	common.SMTPFrom = "noreply@novapuraai.com"
+	common.SMTPServer = ""
+	t.Setenv("EMAIL_FROM_ADDRESS", "")
+	t.Cleanup(func() {
+		common.SMTPFrom = previousSMTPFrom
+		common.SMTPServer = previousSMTPServer
+	})
+
+	assert.Equal(t, "noreply@novapuraai.com", defaultEmailFromRaw())
+}

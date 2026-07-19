@@ -20,6 +20,7 @@ import (
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
+	"github.com/QuantumNous/new-api/pkg/perf_metrics"
 	"github.com/QuantumNous/new-api/relay"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
@@ -545,12 +546,50 @@ func testChannel(ctx context.Context, channel *model.Channel, testUserID int, te
 		Group:            info.UsingGroup,
 		Other:            other,
 	})
+	// Channel tests also feed the model-square perf metrics so that models
+	// with no real traffic still show latency / success data. This is what
+	// the perf_metrics_backfill system task relies on to fill empty model
+	// details pages.
+	recordChannelTestPerfSample(info, true, int64(usage.CompletionTokens))
 	common.SysLog(fmt.Sprintf("testing channel #%d, response: \n%s", channel.Id, string(respBody)))
 	return testResult{
 		context:     c,
 		localErr:    nil,
 		newAPIError: nil,
 	}
+}
+
+// recordChannelTestPerfSample feeds a channel-test outcome into the perf
+// metrics pipeline so the model square / model details page has data even
+// before a model receives real user traffic. It mirrors the fields
+// perfmetrics.RecordRelaySample computes for live relay traffic.
+func recordChannelTestPerfSample(info *relaycommon.RelayInfo, success bool, outputTokens int64) {
+	if info == nil {
+		return
+	}
+	hasTtft := info.IsStream && info.HasSendResponse()
+	ttftMs := int64(0)
+	if hasTtft {
+		ttftMs = info.FirstResponseTime.Sub(info.StartTime).Milliseconds()
+	}
+	latencyMs := time.Since(info.StartTime).Milliseconds()
+	generationMs := latencyMs
+	if hasTtft {
+		generationMs = time.Since(info.FirstResponseTime).Milliseconds()
+	}
+	if generationMs <= 0 {
+		generationMs = latencyMs
+	}
+	perfmetrics.Record(perfmetrics.Sample{
+		Model:        info.OriginModelName,
+		Group:        info.UsingGroup,
+		LatencyMs:    latencyMs,
+		TtftMs:       ttftMs,
+		HasTtft:      hasTtft,
+		Success:      success,
+		OutputTokens: outputTokens,
+		GenerationMs: generationMs,
+	})
 }
 
 func attachTestBillingRequestInput(info *relaycommon.RelayInfo, request dto.Request) error {

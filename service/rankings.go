@@ -199,6 +199,14 @@ func buildRankingsSnapshot(config rankingPeriodConfig, now time.Time) (*Rankings
 	}
 
 	meta := buildRankingModelMeta()
+	// Drop usage rows for models that are no longer offered (e.g. a channel
+	// was deleted). Rankings should reflect the current catalog, so models
+	// absent from the pricing/abilities meta are filtered out before any
+	// aggregation. This also keeps vendor share and history consistent with
+	// the ranked model list.
+	currentTotals = filterRankingTotalsByMeta(currentTotals, meta)
+	previousTotals = filterRankingTotalsByMeta(previousTotals, meta)
+	currentBuckets = filterRankingBucketsByMeta(currentBuckets, meta)
 	totalTokens := sumRankingTokens(currentTotals)
 	previousRankByModel := rankingRankMap(previousTotals)
 	previousTokensByModel := rankingTokenMap(previousTotals)
@@ -580,6 +588,41 @@ func limitRankedModels(rows []RankedModel, limit int) []RankedModel {
 		return rows
 	}
 	return rows[:limit]
+}
+
+// filterRankingTotalsByMeta drops totals for models that are not present in the
+// pricing meta. `meta` is keyed by model name; entries that exist indicate the
+// model is currently offered. This is what hides deleted-channel models (e.g.
+// Kimi after its channel was removed) from the rankings.
+func filterRankingTotalsByMeta(totals []model.RankingQuotaTotal, meta map[string]rankingModelMeta) []model.RankingQuotaTotal {
+	if len(meta) == 0 {
+		return totals
+	}
+	filtered := make([]model.RankingQuotaTotal, 0, len(totals))
+	for _, item := range totals {
+		if _, ok := meta[item.ModelName]; !ok {
+			continue
+		}
+		filtered = append(filtered, item)
+	}
+	return filtered
+}
+
+// filterRankingBucketsByMeta drops bucket rows for models not in the pricing
+// meta, for the same reason as filterRankingTotalsByMeta — keeps the history
+// chart consistent with the ranked list.
+func filterRankingBucketsByMeta(buckets []model.RankingQuotaBucket, meta map[string]rankingModelMeta) []model.RankingQuotaBucket {
+	if len(meta) == 0 {
+		return buckets
+	}
+	filtered := make([]model.RankingQuotaBucket, 0, len(buckets))
+	for _, item := range buckets {
+		if _, ok := meta[item.ModelName]; !ok {
+			continue
+		}
+		filtered = append(filtered, item)
+	}
+	return filtered
 }
 
 func limitRankingMovers(rows []RankingMover, limit int) []RankingMover {

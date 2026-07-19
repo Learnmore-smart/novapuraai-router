@@ -8,8 +8,8 @@ export const MAIN_BASE_CLASSES = 'bg-background text-foreground w-full'
 export const LANDING_MODEL_ROWS = [
   { name: 'GLM 5.2', note: 'Pay per token' },
   { name: 'DeepSeek V4 Pro', note: 'Pay per token' },
-  { name: 'Kimi K2.6', note: 'Pay per token' },
   { name: 'Nemotron 3 Ultra', note: 'Pay per token' },
+  { name: 'Laguna XS 2.1', note: 'Pay per token' },
 ] as const
 
 /** Used by legacy GatewayCard if still mounted somewhere. */

@@ -250,6 +250,36 @@ func TestApplyEnvManagedSecretsKeepsTurnstileSecretWhenEnvironmentIsBlank(t *tes
 	assert.Equal(t, "dashboard-secret", TurnstileSecretKey)
 }
 
+func TestApplyEnvManagedSecretsKeepsSMTPTokenFromDBWhenEnvironmentIsBlank(t *testing.T) {
+	originalToken := SMTPToken
+	OptionMapRWMutex.Lock()
+	originalOptionMap := OptionMap
+	OptionMap = map[string]string{}
+	OptionMapRWMutex.Unlock()
+	t.Cleanup(func() {
+		SMTPToken = originalToken
+		OptionMapRWMutex.Lock()
+		OptionMap = originalOptionMap
+		OptionMapRWMutex.Unlock()
+	})
+
+	// Simulate a value hydrated from the options table / admin write with no
+	// SMTP_TOKEN in the environment.
+	SMTPToken = "dashboard-smtp-token"
+	t.Setenv("SMTP_TOKEN", "")
+
+	ApplyEnvManagedSecrets()
+
+	// DB value is preserved (env-preferred, DB-fallback)...
+	assert.Equal(t, "dashboard-smtp-token", SMTPToken)
+
+	OptionMapRWMutex.RLock()
+	defer OptionMapRWMutex.RUnlock()
+	// ...but never echoed back through the settings API.
+	assert.Equal(t, "", OptionMap["SMTPToken"])
+	assert.Equal(t, "true", OptionMap["SMTPTokenConfigured"])
+}
+
 func TestGitHubOAuthFailClosedWithoutSecret(t *testing.T) {
 	originalEnabled := GitHubOAuthEnabled
 	originalClientId := GitHubClientId
@@ -272,7 +302,9 @@ func TestGitHubOAuthFailClosedWithoutSecret(t *testing.T) {
 
 func TestIsEnvManagedSecretOptionKey(t *testing.T) {
 	assert.False(t, IsEnvManagedSecretOptionKey("TurnstileSecretKey"))
-	assert.True(t, IsEnvManagedSecretOptionKey("SMTPToken"))
+	// SMTPToken is env-preferred but DB-writable, so it is not treated as a
+	// strictly env-managed key that the admin API must reject.
+	assert.False(t, IsEnvManagedSecretOptionKey("SMTPToken"))
 	assert.True(t, IsEnvManagedSecretOptionKey("BREVO_API_KEY"))
 	assert.True(t, IsEnvManagedSecretOptionKey("AWS_SES_ACCESS_KEY_ID"))
 	assert.True(t, IsEnvManagedSecretOptionKey("AWS_SES_SECRET_ACCESS_KEY"))

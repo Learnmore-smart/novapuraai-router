@@ -69,6 +69,8 @@ func InitOptionMap() {
 	common.OptionMap["SMTPStartTLSEnabled"] = strconv.FormatBool(common.SMTPStartTLSEnabled)
 	common.OptionMap["SMTPInsecureSkipVerify"] = strconv.FormatBool(common.SMTPInsecureSkipVerify)
 	common.OptionMap["SMTPForceAuthLogin"] = strconv.FormatBool(common.SMTPForceAuthLogin)
+	// SES region is non-secret and Dashboard-writable; environment wins at runtime.
+	common.OptionMap["AWS_SES_REGION"] = strings.TrimSpace(os.Getenv("AWS_SES_REGION"))
 	emailProvider := strings.ToLower(strings.TrimSpace(os.Getenv("EMAIL_PROVIDER")))
 	if emailProvider != EmailProviderSES {
 		emailProvider = EmailProviderBrevo
@@ -457,8 +459,12 @@ func updateOptionMap(key string, value string) (err error) {
 	case "SMTPFrom":
 		common.SMTPFrom = value
 	case "SMTPToken":
-		// Environment / Secret Manager is the only source of truth.
+		// Env-preferred, DB-writable. ApplyEnvManagedSecrets re-applies the
+		// environment value when SMTP_TOKEN is set, then scrubs this value
+		// from OptionMap so the settings API never echoes it.
+		common.SMTPToken = value
 		common.OptionMap[key] = ""
+		common.OptionMap["SMTPTokenConfigured"] = strconv.FormatBool(strings.TrimSpace(value) != "")
 		return nil
 	case "ServerAddress":
 		system_setting.ServerAddress = value

@@ -212,7 +212,15 @@ func InitDB() (err error) {
 		}
 		common.SysLog("database migration started")
 		err = migrateDB()
-		return err
+		if err != nil {
+			return err
+		}
+		// Sync vendor icons to match the current defaultVendorIcons map so
+		// updates to the map (e.g. Meta -> /model-icons/meta.svg, new NVIDIA /
+		// Poolside / Step / Sarvam entries) take effect on existing DB rows
+		// without manual intervention.
+		SyncDefaultVendorIcons()
+		return nil
 	} else {
 		common.FatalLog(err)
 	}

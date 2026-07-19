@@ -1,7 +1,10 @@
 package model
 
 import (
+	"fmt"
 	"strings"
+
+	"github.com/QuantumNous/new-api/common"
 )
 
 // 简化的供应商映射规则
@@ -32,6 +35,10 @@ var defaultVendorRules = map[string]string{
 	"mistral":    "Mistral",
 	"grok":       "xAI",
 	"llama":      "Meta",
+	"laguna":     "Poolside",
+	"nemotron":   "NVIDIA",
+	"step":       "Step",
+	"sarvam":     "Sarvam",
 	"doubao":     "字节跳动",
 	"kling":      "快手",
 	"jimeng":     "即梦",
@@ -48,6 +55,10 @@ var defaultVendorRules = map[string]string{
 }
 
 // 供应商默认图标映射
+// Values are either @lobehub/icons component specs (e.g. "OpenAI",
+// "Claude.Color") or local image paths under /model-icons/ (e.g.
+// "/model-icons/meta.svg"). The frontend getLobeIcon resolver detects paths
+// starting with "/" and renders an <img> tag instead of a LobeHub component.
 var defaultVendorIcons = map[string]string{
 	"OpenAI":     "OpenAI",
 	"Anthropic":  "Claude.Color",
@@ -67,7 +78,11 @@ var defaultVendorIcons = map[string]string{
 	"Jina":       "Jina",
 	"Mistral":    "Mistral.Color",
 	"xAI":        "XAI",
-	"Meta":       "Ollama",
+	"Meta":       "/model-icons/meta.svg",
+	"Poolside":   "/model-icons/poolside.svg",
+	"NVIDIA":     "/model-icons/nvidia-logo-horz.svg",
+	"Step":       "/model-icons/step.png",
+	"Sarvam":     "/model-icons/sarvam-ai-logo.png",
 	"字节跳动":       "Doubao.Color",
 	"快手":         "Kling.Color",
 	"即梦":         "Jimeng.Color",
@@ -142,4 +157,37 @@ func getDefaultVendorIcon(vendorName string) string {
 		return icon
 	}
 	return ""
+}
+
+// SyncDefaultVendorIcons updates existing Vendor rows so their icon column
+// matches the current defaultVendorIcons map. This is called once on startup
+// after migration so that changes to the default icon map (e.g. fixing the
+// Meta -> Ollama mapping, or adding NVIDIA / Poolside / Step / Sarvam) are
+// reflected without requiring manual DB edits. Vendors whose name is not in
+// the default map are left untouched, preserving admin customizations for
+// any vendor that was hand-added through the UI.
+func SyncDefaultVendorIcons() {
+	if DB == nil {
+		return
+	}
+	var vendors []Vendor
+	if err := DB.Find(&vendors).Error; err != nil {
+		common.SysError(fmt.Sprintf("SyncDefaultVendorIcons load failed: %v", err))
+		return
+	}
+	updated := 0
+	for _, v := range vendors {
+		defaultIcon, ok := defaultVendorIcons[v.Name]
+		if !ok || defaultIcon == "" || v.Icon == defaultIcon {
+			continue
+		}
+		if err := DB.Model(&Vendor{}).Where("id = ?", v.Id).Update("icon", defaultIcon).Error; err != nil {
+			common.SysError(fmt.Sprintf("SyncDefaultVendorIcons update failed vendor=%s: %v", v.Name, err))
+			continue
+		}
+		updated++
+	}
+	if updated > 0 {
+		common.SysLog(fmt.Sprintf("SyncDefaultVendorIcons: updated %d vendor icon(s) to match defaults", updated))
+	}
 }

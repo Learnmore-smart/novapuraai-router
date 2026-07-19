@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/mail"
 	"os"
 	"strings"
 
@@ -26,13 +27,18 @@ type SESCredentialStatus struct {
 	Configured      bool                `json:"configured"`
 	Source          SESCredentialSource `json:"source"`
 	HasSessionToken bool                `json:"has_session_token"`
+	// Non-secret SES settings shown in the Dashboard form.
+	Region      string `json:"region"`
+	FromAddress string `json:"from_address"`
 }
 
 type SESCredentialUpdate struct {
-	AccessKeyID       string `json:"access_key_id"`
-	SecretAccessKey   string `json:"secret_access_key"`
-	SessionToken      string `json:"session_token"`
-	ClearSessionToken bool   `json:"clear_session_token"`
+	AccessKeyID       string  `json:"access_key_id"`
+	SecretAccessKey   string  `json:"secret_access_key"`
+	SessionToken      string  `json:"session_token"`
+	ClearSessionToken bool    `json:"clear_session_token"`
+	Region            *string `json:"region"`
+	FromAddress       *string `json:"from_address"`
 }
 
 type sesCredentialResolution struct {
@@ -42,18 +48,44 @@ type sesCredentialResolution struct {
 
 func GetSESCredentialStatus(context.Context) (SESCredentialStatus, error) {
 	resolution, err := resolveSESCredentials(os.Getenv, model.LoadSESCredentials)
-	return resolution.Status, err
+	if err != nil {
+		return SESCredentialStatus{}, err
+	}
+	return attachSESSettings(resolution.Status), nil
 }
 
 func SaveSESCredentials(_ context.Context, update SESCredentialUpdate) (SESCredentialStatus, error) {
-	_, err := model.SaveSESCredentials(model.SESCredentialUpdate{
-		AccessKeyID:       update.AccessKeyID,
-		SecretAccessKey:   update.SecretAccessKey,
-		SessionToken:      update.SessionToken,
-		ClearSessionToken: update.ClearSessionToken,
-	})
-	if err != nil {
-		return SESCredentialStatus{}, err
+	hasCredentialChange := update.AccessKeyID != "" ||
+		update.SecretAccessKey != "" ||
+		update.SessionToken != "" ||
+		update.ClearSessionToken
+	if hasCredentialChange {
+		_, err := model.SaveSESCredentials(model.SESCredentialUpdate{
+			AccessKeyID:       update.AccessKeyID,
+			SecretAccessKey:   update.SecretAccessKey,
+			SessionToken:      update.SessionToken,
+			ClearSessionToken: update.ClearSessionToken,
+		})
+		if err != nil {
+			return SESCredentialStatus{}, err
+		}
+	}
+	if update.Region != nil {
+		if err := model.UpdateOption("AWS_SES_REGION", strings.TrimSpace(*update.Region)); err != nil {
+			return SESCredentialStatus{}, err
+		}
+	}
+	if update.FromAddress != nil {
+		fromAddress := strings.TrimSpace(*update.FromAddress)
+		if fromAddress != "" {
+			parsed, err := mail.ParseAddress(fromAddress)
+			if err != nil || parsed.Address == "" || !strings.Contains(parsed.Address, "@") {
+				return SESCredentialStatus{}, fmt.Errorf("invalid SES from address")
+			}
+		}
+		if err := model.UpdateOption("SMTPFrom", fromAddress); err != nil {
+			return SESCredentialStatus{}, err
+		}
 	}
 	if err := reloadDefaultSESProvider(); err != nil {
 		return SESCredentialStatus{}, err
@@ -69,6 +101,18 @@ func DeleteSESCredentials(context.Context) (SESCredentialStatus, error) {
 		return SESCredentialStatus{}, err
 	}
 	return GetSESCredentialStatus(context.Background())
+}
+
+func attachSESSettings(status SESCredentialStatus) SESCredentialStatus {
+	status.Region = defaultSESRegion()
+	status.FromAddress = defaultEmailFromRaw()
+	return status
+}
+
+// ReloadDefaultSESProvider rebuilds the in-process SES provider after non-secret
+// settings such as region or sender change through the options API.
+func ReloadDefaultSESProvider() error {
+	return reloadDefaultSESProvider()
 }
 
 func resolveSESCredentials(

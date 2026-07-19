@@ -146,6 +146,11 @@ For commercial licensing, please contact support@quantumnous.com
 
   .np-marquee-track {
     animation: np-marquee 34s linear infinite;
+    /* Promote to a dedicated compositor layer so the loop boundary does not
+       stutter on the main thread. backface-visibility:hidden is the
+       standard no-flicker hint for transform-driven marquees. */
+    backface-visibility: hidden;
+    will-change: transform;
   }
 
   @keyframes np-marquee {

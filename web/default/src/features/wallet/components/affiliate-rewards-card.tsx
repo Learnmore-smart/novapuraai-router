@@ -7,6 +7,12 @@ import { Card, CardContent } from '@/components/ui/card'
 import { IconBadge } from '@/components/ui/icon-badge'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { formatQuota } from '@/lib/format'
 
 import type { UserWalletData } from '../types'
@@ -53,11 +59,24 @@ export function AffiliateRewardsCard({
             <h3 className='truncate text-sm font-semibold'>
               {t('Referral Program')}
             </h3>
-            <p className='text-muted-foreground line-clamp-1 text-xs'>
-              {t(
-                'Earn ¥100 in API credits for both you and each friend you invite, once they verify their email and complete their first billable request.'
-              )}
-            </p>
+            <TooltipProvider delay={0}>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <p className='text-muted-foreground line-clamp-1 cursor-help text-xs' />
+                  }
+                >
+                  {t(
+                    'Earn ¥100 in API credits for both you and each friend you invite, once they verify their email and complete their first billable request.'
+                  )}
+                </TooltipTrigger>
+                <TooltipContent className='max-w-sm text-xs leading-relaxed'>
+                  {t(
+                    'Earn ¥100 in API credits for both you and each friend you invite, once they verify their email and complete their first billable request.'
+                  )}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
 

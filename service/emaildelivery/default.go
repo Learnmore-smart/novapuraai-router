@@ -71,7 +71,7 @@ func DefaultService() *Service {
 		ses, err := buildDefaultSESProvider(client)
 		if err != nil {
 			common.SysError("transactional SES credential loading failed")
-			ses = newSESProvider(nil, "", false)
+			ses = newSESProvider(nil, "", false, false, false)
 		}
 
 		defaultService = NewService(map[ProviderName]Provider{
@@ -83,10 +83,7 @@ func DefaultService() *Service {
 }
 
 func defaultEmailSender() (string, string) {
-	fromAddress := strings.TrimSpace(os.Getenv("EMAIL_FROM_ADDRESS"))
-	if fromAddress == "" {
-		fromAddress = strings.TrimSpace(common.SMTPFrom)
-	}
+	fromAddress := defaultEmailFromRaw()
 	fromName := strings.TrimSpace(os.Getenv("EMAIL_FROM_NAME"))
 	if fromAddress != "" {
 		parsed, err := mail.ParseAddress(fromAddress)
@@ -105,8 +102,29 @@ func defaultEmailSender() (string, string) {
 	return fromAddress, fromName
 }
 
+// defaultEmailFromRaw returns the configured sender as entered (display form
+// allowed). Environment EMAIL_FROM_ADDRESS wins over the SMTPFrom option.
+// Other legacy SMTP fields are intentionally ignored.
+func defaultEmailFromRaw() string {
+	if fromAddress := strings.TrimSpace(os.Getenv("EMAIL_FROM_ADDRESS")); fromAddress != "" {
+		return fromAddress
+	}
+	return strings.TrimSpace(common.SMTPFrom)
+}
+
 func defaultEmailReplyTo() string {
 	return strings.TrimSpace(os.Getenv("EMAIL_REPLY_TO"))
+}
+
+// defaultSESRegion resolves the SES region without requiring legacy SMTP
+// fields. Environment AWS_SES_REGION wins over the Dashboard option value.
+func defaultSESRegion() string {
+	if region := strings.TrimSpace(os.Getenv("AWS_SES_REGION")); region != "" {
+		return region
+	}
+	common.OptionMapRWMutex.RLock()
+	defer common.OptionMapRWMutex.RUnlock()
+	return strings.TrimSpace(common.OptionMap["AWS_SES_REGION"])
 }
 
 func buildDefaultSESProvider(client *http.Client) (*sesProvider, error) {
@@ -119,21 +137,30 @@ func buildDefaultSESProvider(client *http.Client) (*sesProvider, error) {
 	if fromName != "" && fromAddress != "" {
 		sesFromAddress = (&mail.Address{Name: fromName, Address: fromAddress}).String()
 	}
-	region := strings.TrimSpace(os.Getenv("AWS_SES_REGION"))
-	sesClient := sesv2.NewFromConfig(aws.Config{
-		Region: region,
-		Credentials: credentials.NewStaticCredentialsProvider(
-			resolution.Credentials.AccessKeyID,
-			resolution.Credentials.SecretAccessKey,
-			resolution.Credentials.SessionToken,
-		),
-		HTTPClient:       client,
-		RetryMaxAttempts: 1,
-	})
+	region := defaultSESRegion()
+	credentialsConfigured := resolution.Status.Configured
+	regionConfigured := region != ""
+	senderConfigured := fromAddress != ""
+
+	var sesClient sesAPI
+	if credentialsConfigured && regionConfigured {
+		sesClient = sesv2.NewFromConfig(aws.Config{
+			Region: region,
+			Credentials: credentials.NewStaticCredentialsProvider(
+				resolution.Credentials.AccessKeyID,
+				resolution.Credentials.SecretAccessKey,
+				resolution.Credentials.SessionToken,
+			),
+			HTTPClient:       client,
+			RetryMaxAttempts: 1,
+		})
+	}
 	provider := newSESProvider(
 		sesClient,
 		sesFromAddress,
-		resolution.Status.Configured && region != "" && fromAddress != "",
+		credentialsConfigured,
+		regionConfigured,
+		senderConfigured,
 	)
 	provider.replyToAddress = defaultEmailReplyTo()
 	return provider, nil

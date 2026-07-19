@@ -42,13 +42,17 @@ type ProviderResult struct {
 }
 
 type ProviderHealth struct {
-	Provider         ProviderName `json:"provider"`
-	Configured       bool         `json:"configured"`
-	Reachable        bool         `json:"reachable"`
-	Ready            bool         `json:"ready"`
-	SendingEnabled   bool         `json:"sending_enabled,omitempty"`
-	ProductionAccess bool         `json:"production_access,omitempty"`
-	FailureReason    string       `json:"failure_reason,omitempty"`
+	Provider              ProviderName `json:"provider"`
+	Configured            bool         `json:"configured"`
+	Reachable             bool         `json:"reachable"`
+	Ready                 bool         `json:"ready"`
+	CredentialsConfigured bool         `json:"credentials_configured,omitempty"`
+	RegionConfigured      bool         `json:"region_configured,omitempty"`
+	SenderConfigured      bool         `json:"sender_configured,omitempty"`
+	SendingEnabled        bool         `json:"sending_enabled,omitempty"`
+	ProductionAccess      bool         `json:"production_access,omitempty"`
+	SandboxRestricted     bool         `json:"sandbox_restricted,omitempty"`
+	FailureReason         string       `json:"failure_reason,omitempty"`
 }
 
 type DeliveryError struct {
