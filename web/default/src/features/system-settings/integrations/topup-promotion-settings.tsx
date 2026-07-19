@@ -86,7 +86,8 @@ const EMPTY_VALUES: TopupPromotionFormValues = {
     endAt: '',
     globalBudgetUSD: 0,
     perUserLimit: 0,
-    defaultPromoExpiryDays: 30,
+    // 0 = promotional top-up lots never expire (preferred launch default).
+    defaultPromoExpiryDays: 0,
   },
 }
 
@@ -475,6 +476,11 @@ export function TopupPromotionSettings({
                       valueAsNumber: true,
                     })}
                   />
+                  <FieldDescription>
+                    {t(
+                      'Applies only to promotional bonus lots from future top-ups. 0 means never expire. Paid cash credits never expire. Already-issued lots keep their original expiry.'
+                    )}
+                  </FieldDescription>
                 </Field>
               </div>
               <div className='flex flex-wrap gap-2'>

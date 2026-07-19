@@ -43,7 +43,7 @@ func TestSeedLaunchTopupPromotionCreatesSharedRepeatableBands(t *testing.T) {
 	assert.True(t, campaign.Enabled)
 	assert.Zero(t, campaign.PerUserLimit)
 	assert.Zero(t, campaign.GlobalBudgetMicroUSD)
-	assert.Equal(t, 30, campaign.DefaultPromoExpiryDays)
+	assert.Zero(t, campaign.DefaultPromoExpiryDays)
 
 	var tiers []TopupPromoTier
 	require.NoError(t, db.Where("campaign_id = ? AND currency = ? AND payment_amount_minor = ?", campaign.Id, "*", 0).Order("sort_order asc").Find(&tiers).Error)

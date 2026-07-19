@@ -41,9 +41,11 @@ export function WalletStatsCard(props: WalletStatsCardProps) {
     tone: IconBadgeTone
   }[] = [
     {
-      label: t('Total Balance'),
+      label: t('API Balance'),
       value: formatQuota(total),
-      description: t('Cash + gift (promo spent first)'),
+      description: t(
+        'Spendable for API calls. Cash + gift (gift is used first).'
+      ),
       icon: WalletCards,
       tone: 'success',
     },
@@ -57,17 +59,16 @@ export function WalletStatsCard(props: WalletStatsCardProps) {
     {
       label: t('Gift / Promo'),
       value: formatQuota(promo),
-      description: t('Register, invite, share rewards'),
+      description: t('Register, invite, share, and top-up bonuses'),
       icon: Gift,
       tone: 'chart-4',
     },
     {
       label: t('Total Usage'),
       value: formatQuota(props.user?.used_quota ?? 0),
-      description: t(
-        'Requests: {{count}}',
-        { count: props.user?.request_count ?? 0 }
-      ),
+      description: t('Requests: {{count}}', {
+        count: props.user?.request_count ?? 0,
+      }),
       icon: BarChart3,
       tone: 'warning',
     },

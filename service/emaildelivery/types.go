@@ -46,13 +46,15 @@ type ProviderHealth struct {
 	Configured            bool         `json:"configured"`
 	Reachable             bool         `json:"reachable"`
 	Ready                 bool         `json:"ready"`
-	CredentialsConfigured bool         `json:"credentials_configured,omitempty"`
-	RegionConfigured      bool         `json:"region_configured,omitempty"`
-	SenderConfigured      bool         `json:"sender_configured,omitempty"`
-	SendingEnabled        bool         `json:"sending_enabled,omitempty"`
-	ProductionAccess      bool         `json:"production_access,omitempty"`
-	SandboxRestricted     bool         `json:"sandbox_restricted,omitempty"`
-	FailureReason         string       `json:"failure_reason,omitempty"`
+	// SES component flags omit omitempty so false serializes as false
+	// (not dropped), and the Dashboard can report each piece separately.
+	CredentialsConfigured bool   `json:"credentials_configured"`
+	RegionConfigured      bool   `json:"region_configured"`
+	SenderConfigured      bool   `json:"sender_configured"`
+	SendingEnabled        bool   `json:"sending_enabled"`
+	ProductionAccess      bool   `json:"production_access"`
+	SandboxRestricted     bool   `json:"sandbox_restricted"`
+	FailureReason         string `json:"failure_reason,omitempty"`
 }
 
 type DeliveryError struct {

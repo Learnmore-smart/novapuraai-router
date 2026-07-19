@@ -28,7 +28,8 @@ type TopupPromotionCampaign struct {
 	ReservedPromoMicroUSD  int64  `json:"reserved_promo_micro_usd" gorm:"not null;default:0"`
 	IssuedPromoMicroUSD    int64  `json:"issued_promo_micro_usd" gorm:"not null;default:0"`
 	PerUserLimit           int    `json:"per_user_limit" gorm:"not null;default:0"`
-	DefaultPromoExpiryDays int    `json:"default_promo_expiry_days" gorm:"not null;default:30"`
+	// 0 = promotional top-up bonus lots never expire.
+	DefaultPromoExpiryDays int `json:"default_promo_expiry_days" gorm:"not null;default:0"`
 	CreatedAt              int64  `json:"created_at" gorm:"not null"`
 	UpdatedAt              int64  `json:"updated_at" gorm:"not null"`
 }
@@ -102,14 +103,15 @@ func SeedLaunchTopupPromotion(db *gorm.DB) error {
 	}
 	now := common.GetTimestamp()
 	campaign := TopupPromotionCampaign{Id: LaunchTopupPromotionCampaignID}
-	if err := db.Where("id = ?", LaunchTopupPromotionCampaignID).Attrs(TopupPromotionCampaign{
-		Name:                   "NovaPuraAI launch top-up promotion",
-		Enabled:                true,
-		PerUserLimit:           0,
-		GlobalBudgetMicroUSD:   0,
-		DefaultPromoExpiryDays: 30,
-		CreatedAt:              now,
-		UpdatedAt:              now,
+	// Use a map so zero-value fields (DefaultPromoExpiryDays=0) are not dropped by GORM Attrs.
+	if err := db.Where("id = ?", LaunchTopupPromotionCampaignID).Attrs(map[string]any{
+		"name":                      "NovaPuraAI launch top-up promotion",
+		"enabled":                   true,
+		"per_user_limit":            0,
+		"global_budget_micro_usd":   0,
+		"default_promo_expiry_days": 0,
+		"created_at":                now,
+		"updated_at":                now,
 	}).FirstOrCreate(&campaign).Error; err != nil {
 		return err
 	}

@@ -9,6 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sesv2/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/QuantumNous/new-api/common"
 )
 
 func TestSESProviderMapsProviderIndependentMessage(t *testing.T) {
@@ -108,6 +110,28 @@ func TestSESProviderReportsPartialConfigurationComponents(t *testing.T) {
 	assert.False(t, health.SenderConfigured)
 	assert.Equal(t, FailureConfiguration, health.FailureReason)
 	assert.Zero(t, client.accountCalls)
+}
+
+func TestSESProviderHealthJSONIncludesFalseComponentFlags(t *testing.T) {
+	// false must serialize as false, not be dropped by omitempty, so the
+	// Dashboard can show Yes/No per SES component instead of Unknown.
+	client := &fakeSESClient{}
+	provider := newSESProvider(client, "", true, false, false)
+
+	health := provider.Health(context.Background())
+	payload, err := common.Marshal(health)
+	require.NoError(t, err)
+
+	var raw map[string]any
+	require.NoError(t, common.Unmarshal(payload, &raw))
+
+	assert.Equal(t, true, raw["credentials_configured"])
+	assert.Equal(t, false, raw["region_configured"])
+	assert.Equal(t, false, raw["sender_configured"])
+	assert.Equal(t, false, raw["production_access"])
+	assert.Equal(t, false, raw["sandbox_restricted"])
+	assert.Equal(t, false, raw["sending_enabled"])
+	assert.Equal(t, false, raw["configured"])
 }
 
 func testMessage() Message {

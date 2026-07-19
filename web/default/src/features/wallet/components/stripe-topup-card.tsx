@@ -103,12 +103,12 @@ export function StripeTopupCard() {
   }, [topup.selectedCurrency])
 
   const enabledCurrencyItems = CURRENCY_ITEMS.filter((item) =>
-    topup.config?.config.currencies.includes(item.value)
+    topup.config?.config?.currencies?.includes(item.value)
   )
   const selectedOffer = topup.offers.find(
     (offer) => offer.payment_amount_minor === topup.selectedAmountMinor
   )
-  const [minimumMinor, maximumMinor] = topup.config?.config.min_max_minor[
+  const [minimumMinor, maximumMinor] = topup.config?.config?.min_max_minor?.[
     topup.selectedCurrency
   ] ?? [0, 0]
   const minimumDisplay = (minimumMinor / 100).toFixed(2)
@@ -225,22 +225,12 @@ export function StripeTopupCard() {
       </CardHeader>
 
       <CardContent className='flex flex-col gap-4'>
-        <div className='bg-muted/40 grid gap-1 rounded-xl p-4 sm:grid-cols-[1fr_auto] sm:items-end'>
-          <div>
-            <p className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>
-              {t('Current API balance')} ·{' '}
-              {topup.selectedCurrency.toUpperCase()}
-            </p>
-            <p className='mt-1 font-mono text-2xl font-semibold tabular-nums'>
-              {topup.config.api_balance.total_display}
-            </p>
-          </div>
-          <p className='text-muted-foreground text-sm'>
-            {t('Includes {{amount}} promotional credits', {
-              amount: topup.config.api_balance.promo_display,
-            })}
-          </p>
-        </div>
+        {/* Balance lives only in WalletStatsCard — do not re-display with presentment FX. */}
+        <p className='text-muted-foreground text-sm'>
+          {t(
+            'Your spendable API balance is shown at the top of this page. Amounts below are what you pay and receive for this top-up only.'
+          )}
+        </p>
 
         {topup.offers.length === 0 ? (
           <Empty>
