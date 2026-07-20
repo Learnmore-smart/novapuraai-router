@@ -19,6 +19,7 @@ const defaultBillingSettings: BillingSettings = {
   'general_setting.quota_display_type': 'USD',
   'general_setting.custom_currency_symbol': '¤',
   'general_setting.custom_currency_exchange_rate': 1,
+  'general_setting.cad_exchange_rate': 1.37,
   DisplayInCurrencyEnabled: true,
   DisplayTokenStatEnabled: true,
   ModelPrice: '',

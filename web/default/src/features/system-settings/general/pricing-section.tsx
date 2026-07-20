@@ -47,9 +47,13 @@ const createPricingSchema = (t: (key: string) => string) =>
       DisplayInCurrencyEnabled: z.boolean(),
       DisplayTokenStatEnabled: z.boolean(),
       general_setting: z.object({
-        quota_display_type: z.enum(['USD', 'CNY', 'TOKENS', 'CUSTOM']),
+        quota_display_type: z.enum(['USD', 'CNY', 'CAD', 'TOKENS', 'CUSTOM']),
         custom_currency_symbol: z.string().max(8).optional(),
         custom_currency_exchange_rate: z.coerce
+          .number()
+          .min(0.0001, t('Exchange rate must be greater than 0'))
+          .optional(),
+        cad_exchange_rate: z.coerce
           .number()
           .min(0.0001, t('Exchange rate must be greater than 0'))
           .optional(),
@@ -74,6 +78,14 @@ const createPricingSchema = (t: (key: string) => string) =>
             message: t('Exchange rate is required'),
           })
         }
+      }
+
+      if (displayType === 'CAD' && data.general_setting.cad_exchange_rate == null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['general_setting', 'cad_exchange_rate'],
+          message: t('CAD exchange rate is required'),
+        })
       }
     })
 
@@ -177,6 +189,7 @@ export function PricingSection({ defaultValues }: PricingSectionProps) {
                     items={[
                       { value: 'USD', label: t('USD') },
                       { value: 'CNY', label: t('CNY') },
+                      { value: 'CAD', label: t('CAD') },
                       { value: 'CUSTOM', label: t('Custom Currency') },
                       { value: 'TOKENS', label: t('Tokens Only') },
                     ]}
@@ -192,6 +205,7 @@ export function PricingSection({ defaultValues }: PricingSectionProps) {
                       <SelectGroup>
                         <SelectItem value='USD'>{t('USD')}</SelectItem>
                         <SelectItem value='CNY'>{t('CNY')}</SelectItem>
+                        <SelectItem value='CAD'>{t('CAD')}</SelectItem>
                         <SelectItem value='CUSTOM'>
                           {t('Custom Currency')}
                         </SelectItem>
@@ -235,6 +249,29 @@ export function PricingSection({ defaultValues }: PricingSectionProps) {
                       {t(
                         'Real exchange rate between USD and your payment gateway currency'
                       )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {displayType === 'CAD' && (
+              <FormField
+                control={form.control}
+                name='general_setting.cad_exchange_rate'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('CAD per USD')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='number'
+                        step='0.01'
+                        {...safeNumberFieldProps(field)}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t('Conversion rate from USD to CAD')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

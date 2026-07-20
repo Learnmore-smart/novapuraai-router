@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 
 import { DEFAULT_SYSTEM_NAME, DEFAULT_LOGO } from '@/lib/constants'
 
-export type CurrencyDisplayType = 'USD' | 'CNY' | 'TOKENS' | 'CUSTOM'
+export type CurrencyDisplayType = 'USD' | 'CNY' | 'CAD' | 'TOKENS' | 'CUSTOM'
 
 export interface CurrencyConfig {
   /** Whether to render quota values as currency instead of raw units */
@@ -18,6 +18,8 @@ export interface CurrencyConfig {
   customCurrencySymbol: string
   /** Exchange rate from USD to the custom currency (used when type === CUSTOM) */
   customCurrencyExchangeRate: number
+  /** Exchange rate from USD to CAD (used when type === CAD) */
+  cadExchangeRate: number
 }
 
 export interface SystemConfig {
@@ -36,6 +38,7 @@ export const DEFAULT_CURRENCY_CONFIG: CurrencyConfig = {
   usdExchangeRate: 1,
   customCurrencySymbol: '¤',
   customCurrencyExchangeRate: 1,
+  cadExchangeRate: 1.37,
 }
 
 interface SystemConfigState {

@@ -13,11 +13,16 @@ import { useTranslation } from 'react-i18next'
 
 import { StaggerContainer, StaggerItem } from '@/components/page-transition'
 import { Button } from '@/components/ui/button'
+import { CurrencySwitcher } from '@/components/currency-switcher'
 import { getUserQuotaDates } from '@/features/dashboard/api'
 import { useSummaryCardsConfig } from '@/features/dashboard/hooks/use-dashboard-config'
 import type { QuotaDataItem } from '@/features/dashboard/types'
 import { useStatus } from '@/hooks/use-status'
-import { getCurrencyLabel, isCurrencyDisplayEnabled } from '@/lib/currency'
+import {
+  getCurrencyLabel,
+  isCurrencyDisplayEnabled,
+  useCurrencyPreferenceVersion,
+} from '@/lib/currency'
 import { formatNumber, formatQuota } from '@/lib/format'
 import { computeTimeRange } from '@/lib/time'
 import { cn } from '@/lib/utils'
@@ -130,6 +135,8 @@ export function SummaryCards() {
   const { t } = useTranslation()
   const user = useAuthStore((state) => state.auth.user)
   const { status, loading } = useStatus()
+  // Re-render when user switches currency in the inline switcher.
+  useCurrencyPreferenceVersion()
 
   const summaryTimeRange = useMemo(() => computeTimeRange(1), [])
   const {
@@ -286,6 +293,7 @@ export function SummaryCards() {
                 {t('Available balance')}
               </span>
               <span className='flex items-center gap-1.5'>
+                <CurrencySwitcher className='h-6 px-1.5 text-[11px]' />
                 <span
                   className={cn('size-1.5 rounded-full', healthCfg.dotClass)}
                   aria-hidden='true'

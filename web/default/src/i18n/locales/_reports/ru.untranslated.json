@@ -1,11 +1,15 @@
 {
+  "CAD exchange rate is required": "CAD exchange rate is required",
+  "CAD per USD": "CAD per USD",
   "Chat Completions": "Chat Completions",
   "Cursor": "Cursor",
+  "Conversion rate from USD to CAD": "Conversion rate from USD to CAD",
   "Embeddings": "Embeddings",
   "LangChain / LlamaIndex": "LangChain / LlamaIndex",
   "Messages (Claude)": "Messages (Claude)",
   "NextChat": "NextChat",
   "Node.js": "Node.js",
   "OpenWebUI": "OpenWebUI",
-  "Python": "Python"
+  "Python": "Python",
+  "Switch currency": "Switch currency"
 }

@@ -102,6 +102,8 @@ func SubscriptionRequestCreemPay(c *gin.Context) {
 	switch operation_setting.GetGeneralSetting().QuotaDisplayType {
 	case operation_setting.QuotaDisplayTypeCNY:
 		currency = "CNY"
+	case operation_setting.QuotaDisplayTypeCAD:
+		currency = "CAD"
 	case operation_setting.QuotaDisplayTypeUSD:
 		currency = "USD"
 	default:
