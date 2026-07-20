@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { getFAQEntryTranslation, parseFAQBatch } from './faq-json.ts'
+import {
+  getFAQEntryTranslation,
+  parseFAQBatch,
+  toFAQTranslationLanguage,
+} from './faq-json.ts'
 
 describe('FAQ JSON batch import', () => {
   it('appends valid entries with collision-free IDs and ignores supplied IDs', () => {
@@ -139,5 +143,25 @@ describe('FAQ JSON batch import', () => {
         values: { index: 1 },
       }
     )
+  })
+})
+
+describe('toFAQTranslationLanguage', () => {
+  it('maps interface language codes to FAQ translation language codes', () => {
+    assert.equal(toFAQTranslationLanguage('zhCN'), 'zh')
+    assert.equal(toFAQTranslationLanguage('zhTW'), 'zh-TW')
+    assert.equal(toFAQTranslationLanguage('en'), 'en')
+    assert.equal(toFAQTranslationLanguage('fr'), 'fr')
+    assert.equal(toFAQTranslationLanguage('ru'), 'ru')
+    assert.equal(toFAQTranslationLanguage('ja'), 'ja')
+    assert.equal(toFAQTranslationLanguage('vi'), 'vi')
+  })
+
+  it('falls back to English for unknown or missing interface languages', () => {
+    assert.equal(toFAQTranslationLanguage('de'), 'en')
+    assert.equal(toFAQTranslationLanguage('ko'), 'en')
+    assert.equal(toFAQTranslationLanguage(''), 'en')
+    assert.equal(toFAQTranslationLanguage(null), 'en')
+    assert.equal(toFAQTranslationLanguage(undefined), 'en')
   })
 })

@@ -1,4 +1,8 @@
 import type { TimeGranularity } from '@/lib/time'
+import type {
+  FAQTranslation,
+  FAQTranslationLanguage,
+} from '@/features/system-settings/content/faq-json'
 
 // ============================================================================
 // Quota & Usage Data Types
@@ -253,4 +257,5 @@ export interface FAQItem {
   id?: number
   question: string
   answer: string
+  translations?: Partial<Record<FAQTranslationLanguage, FAQTranslation>>
 }

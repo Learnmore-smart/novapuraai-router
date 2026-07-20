@@ -11,10 +11,12 @@ import { Markdown } from '@/components/ui/markdown'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useFAQ } from '@/features/dashboard/hooks/use-status-data'
 import type { FAQItem } from '@/features/dashboard/types'
+import { toFAQTranslationLanguage } from '@/features/system-settings/content/faq-json'
 
 export function FAQ() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { items, loading } = useFAQ()
+  const faqLanguage = toFAQTranslationLanguage(i18n.language)
 
   if (!loading && items.length === 0) return null
 
@@ -47,14 +49,17 @@ export function FAQ() {
             <Accordion className='w-full px-5 sm:px-6'>
               {items.map((item: FAQItem, index: number) => {
                 const key = item.id ?? `faq-${index}`
+                const translation = item.translations?.[faqLanguage]
+                const question = translation?.question ?? item.question
+                const answer = translation?.answer ?? item.answer
                 return (
                   <AccordionItem key={key} value={`item-${key}`}>
                     <AccordionTrigger className='py-5 text-start text-base font-semibold hover:no-underline'>
-                      <Markdown>{item.question}</Markdown>
+                      <Markdown>{question}</Markdown>
                     </AccordionTrigger>
                     <AccordionContent className='pb-5'>
                       <Markdown className='text-muted-foreground text-sm leading-7'>
-                        {item.answer}
+                        {answer}
                       </Markdown>
                     </AccordionContent>
                   </AccordionItem>
