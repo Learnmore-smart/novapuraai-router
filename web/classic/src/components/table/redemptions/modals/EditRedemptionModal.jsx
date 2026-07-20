@@ -24,13 +24,8 @@ import {
   downloadTextAsFile,
   showError,
   showSuccess,
-  renderQuota,
-  getCurrencyConfig,
 } from '../../../../helpers';
-import {
-  quotaToDisplayAmount,
-  displayAmountToQuota,
-} from '../../../../helpers/quota';
+import { quotaToDisplayAmount } from '../../../../helpers/quota';
 import { useIsMobile } from '../../../../hooks/common/useIsMobile';
 import {
   Button,
@@ -45,7 +40,6 @@ import {
   Avatar,
   Row,
   Col,
-  InputNumber,
 } from '@douyinfe/semi-ui';
 import {
   IconCreditCard,
@@ -53,6 +47,13 @@ import {
   IconClose,
   IconGift,
 } from '@douyinfe/semi-icons';
+import {
+  REDEMPTION_CURRENCY_OPTION_LIST,
+  REDEMPTION_CURRENCY_SYMBOLS,
+  REDEMPTION_CURRENCY_LABELS,
+  REDEMPTION_VALIDATION,
+  normalizeRedemptionCurrency,
+} from '../../../../constants/redemption.constants';
 
 const { Text, Title } = Typography;
 
@@ -62,12 +63,13 @@ const EditRedemptionModal = (props) => {
   const [loading, setLoading] = useState(isEdit);
   const isMobile = useIsMobile();
   const formApiRef = useRef(null);
-  const [showQuotaInput, setShowQuotaInput] = useState(false);
 
   const getInitValues = () => ({
     name: '',
     quota: 100000,
     amount: Number(quotaToDisplayAmount(100000).toFixed(6)),
+    currency: 'usd',
+    max_redeems: 1,
     count: 1,
     expired_time: null,
   });
@@ -86,7 +88,19 @@ const EditRedemptionModal = (props) => {
       } else {
         data.expired_time = new Date(data.expired_time * 1000);
       }
-      data.amount = Number(quotaToDisplayAmount(data.quota || 0).toFixed(6));
+      const currency = normalizeRedemptionCurrency(data.currency);
+      // Use stored currency/amount if present; otherwise fall back to legacy
+      // quota-derived display (treated as USD on old rows).
+      if (currency && Number(data.amount) > 0) {
+        data.currency = currency;
+        data.amount = Number(data.amount);
+      } else {
+        data.currency = 'usd';
+        data.amount = Number(quotaToDisplayAmount(data.quota || 0).toFixed(6));
+      }
+      if (!data.max_redeems || data.max_redeems < 1) {
+        data.max_redeems = 1;
+      }
       formApiRef.current?.setValues({ ...getInitValues(), ...data });
     } else {
       showError(message);
@@ -105,19 +119,35 @@ const EditRedemptionModal = (props) => {
   }, [props.editingRedemption.id]);
 
   const submit = async (values) => {
+    const currency = normalizeRedemptionCurrency(values.currency);
+    const symbol = REDEMPTION_CURRENCY_SYMBOLS[currency] || '$';
+    const label = REDEMPTION_CURRENCY_LABELS[currency] || 'USD';
     let name = values.name;
     if (!isEdit && (!name || name === '')) {
-      name = renderQuota(values.quota);
+      name = `${symbol}${Number(values.amount || 0).toFixed(2)} ${label}`;
     }
     setLoading(true);
     let localInputs = { ...values };
     localInputs.count = parseInt(localInputs.count) || 0;
-    localInputs.quota = displayAmountToQuota(localInputs.amount);
-    if (localInputs.quota <= 0) {
+    localInputs.currency = currency;
+    localInputs.amount = Number(localInputs.amount) || 0;
+    localInputs.max_redeems = parseInt(localInputs.max_redeems) || 1;
+    if (
+      localInputs.max_redeems < REDEMPTION_VALIDATION.MAX_REDEEMS_MIN ||
+      localInputs.max_redeems > REDEMPTION_VALIDATION.MAX_REDEEMS_MAX
+    ) {
+      showError(t('总兑换次数必须在 1 到 100000 之间'));
+      setLoading(false);
+      return;
+    }
+    if (localInputs.amount <= 0) {
       showError(t('请输入金额'));
       setLoading(false);
       return;
     }
+    // Backend derives quota from currency + amount. Send quota:0 so the
+    // legacy reverse-derivation path is not triggered.
+    localInputs.quota = 0;
     localInputs.name = name;
     if (!localInputs.expired_time) {
       localInputs.expired_time = 0;
@@ -298,11 +328,23 @@ const EditRedemptionModal = (props) => {
                   </div>
 
                   <Row gutter={12}>
-                    <Col span={24}>
+                    <Col span={8}>
+                      <Form.Select
+                        field='currency'
+                        label={t('货币')}
+                        optionList={REDEMPTION_CURRENCY_OPTION_LIST}
+                        style={{ width: '100%' }}
+                      />
+                    </Col>
+                    <Col span={16}>
                       <Form.InputNumber
                         field='amount'
                         label={t('金额')}
-                        prefix={getCurrencyConfig().symbol}
+                        prefix={
+                          REDEMPTION_CURRENCY_SYMBOLS[
+                            normalizeRedemptionCurrency(values.currency)
+                          ] || '$'
+                        }
                         placeholder={t('输入金额')}
                         precision={6}
                         min={0}
@@ -311,50 +353,33 @@ const EditRedemptionModal = (props) => {
                         onChange={(val) => {
                           const amount = val === '' || val == null ? 0 : val;
                           formApiRef.current?.setValue('amount', amount);
-                          formApiRef.current?.setValue(
-                            'quota',
-                            displayAmountToQuota(amount),
-                          );
                         }}
                         showClear
                       />
-                      <div
-                        className='text-xs cursor-pointer mt-1'
-                        style={{ color: 'var(--semi-color-text-2)' }}
-                        onClick={() => setShowQuotaInput((v) => !v)}
-                      >
-                        {showQuotaInput
-                          ? `▾ ${t('收起原生额度输入')}`
-                          : `▸ ${t('使用原生额度输入')}`}
-                      </div>
-                      <div style={{ display: showQuotaInput ? 'block' : 'none' }} className='mt-2'>
-                        <Form.InputNumber
-                          field='quota'
-                          label={t('额度')}
-                          placeholder={t('输入额度')}
-                          rules={[
-                            { required: true, message: t('请输入额度') },
-                            {
-                              validator: (rule, v) => {
-                                const num = parseInt(v, 10);
-                                return num > 0
-                                  ? Promise.resolve()
-                                  : Promise.reject(t('额度必须大于0'));
-                              },
+                    </Col>
+                    <Col span={12}>
+                      <Form.InputNumber
+                        field='max_redeems'
+                        label={t('总兑换次数')}
+                        min={REDEMPTION_VALIDATION.MAX_REDEEMS_MIN}
+                        max={REDEMPTION_VALIDATION.MAX_REDEEMS_MAX}
+                        rules={[
+                          { required: true, message: t('请输入总兑换次数') },
+                          {
+                            validator: (rule, v) => {
+                              const num = parseInt(v, 10);
+                              return num >= REDEMPTION_VALIDATION.MAX_REDEEMS_MIN &&
+                                num <= REDEMPTION_VALIDATION.MAX_REDEEMS_MAX
+                                ? Promise.resolve()
+                                : Promise.reject(
+                                    t('总兑换次数必须在 1 到 100000 之间'),
+                                  );
                             },
-                          ]}
-                          onChange={(val) => {
-                            const quota = val === '' || val == null ? 0 : val;
-                            formApiRef.current?.setValue('quota', quota);
-                            formApiRef.current?.setValue(
-                              'amount',
-                              Number(quotaToDisplayAmount(quota).toFixed(6)),
-                            );
-                          }}
-                          style={{ width: '100%' }}
-                          showClear
-                        />
-                      </div>
+                          },
+                        ]}
+                        style={{ width: '100%' }}
+                        showClear
+                      />
                     </Col>
                     {!isEdit && (
                       <Col span={12}>

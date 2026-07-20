@@ -59,16 +59,21 @@ const (
 
 // Redemption related messages
 const (
-	MsgRedemptionNameLength        = "redemption.name_length"
-	MsgRedemptionCountPositive     = "redemption.count_positive"
-	MsgRedemptionCountMax          = "redemption.count_max"
-	MsgRedemptionCreateFailed      = "redemption.create_failed"
-	MsgRedemptionInvalid           = "redemption.invalid"
-	MsgRedemptionUsed              = "redemption.used"
-	MsgRedemptionExpired           = "redemption.expired"
-	MsgRedemptionFailed            = "redemption.failed"
-	MsgRedemptionNotProvided       = "redemption.not_provided"
-	MsgRedemptionExpireTimeInvalid = "redemption.expire_time_invalid"
+	MsgRedemptionNameLength         = "redemption.name_length"
+	MsgRedemptionCountPositive      = "redemption.count_positive"
+	MsgRedemptionCountMax           = "redemption.count_max"
+	MsgRedemptionCreateFailed       = "redemption.create_failed"
+	MsgRedemptionInvalid            = "redemption.invalid"
+	MsgRedemptionUsed               = "redemption.used"
+	MsgRedemptionExpired            = "redemption.expired"
+	MsgRedemptionFailed             = "redemption.failed"
+	MsgRedemptionNotProvided        = "redemption.not_provided"
+	MsgRedemptionExpireTimeInvalid  = "redemption.expire_time_invalid"
+	MsgRedemptionCurrencyInvalid    = "redemption.currency_invalid"
+	MsgRedemptionAmountPositive     = "redemption.amount_positive"
+	MsgRedemptionMaxRedeemsInvalid  = "redemption.max_redeems_invalid"
+	MsgRedemptionMaxRedeemsBelowUsed = "redemption.max_redeems_below_used"
+	MsgRedemptionAlreadyUsedByUser  = "redemption.already_used_by_user"
 )
 
 // User related messages

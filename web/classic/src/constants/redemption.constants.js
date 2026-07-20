@@ -45,3 +45,54 @@ export const REDEMPTION_ACTIONS = {
   ENABLE: 'enable',
   DISABLE: 'disable',
 };
+
+// Redemption code currency — admin chooses which currency the credit amount
+// is denominated in. Backend converts to internal quota using FX rates.
+export const REDEMPTION_CURRENCIES = ['usd', 'cny', 'cad'];
+
+export const REDEMPTION_CURRENCY_SYMBOLS = {
+  usd: '$',
+  cny: '¥',
+  cad: 'C$',
+};
+
+export const REDEMPTION_CURRENCY_LABELS = {
+  usd: 'USD',
+  cny: 'CNY',
+  cad: 'CAD',
+};
+
+export const REDEMPTION_CURRENCY_OPTION_LIST = REDEMPTION_CURRENCIES.map(
+  (c) => ({
+    value: c,
+    label: `${REDEMPTION_CURRENCY_SYMBOLS[c]} ${REDEMPTION_CURRENCY_LABELS[c]}`,
+  }),
+);
+
+export const isRedemptionCurrency = (v) =>
+  REDEMPTION_CURRENCIES.includes((v || '').toLowerCase());
+
+export const normalizeRedemptionCurrency = (v) => {
+  const lower = (v || '').toLowerCase();
+  return isRedemptionCurrency(lower) ? lower : 'usd';
+};
+
+export const REDEMPTION_VALIDATION = {
+  AMOUNT_MIN: 0.000001,
+  MAX_REDEEMS_MIN: 1,
+  MAX_REDEEMS_MAX: 100000,
+};
+
+// Format the price for table display, with legacy quota fallback.
+export const formatRedemptionPrice = (record) => {
+  if (!record) return '';
+  const currency = normalizeRedemptionCurrency(record.currency);
+  const symbol = REDEMPTION_CURRENCY_SYMBOLS[currency] || '$';
+  const label = REDEMPTION_CURRENCY_LABELS[currency] || 'USD';
+  let amount = Number(record.amount || 0);
+  if (!amount && record.quota) {
+    // Legacy rows: derive USD amount from quota (500000 quota = $1).
+    amount = Number(record.quota) / 500000;
+  }
+  return `${symbol}${amount.toFixed(2)} ${label}`;
+};

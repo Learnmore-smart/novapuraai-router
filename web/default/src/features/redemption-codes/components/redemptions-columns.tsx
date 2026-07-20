@@ -10,12 +10,33 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { formatQuota, formatTimestampToDate } from '@/lib/format'
+import { formatTimestampToDate } from '@/lib/format'
 
-import { REDEMPTION_FILTER_EXPIRED, REDEMPTION_STATUSES } from '../constants'
+import {
+  REDEMPTION_CURRENCY_LABELS,
+  REDEMPTION_CURRENCY_SYMBOLS,
+  REDEMPTION_FILTER_EXPIRED,
+  REDEMPTION_STATUSES,
+  normalizeRedemptionCurrency,
+} from '../constants'
 import { isRedemptionExpired, isTimestampExpired } from '../lib'
 import { type Redemption } from '../types'
 import { DataTableRowActions } from './data-table-row-actions'
+
+// Formats the stored (currency, amount) into a single string like "¥10 CNY".
+// Legacy rows without currency/amount fall back to a USD-derived price.
+function formatRedemptionPrice(redemption: Redemption): string {
+  const currency = normalizeRedemptionCurrency(redemption.currency)
+  const amount =
+    redemption.amount > 0
+      ? redemption.amount
+      : redemption.quota / 500000 // legacy: derive USD price from quota
+  const symbol = REDEMPTION_CURRENCY_SYMBOLS[currency]
+  const label = REDEMPTION_CURRENCY_LABELS[currency]
+  const formattedAmount =
+    amount % 1 === 0 ? amount.toFixed(0) : amount.toFixed(2)
+  return `${symbol}${formattedAmount} ${label}`
+}
 
 export function useRedemptionsColumns(): ColumnDef<Redemption>[] {
   const { t } = useTranslation()
@@ -137,13 +158,13 @@ export function useRedemptionsColumns(): ColumnDef<Redemption>[] {
       size: 320,
     },
     {
-      accessorKey: 'quota',
-      header: t('Quota'),
+      id: 'price',
+      header: t('Price'),
       cell: ({ row }) => {
-        const quota = row.getValue('quota') as number
+        const redemption = row.original
         return (
           <StatusBadge
-            label={formatQuota(quota)}
+            label={formatRedemptionPrice(redemption)}
             variant='neutral'
             copyable={false}
             className='-ml-1.5'
@@ -151,6 +172,28 @@ export function useRedemptionsColumns(): ColumnDef<Redemption>[] {
         )
       },
       size: 120,
+    },
+    {
+      id: 'usage',
+      header: t('Usage'),
+      meta: { mobileHidden: true },
+      cell: ({ row }) => {
+        const redemption = row.original
+        const redeemed = redemption.redeemed_count || 0
+        const max =
+          redemption.max_redeems && redemption.max_redeems > 0
+            ? redemption.max_redeems
+            : 1
+        return (
+          <StatusBadge
+            label={`${redeemed} / ${max}`}
+            variant={redeemed >= max ? 'neutral' : 'success'}
+            copyable={false}
+            className='-ml-1.5'
+          />
+        )
+      },
+      size: 100,
     },
     {
       accessorKey: 'created_time',

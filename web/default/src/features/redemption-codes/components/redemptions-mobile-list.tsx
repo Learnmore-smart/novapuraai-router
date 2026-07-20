@@ -13,10 +13,15 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatQuota } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
-import { REDEMPTION_STATUS, REDEMPTION_STATUSES } from '../constants'
+import {
+  REDEMPTION_CURRENCY_LABELS,
+  REDEMPTION_CURRENCY_SYMBOLS,
+  REDEMPTION_STATUS,
+  REDEMPTION_STATUSES,
+  normalizeRedemptionCurrency,
+} from '../constants'
 import { isRedemptionExpired } from '../lib'
 import type { Redemption } from '../types'
 import { DataTableRowActions } from './data-table-row-actions'
@@ -144,9 +149,31 @@ export function RedemptionsMobileList(props: RedemptionsMobileListProps) {
             </div>
 
             <div className='flex items-center justify-between gap-2 text-xs'>
-              <span className='text-muted-foreground'>{t('Quota')}</span>
+              <span className='text-muted-foreground'>{t('Price')}</span>
               <span className='font-medium tabular-nums'>
-                {formatQuota(redemption.quota)}
+                {(() => {
+                  const currency = normalizeRedemptionCurrency(
+                    redemption.currency
+                  )
+                  const amount =
+                    redemption.amount > 0
+                      ? redemption.amount
+                      : redemption.quota / 500000
+                  const symbol = REDEMPTION_CURRENCY_SYMBOLS[currency]
+                  const label = REDEMPTION_CURRENCY_LABELS[currency]
+                  const formatted =
+                    amount % 1 === 0 ? amount.toFixed(0) : amount.toFixed(2)
+                  return `${symbol}${formatted} ${label}`
+                })()}
+              </span>
+            </div>
+            <div className='flex items-center justify-between gap-2 text-xs'>
+              <span className='text-muted-foreground'>{t('Usage')}</span>
+              <span className='font-medium tabular-nums'>
+                {redemption.redeemed_count || 0} /{' '}
+                {redemption.max_redeems && redemption.max_redeems > 0
+                  ? redemption.max_redeems
+                  : 1}
               </span>
             </div>
           </div>

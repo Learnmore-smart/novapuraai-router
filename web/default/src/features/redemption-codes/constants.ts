@@ -52,6 +52,41 @@ export const REDEMPTION_FILTER_VALUES = [
   REDEMPTION_FILTER_EXPIRED,
 ] as const
 
+// ============================================================================
+// Currency Options (matches setting.BillingCurrencyCNY/USD/CAD on the backend)
+// ============================================================================
+
+export type RedemptionCurrency = 'usd' | 'cny' | 'cad'
+
+export const REDEMPTION_CURRENCIES: RedemptionCurrency[] = ['usd', 'cny', 'cad']
+
+export const REDEMPTION_CURRENCY_LABELS: Record<RedemptionCurrency, string> = {
+  usd: 'USD',
+  cny: 'CNY',
+  cad: 'CAD',
+}
+
+export const REDEMPTION_CURRENCY_SYMBOLS: Record<RedemptionCurrency, string> = {
+  usd: '$',
+  cny: '¥',
+  cad: 'C$',
+}
+
+export function isRedemptionCurrency(
+  value: string
+): value is RedemptionCurrency {
+  return (REDEMPTION_CURRENCIES as string[]).includes(value)
+}
+
+export function normalizeRedemptionCurrency(
+  value: string | undefined | null
+): RedemptionCurrency {
+  if (value && isRedemptionCurrency(value.toLowerCase())) {
+    return value.toLowerCase() as RedemptionCurrency
+  }
+  return 'usd'
+}
+
 export function getRedemptionStatusOptions(t: TFunction) {
   return [
     ...Object.values(REDEMPTION_STATUSES).map((config) => ({
@@ -74,6 +109,9 @@ export const REDEMPTION_VALIDATION = {
   NAME_MAX_LENGTH: 20,
   COUNT_MIN: 1,
   COUNT_MAX: 100,
+  AMOUNT_MIN: 0.01,
+  MAX_REDEEMS_MIN: 1,
+  MAX_REDEEMS_MAX: 100000,
 } as const
 
 // ============================================================================
@@ -93,6 +131,8 @@ export const ERROR_MESSAGES = {
   NAME_LENGTH_INVALID: 'Name must be between {{min}} and {{max}} characters',
   COUNT_INVALID: 'Count must be between {{min}} and {{max}}',
   EXPIRED_TIME_INVALID: 'Expired time cannot be earlier than current time',
+  AMOUNT_INVALID: 'Amount must be greater than {{min}}',
+  MAX_REDEEMS_INVALID: 'Max redemption count must be between {{min}} and {{max}}',
 } as const
 
 /** For form schema only: returns translated messages with interpolation. */
@@ -107,6 +147,13 @@ export function getRedemptionFormErrorMessages(t: TFunction) {
       max: REDEMPTION_VALIDATION.COUNT_MAX,
     }),
     EXPIRED_TIME_INVALID: t(ERROR_MESSAGES.EXPIRED_TIME_INVALID),
+    AMOUNT_INVALID: t(ERROR_MESSAGES.AMOUNT_INVALID, {
+      min: REDEMPTION_VALIDATION.AMOUNT_MIN,
+    }),
+    MAX_REDEEMS_INVALID: t(ERROR_MESSAGES.MAX_REDEEMS_INVALID, {
+      min: REDEMPTION_VALIDATION.MAX_REDEEMS_MIN,
+      max: REDEMPTION_VALIDATION.MAX_REDEEMS_MAX,
+    }),
   } as const
 }
 
