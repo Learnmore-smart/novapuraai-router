@@ -267,6 +267,27 @@ func SetBillingCurrencyFXRate(currency string, rate float64) error {
 	return UpdateBillingCurrencyConfigByJSON(string(data))
 }
 
+// EffectiveUSDCNYRate returns the USD→CNY exchange rate used for non-payment
+// conversions: campaign grants (registration promo, invite, share rewards),
+// balance display, and usage billing. It prefers the live Bank of Canada
+// rate (refreshed daily by service.StartBillingFXRefreshTask and shown on the
+// billing settings page); when the BoC feed is unavailable or auto-update is
+// disabled, it falls back to the legacy static rate supplied by the caller
+// (operation_setting.USDExchangeRate), and finally to common.DefaultUSDExchangeRate.
+//
+// Use this instead of reading operation_setting.USDExchangeRate directly
+// whenever the conversion must agree with the rates shown on the billing
+// settings page.
+func EffectiveUSDCNYRate(legacyFallback float64) float64 {
+	if r := BillingCurrencyFXRate(BillingCurrencyCNY); r > 0 {
+		return r
+	}
+	if legacyFallback > 0 {
+		return legacyFallback
+	}
+	return common.DefaultUSDExchangeRate
+}
+
 func ResolveBillingCurrency(saved, country, locale string) string {
 	saved = strings.ToLower(strings.TrimSpace(saved))
 	if IsBillingCurrencyEnabled(saved) {
