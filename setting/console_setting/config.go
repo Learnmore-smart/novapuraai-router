@@ -1,6 +1,14 @@
 package console_setting
 
-import "github.com/QuantumNous/new-api/setting/config"
+import (
+	_ "embed"
+	"strings"
+
+	"github.com/QuantumNous/new-api/setting/config"
+)
+
+//go:embed default_faq.json
+var defaultFAQJSON string
 
 type ConsoleSetting struct {
 	ApiInfo              string `json:"api_info"`              // 控制台 API 信息 (JSON 数组字符串)
@@ -18,7 +26,7 @@ var defaultConsoleSetting = ConsoleSetting{
 	ApiInfo:              "",
 	UptimeKumaGroups:     "",
 	Announcements:        "",
-	FAQ:                  "",
+	FAQ:                  strings.TrimSpace(defaultFAQJSON),
 	ApiInfoEnabled:       true,
 	UptimeKumaEnabled:    true,
 	AnnouncementsEnabled: true,
