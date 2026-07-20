@@ -60,6 +60,8 @@
  * 4. **Billing displays**: Use formatBillingCurrencyFromUSD() to avoid token display
  * 5. **Effective exchange rate**: When quotaDisplayType is 'USD', use rate of 1 regardless of config
  */
+import { create } from 'zustand'
+
 import {
   useSystemConfigStore,
   DEFAULT_CURRENCY_CONFIG,
@@ -83,6 +85,13 @@ export interface CurrencyFormatOptions {
   compact?: boolean
   /** Whether to include the currency/custom symbol. Token displays are unchanged. */
   showSymbol?: boolean
+  /**
+   * Whether to append the ISO 4217 currency code (e.g. "USD", "CNY", "CAD")
+   * after the formatted value. Only applies to currency displays — token and
+   * custom displays are unchanged. Use this for balance displays where the
+   * currency unit must be unambiguous (e.g. "$6.85 USD").
+   */
+  showCurrencyCode?: boolean
   /** Locale used for number formatting (defaults to the runtime locale) */
   locale?: Intl.LocalesArgument | undefined
 }
@@ -92,6 +101,25 @@ type ResolvedCurrencyFormatOptions = Omit<
   'locale'
 > & {
   locale: Intl.LocalesArgument | undefined
+}
+
+const DISPLAY_TYPE_VALUES = ['USD', 'CNY', 'CAD', 'TOKENS', 'CUSTOM'] as const
+type DisplayTypeLiteral = (typeof DISPLAY_TYPE_VALUES)[number]
+
+export function isCurrencyDisplayType(
+  value: unknown
+): value is CurrencyDisplayType {
+  return (
+    typeof value === 'string' &&
+    DISPLAY_TYPE_VALUES.includes(value as DisplayTypeLiteral)
+  )
+}
+
+export function parseCurrencyDisplayType(
+  value: unknown,
+  fallback: CurrencyDisplayType = 'USD'
+): CurrencyDisplayType {
+  return isCurrencyDisplayType(value) ? value : fallback
 }
 
 type DisplayMeta =
@@ -119,32 +147,89 @@ const DEFAULT_FORMAT_OPTIONS: ResolvedCurrencyFormatOptions = {
   minimumNonZero: 0,
   compact: false,
   showSymbol: true,
+  showCurrencyCode: false,
   locale: undefined,
 }
 
-const DISPLAY_TYPE_VALUES = ['USD', 'CNY', 'TOKENS', 'CUSTOM'] as const
-type DisplayTypeLiteral = (typeof DISPLAY_TYPE_VALUES)[number]
+/**
+ * localStorage key for the user's per-browser currency display override.
+ * When set, this value overrides the admin-configured `quotaDisplayType`
+ * for all balance/quota displays seen by this user. Only currency modes
+ * (USD / CNY / CAD) are valid overrides — TOKENS and CUSTOM fall back to
+ * the admin setting.
+ */
+export const USER_CURRENCY_PREFERENCE_KEY = 'user_currency_preference'
 
-export function isCurrencyDisplayType(
-  value: unknown
-): value is CurrencyDisplayType {
-  return (
-    typeof value === 'string' &&
-    DISPLAY_TYPE_VALUES.includes(value as DisplayTypeLiteral)
-  )
+const ALLOWED_USER_OVERRIDES: ReadonlySet<CurrencyDisplayType> = new Set([
+  'USD',
+  'CNY',
+  'CAD',
+])
+
+/** Read the user's locally-stored currency preference, if any. */
+export function getUserCurrencyPreference(): CurrencyDisplayType | null {
+  if (typeof window === 'undefined' || !window.localStorage) return null
+  try {
+    const raw = window.localStorage.getItem(USER_CURRENCY_PREFERENCE_KEY)
+    if (!raw) return null
+    return isCurrencyDisplayType(raw) && ALLOWED_USER_OVERRIDES.has(raw)
+      ? raw
+      : null
+  } catch {
+    return null
+  }
 }
 
-export function parseCurrencyDisplayType(
-  value: unknown,
-  fallback: CurrencyDisplayType = 'USD'
-): CurrencyDisplayType {
-  return isCurrencyDisplayType(value) ? value : fallback
+/**
+ * Tiny non-persisted store used to signal that the user's local currency
+ * preference changed. Components that render balance/quota values can
+ * subscribe via `useCurrencyPreferenceVersion()` to re-render on switch.
+ */
+interface CurrencyPreferenceState {
+  version: number
+  bump: () => void
+}
+
+export const useCurrencyPreferenceStore = create<CurrencyPreferenceState>(
+  (set) => ({
+    version: 0,
+    bump: () => set((state) => ({ version: state.version + 1 })),
+  })
+)
+
+/**
+ * Subscribe to currency preference changes. Returns a version number that
+ * increments on every switch. Place this in any component that calls
+ * `formatQuota` / `formatCurrencyFromUSD` so it re-renders when the user
+ * picks a new currency in the switcher.
+ */
+export function useCurrencyPreferenceVersion(): number {
+  return useCurrencyPreferenceStore((s) => s.version)
+}
+
+/** Persist the user's currency preference. Pass null to clear. */
+export function setUserCurrencyPreference(
+  value: CurrencyDisplayType | null
+): void {
+  if (typeof window === 'undefined' || !window.localStorage) return
+  try {
+    if (value === null) {
+      window.localStorage.removeItem(USER_CURRENCY_PREFERENCE_KEY)
+    } else if (ALLOWED_USER_OVERRIDES.has(value)) {
+      window.localStorage.setItem(USER_CURRENCY_PREFERENCE_KEY, value)
+    }
+  } catch {
+    /* localStorage may be unavailable (private mode); ignore silently */
+  }
+  // Bump the version so any subscribed component re-renders and picks up
+  // the new preference via getConfig().
+  useCurrencyPreferenceStore.getState().bump()
 }
 
 function getConfig(): CurrencyConfig {
   const { config } = useSystemConfigStore.getState()
   const currency = config?.currency ?? DEFAULT_CURRENCY_CONFIG
-  return {
+  const merged: CurrencyConfig = {
     ...DEFAULT_CURRENCY_CONFIG,
     ...currency,
     quotaPerUnit:
@@ -160,10 +245,20 @@ function getConfig(): CurrencyConfig {
       currency.customCurrencyExchangeRate > 0
         ? currency.customCurrencyExchangeRate
         : DEFAULT_CURRENCY_CONFIG.customCurrencyExchangeRate,
+    cadExchangeRate:
+      currency?.cadExchangeRate && currency.cadExchangeRate > 0
+        ? currency.cadExchangeRate
+        : DEFAULT_CURRENCY_CONFIG.cadExchangeRate,
     customCurrencySymbol:
       currency?.customCurrencySymbol?.trim() ||
       DEFAULT_CURRENCY_CONFIG.customCurrencySymbol,
   }
+  // Apply per-user localStorage override (USD / CNY / CAD only).
+  const override = getUserCurrencyPreference()
+  if (override) {
+    merged.quotaDisplayType = override
+  }
+  return merged
 }
 
 function getDisplayMeta(config: CurrencyConfig): DisplayMeta {
@@ -174,6 +269,13 @@ function getDisplayMeta(config: CurrencyConfig): DisplayMeta {
         symbol: '¥',
         currencyCode: 'CNY',
         exchangeRate: config.usdExchangeRate,
+      }
+    case 'CAD':
+      return {
+        kind: 'currency',
+        symbol: 'C$',
+        currencyCode: 'CAD',
+        exchangeRate: config.cadExchangeRate,
       }
     case 'CUSTOM':
       return {
@@ -222,6 +324,8 @@ function mergeOptions(
       options.minimumNonZero ?? DEFAULT_FORMAT_OPTIONS.minimumNonZero,
     compact: options.compact ?? DEFAULT_FORMAT_OPTIONS.compact,
     showSymbol: options.showSymbol ?? DEFAULT_FORMAT_OPTIONS.showSymbol,
+    showCurrencyCode:
+      options.showCurrencyCode ?? DEFAULT_FORMAT_OPTIONS.showCurrencyCode,
     locale: options.locale ?? DEFAULT_FORMAT_OPTIONS.locale,
   }
 }
@@ -288,11 +392,12 @@ function formatCurrencyValue(
 
   if (meta.kind === 'currency') {
     if (!options.showSymbol) {
-      return new Intl.NumberFormat(options.locale, {
+      const numOnly = new Intl.NumberFormat(options.locale, {
         notation: options.compact ? 'compact' : 'standard',
         minimumFractionDigits: 0,
         maximumFractionDigits: options.compact ? 1 : digits,
       }).format(adjustedValue)
+      return options.showCurrencyCode ? `${numOnly} ${meta.currencyCode}` : numOnly
     }
 
     const formatted = new Intl.NumberFormat(options.locale, {
@@ -303,7 +408,7 @@ function formatCurrencyValue(
       minimumFractionDigits: 0,
       maximumFractionDigits: options.compact ? 1 : digits,
     }).format(adjustedValue)
-    return formatted
+    return options.showCurrencyCode ? `${formatted} ${meta.currencyCode}` : formatted
   }
 
   const decimal = new Intl.NumberFormat(options.locale, {
@@ -515,6 +620,8 @@ export function getCurrencyLabel(): string {
   switch (config.quotaDisplayType) {
     case 'CNY':
       return 'CNY'
+    case 'CAD':
+      return 'CAD'
     case 'CUSTOM':
       return meta.kind === 'custom' ? meta.symbol : 'Custom'
     case 'USD':

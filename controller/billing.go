@@ -44,10 +44,13 @@ func GetSubscription(c *gin.Context) {
 	// 我们将其解释为以“站点展示类型”为准：
 	// - USD: 直接除以 QuotaPerUnit
 	// - CNY: 先转 USD 再乘汇率
+	// - CAD: 先转 USD 再乘 CAD 汇率
 	// - TOKENS: 直接使用 tokens 数量
 	switch operation_setting.GetQuotaDisplayType() {
 	case operation_setting.QuotaDisplayTypeCNY:
 		amount = amount / common.QuotaPerUnit * operation_setting.USDExchangeRate
+	case operation_setting.QuotaDisplayTypeCAD:
+		amount = amount / common.QuotaPerUnit * operation_setting.GetGeneralSetting().CADExchangeRate
 	case operation_setting.QuotaDisplayTypeTokens:
 		// amount 保持 tokens 数值
 	default:
@@ -94,6 +97,8 @@ func GetUsage(c *gin.Context) {
 	switch operation_setting.GetQuotaDisplayType() {
 	case operation_setting.QuotaDisplayTypeCNY:
 		amount = amount / common.QuotaPerUnit * operation_setting.USDExchangeRate
+	case operation_setting.QuotaDisplayTypeCAD:
+		amount = amount / common.QuotaPerUnit * operation_setting.GetGeneralSetting().CADExchangeRate
 	case operation_setting.QuotaDisplayTypeTokens:
 		// tokens 保持原值
 	default:

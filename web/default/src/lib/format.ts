@@ -50,12 +50,17 @@ export function formatCurrencyUSD(value: number | null | undefined): string {
 /**
  * Format quota into the configured display amount.
  * Quota is stored in units where `quotaPerUnit` equals 1 USD.
+ *
+ * The ISO currency code (USD / CNY / CAD) is appended so the unit is
+ * unambiguous — `$6.85` becomes `$6.85 USD`. Token / custom displays
+ * are unaffected.
  */
 export function formatQuota(quota: number): string {
   return formatQuotaWithCurrency(quota, {
     digitsLarge: 2,
     digitsSmall: 4,
     abbreviate: true,
+    showCurrencyCode: true,
   })
 }
 
@@ -192,6 +197,7 @@ export function formatLogQuota(quota: number): string {
     digitsLarge: 4,
     digitsSmall: 6,
     abbreviate: false,
+    showCurrencyCode: true,
   })
 }
 

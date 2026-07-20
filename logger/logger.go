@@ -127,6 +127,13 @@ func LogQuota(quota int) string {
 		usd := q / common.QuotaPerUnit
 		cny := usd * operation_setting.USDExchangeRate
 		return fmt.Sprintf("¥%.6f 额度", cny)
+	case operation_setting.QuotaDisplayTypeCAD:
+		usd := q / common.QuotaPerUnit
+		rate := operation_setting.GetGeneralSetting().CADExchangeRate
+		if rate <= 0 {
+			rate = 1.37
+		}
+		return fmt.Sprintf("C$%.6f 额度", usd*rate)
 	case operation_setting.QuotaDisplayTypeCustom:
 		usd := q / common.QuotaPerUnit
 		rate := operation_setting.GetGeneralSetting().CustomCurrencyExchangeRate
@@ -153,6 +160,13 @@ func FormatQuota(quota int) string {
 		usd := q / common.QuotaPerUnit
 		cny := usd * operation_setting.USDExchangeRate
 		return fmt.Sprintf("¥%.6f", cny)
+	case operation_setting.QuotaDisplayTypeCAD:
+		usd := q / common.QuotaPerUnit
+		rate := operation_setting.GetGeneralSetting().CADExchangeRate
+		if rate <= 0 {
+			rate = 1.37
+		}
+		return fmt.Sprintf("C$%.6f", usd*rate)
 	case operation_setting.QuotaDisplayTypeCustom:
 		usd := q / common.QuotaPerUnit
 		rate := operation_setting.GetGeneralSetting().CustomCurrencyExchangeRate

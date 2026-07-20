@@ -1,6 +1,7 @@
 import { Activity, BarChart3, WalletCards } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { CurrencySwitcher } from '@/components/currency-switcher'
 import { StatusBadge } from '@/components/status-badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Card, CardContent } from '@/components/ui/card'
@@ -8,6 +9,7 @@ import { IconBadge, type IconBadgeTone } from '@/components/ui/icon-badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getUserAvatarFallback, getUserAvatarStyle } from '@/lib/avatar'
 import { formatCompactNumber, formatQuota } from '@/lib/format'
+import { useCurrencyPreferenceVersion } from '@/lib/currency'
 import { getRoleLabel } from '@/lib/roles'
 
 import { getDisplayName } from '../lib'
@@ -24,6 +26,8 @@ interface ProfileHeaderProps {
 
 export function ProfileHeader({ profile, loading }: ProfileHeaderProps) {
   const { t } = useTranslation()
+  // Re-render when the user switches currency in the inline switcher.
+  useCurrencyPreferenceVersion()
 
   if (loading) {
     return (
@@ -146,7 +150,7 @@ export function ProfileHeader({ profile, loading }: ProfileHeaderProps) {
       </CardContent>
       <div className='border-t'>
         <div className='divide-border/60 grid grid-cols-3 divide-x'>
-          {stats.map((item) => (
+          {stats.map((item, idx) => (
             <div key={item.label} className='min-w-0 px-3 py-3 sm:px-5 sm:py-4'>
               <div className='flex items-center gap-2'>
                 <IconBadge tone={item.tone} size='stat'>
@@ -155,6 +159,9 @@ export function ProfileHeader({ profile, loading }: ProfileHeaderProps) {
                 <div className='text-muted-foreground truncate text-xs font-medium tracking-wider uppercase'>
                   {item.label}
                 </div>
+                {idx === 0 && (
+                  <CurrencySwitcher className='ml-auto h-6 px-1.5 text-[11px]' />
+                )}
               </div>
 
               <div className='text-foreground mt-1.5 truncate font-mono text-lg font-bold tracking-tight tabular-nums sm:mt-2 sm:text-2xl'>
