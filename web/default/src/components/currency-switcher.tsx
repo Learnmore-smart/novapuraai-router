@@ -67,7 +67,7 @@ export function CurrencySwitcher({
       : 'USD'
   const effective: CurrencyDisplayType = userPref ?? fallback
 
-  const handleChange = (next: string) => {
+  const handleChange = (next: string | null) => {
     if (next === 'USD' || next === 'CNY' || next === 'CAD') {
       setUserCurrencyPreference(next)
     }
