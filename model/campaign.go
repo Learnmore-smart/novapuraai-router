@@ -7,6 +7,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/logger"
+	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 
 	"gorm.io/gorm"
@@ -45,11 +46,11 @@ const (
 var errRegisterPromoFull = errors.New("register promo is full")
 
 func exchangeRateForCampaign() float64 {
-	// Prefer runtime display rate when available
-	if r := operation_setting.USDExchangeRate; r > 0 {
-		return r
-	}
-	return common.DefaultUSDExchangeRate
+	// Prefer the live Bank of Canada CNY rate when available — this is the
+	// same rate shown on the billing settings page and refreshed daily by
+	// service.StartBillingFXRefreshTask. Falls back to the legacy static
+	// operation_setting.USDExchangeRate when the BoC feed is unavailable.
+	return setting.EffectiveUSDCNYRate(operation_setting.USDExchangeRate)
 }
 
 // TryGrantRegisterPromo grants verified users a promo balance (atomic).
