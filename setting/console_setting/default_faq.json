@@ -1,0 +1,457 @@
+[
+  {
+    "id": 1,
+    "question": "Do registrations receive credits?",
+    "answer": "Check the current welcome offer after registration.",
+    "translations": {
+      "en": {
+        "question": "Do registrations receive credits?",
+        "answer": "Check the current welcome offer after registration."
+      },
+      "zh": {
+        "question": "注册会赠送额度吗？",
+        "answer": "注册后请查看当前的新用户活动说明。"
+      },
+      "zh-TW": {
+        "question": "註冊會贈送額度嗎？",
+        "answer": "註冊後請查看目前的新用戶活動說明。"
+      },
+      "fr": {
+        "question": "L’inscription donne-t-elle des crédits ?",
+        "answer": "Consultez l’offre de bienvenue actuelle après votre inscription."
+      },
+      "ja": {
+        "question": "登録するとクレジットは付与されますか？",
+        "answer": "登録後に現在の新規登録特典をご確認ください。"
+      },
+      "ru": {
+        "question": "Начисляются ли кредиты за регистрацию?",
+        "answer": "После регистрации ознакомьтесь с текущим приветственным предложением."
+      },
+      "vi": {
+        "question": "Đăng ký có được tặng hạn mức không?",
+        "answer": "Sau khi đăng ký, hãy xem ưu đãi chào mừng hiện tại."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "question": "Do top-ups include bonus credits?",
+    "answer": "Bonus credits depend on the active top-up promotion; check the wallet page for current rates.",
+    "translations": {
+      "en": {
+        "question": "Do top-ups include bonus credits?",
+        "answer": "Bonus credits depend on the active top-up promotion; check the wallet page for current rates."
+      },
+      "zh": {
+        "question": "充值会赠送额度吗？",
+        "answer": "充值赠送额度取决于当前的充值活动，请在钱包页面查看实际比例。"
+      },
+      "zh-TW": {
+        "question": "儲值會贈送額度嗎？",
+        "answer": "儲值贈送額度取決於目前的儲值活動，請在錢包頁面查看實際比例。"
+      },
+      "fr": {
+        "question": "Les recharges incluent-elles des crédits bonus ?",
+        "answer": "Les crédits bonus dépendent de la promotion de recharge en cours ; consultez la page du portefeuille pour les taux actuels."
+      },
+      "ja": {
+        "question": "チャージ時にボーナスクレジットは付与されますか？",
+        "answer": "チャージ時のボーナスクレジットは現在のキャンペーンに依存します。実際の割合はウォレットページでご確認ください。"
+      },
+      "ru": {
+        "question": "Включают ли пополнения бонусные кредиты?",
+        "answer": "Бонусные кредиты зависят от действующей акции пополнения; актуальные ставки смотрите на странице кошелька."
+      },
+      "vi": {
+        "question": "Nạp tiền có được tặng hạn mức không?",
+        "answer": "Hạn mức thưởng khi nạp phụ thuộc vào chương trình khuyến mãi hiện tại; xem tỷ lệ thực tế trên trang ví."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "question": "How do I start using NovaPuraAI?",
+    "answer": "Register, create an API key in the console, then call the OpenAI-compatible /v1 endpoint with your key.",
+    "translations": {
+      "en": {
+        "question": "How do I start using NovaPuraAI?",
+        "answer": "Register, create an API key in the console, then call the OpenAI-compatible /v1 endpoint with your key."
+      },
+      "zh": {
+        "question": "如何开始使用 NovaPuraAI？",
+        "answer": "注册账号，在控制台创建 API 密钥，然后使用该密钥调用兼容 OpenAI 的 /v1 接口即可。"
+      },
+      "zh-TW": {
+        "question": "如何開始使用 NovaPuraAI？",
+        "answer": "註冊帳號，在控制台建立 API 金鑰，然後使用該金鑰呼叫相容於 OpenAI 的 /v1 端點即可。"
+      },
+      "fr": {
+        "question": "Comment commencer à utiliser NovaPuraAI ?",
+        "answer": "Inscrivez-vous, créez une clé API dans la console, puis appelez l’endpoint /v1 compatible OpenAI avec votre clé."
+      },
+      "ja": {
+        "question": "NovaPuraAI を使い始めるには？",
+        "answer": "アカウント登録後、コンソールで API キーを作成し、そのキーで OpenAI 互換の /v1 エンドポイントを呼び出します。"
+      },
+      "ru": {
+        "question": "Как начать использовать NovaPuraAI?",
+        "answer": "Зарегистрируйтесь, создайте API-ключ в консоли, затем вызывайте OpenAI-совместимый эндпоинт /v1 с вашим ключом."
+      },
+      "vi": {
+        "question": "Làm thế nào để bắt đầu dùng NovaPuraAI?",
+        "answer": "Đăng ký tài khoản, tạo khóa API trong bảng điều khiển, sau đó gọi endpoint /v1 tương thích OpenAI bằng khóa của bạn."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "question": "What is the API address?",
+    "answer": "Use {ORIGIN}/v1 as the base URL for OpenAI-compatible requests; see the docs for native Claude/Gemini endpoints.",
+    "translations": {
+      "en": {
+        "question": "What is the API address?",
+        "answer": "Use {ORIGIN}/v1 as the base URL for OpenAI-compatible requests; see the docs for native Claude/Gemini endpoints."
+      },
+      "zh": {
+        "question": "API 地址是什么？",
+        "answer": "OpenAI 兼容请求的 Base URL 为 {ORIGIN}/v1，原生 Claude/Gemini 端点请参考文档。"
+      },
+      "zh-TW": {
+        "question": "API 位址是什麼？",
+        "answer": "OpenAI 相容請求的 Base URL 為 {ORIGIN}/v1，原生 Claude/Gemini 端點請參考文件。"
+      },
+      "fr": {
+        "question": "Quelle est l’adresse de l’API ?",
+        "answer": "Utilisez {ORIGIN}/v1 comme URL de base pour les requêtes compatibles OpenAI ; consultez la doc pour les endpoints Claude/Gemini natifs."
+      },
+      "ja": {
+        "question": "API アドレスは何ですか？",
+        "answer": "OpenAI 互換リクエストのベース URL は {ORIGIN}/v1 です。ネイティブの Claude/Gemini エンドポイントはドキュメントを参照してください。"
+      },
+      "ru": {
+        "question": "Какой адрес у API?",
+        "answer": "Используйте {ORIGIN}/v1 как базовый URL для OpenAI-совместимых запросов; для нативных эндпоинтов Claude/Gemini см. документацию."
+      },
+      "vi": {
+        "question": "Địa chỉ API là gì?",
+        "answer": "Sử dụng {ORIGIN}/v1 làm URL cơ sở cho các yêu cầu tương thích OpenAI; xem tài liệu cho endpoint Claude/Gemini nguyên bản."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "question": "How do I create an API Key?",
+    "answer": "Go to Console → API Keys / Tokens → create a key, then copy the sk-... secret immediately.",
+    "translations": {
+      "en": {
+        "question": "How do I create an API Key?",
+        "answer": "Go to Console → API Keys / Tokens → create a key, then copy the sk-... secret immediately."
+      },
+      "zh": {
+        "question": "如何创建 API 密钥？",
+        "answer": "前往控制台 → API 密钥 / 令牌 → 创建密钥，创建后立即复制 sk-... 机密。"
+      },
+      "zh-TW": {
+        "question": "如何建立 API 金鑰？",
+        "answer": "前往控制台 → API 金鑰 / 權杖 → 建立金鑰，建立後立即複製 sk-... 機密。"
+      },
+      "fr": {
+        "question": "Comment créer une clé API ?",
+        "answer": "Allez dans Console → Clés API / Jetons → créez une clé, puis copiez immédiatement le secret sk-..."
+      },
+      "ja": {
+        "question": "API キーを作成するには？",
+        "answer": "コンソール → API キー / トークン → キーを作成し、sk-... シークレットをすぐにコピーします。"
+      },
+      "ru": {
+        "question": "Как создать API-ключ?",
+        "answer": "Перейдите в Консоль → API-ключи / Токены → создайте ключ и сразу скопируйте секрет sk-..."
+      },
+      "vi": {
+        "question": "Làm thế nào để tạo khóa API?",
+        "answer": "Vào Bảng điều khiển → Khóa API / Token → tạo khóa, sau đó sao chép ngay mật khẩu sk-..."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "question": "Which models are supported?",
+    "answer": "Call GET /v1/models to list every model enabled for your group; catalogs vary by deployment.",
+    "translations": {
+      "en": {
+        "question": "Which models are supported?",
+        "answer": "Call GET /v1/models to list every model enabled for your group; catalogs vary by deployment."
+      },
+      "zh": {
+        "question": "支持哪些模型？",
+        "answer": "调用 GET /v1/models 可列出你的用户组可用的全部模型；模型目录因部署而异。"
+      },
+      "zh-TW": {
+        "question": "支援哪些模型？",
+        "answer": "呼叫 GET /v1/models 可列出你的群組可用的全部模型；模型目錄因部署而異。"
+      },
+      "fr": {
+        "question": "Quels modèles sont pris en charge ?",
+        "answer": "Appelez GET /v1/models pour lister tous les modèles activés pour votre groupe ; le catalogue varie selon le déploiement."
+      },
+      "ja": {
+        "question": "どのモデルがサポートされていますか？",
+        "answer": "GET /v1/models を呼び出すと、グループで有効なすべてのモデルを一覧表示できます。カタログはデプロイごとに異なります。"
+      },
+      "ru": {
+        "question": "Какие модели поддерживаются?",
+        "answer": "Вызовите GET /v1/models для списка всех моделей, доступных вашей группе; каталог зависит от развертывания."
+      },
+      "vi": {
+        "question": "Hỗ trợ những mô hình nào?",
+        "answer": "Gọi GET /v1/models để liệt kê mọi mô hình được bật cho nhóm của bạn; danh mục khác nhau tùy theo triển khai."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "question": "How do I view usage and spending records?",
+    "answer": "Open the console → Usage Logs to inspect per-request tokens, model, status, and quota spent.",
+    "translations": {
+      "en": {
+        "question": "How do I view usage and spending records?",
+        "answer": "Open the console → Usage Logs to inspect per-request tokens, model, status, and quota spent."
+      },
+      "zh": {
+        "question": "如何查看用量和消费记录？",
+        "answer": "打开控制台 → 用量日志，可查看每次请求的 token、模型、状态和消耗额度。"
+      },
+      "zh-TW": {
+        "question": "如何查看用量與消費紀錄？",
+        "answer": "開啟控制台 → 用量日誌，可查看每次請求的 token、模型、狀態和消耗額度。"
+      },
+      "fr": {
+        "question": "Comment consulter mes enregistrements d’utilisation et de dépenses ?",
+        "answer": "Ouvrez la console → Journaux d’utilisation pour inspecter les tokens, le modèle, le statut et le quota dépensé par requête."
+      },
+      "ja": {
+        "question": "使用量と消費履歴を確認するには？",
+        "answer": "コンソール → 使用量ログを開くと、リクエストごとの token、モデル、ステータス、消費クレジットを確認できます。"
+      },
+      "ru": {
+        "question": "Как просмотреть историю использования и расходов?",
+        "answer": "Откройте консоль → Журналы использования для просмотра токенов, модели, статуса и расхода квоты по каждому запросу."
+      },
+      "vi": {
+        "question": "Làm thế nào để xem lịch sử sử dụng và chi tiêu?",
+        "answer": "Mở bảng điều khiển → Nhật ký sử dụng để xem token, mô hình, trạng thái và hạn mức đã tiêu cho từng yêu cầu."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "question": "What happens when my balance is insufficient?",
+    "answer": "Requests fail with an insufficient-quota error; top up or redeem credits, then retry.",
+    "translations": {
+      "en": {
+        "question": "What happens when my balance is insufficient?",
+        "answer": "Requests fail with an insufficient-quota error; top up or redeem credits, then retry."
+      },
+      "zh": {
+        "question": "余额不足时会怎样？",
+        "answer": "请求会因额度不足而失败，充值或兑换额度后重试即可。"
+      },
+      "zh-TW": {
+        "question": "餘額不足時會怎樣？",
+        "answer": "請求會因額度不足而失敗，儲值或兌換額度後重試即可。"
+      },
+      "fr": {
+        "question": "Que se passe-t-il quand mon solde est insuffisant ?",
+        "answer": "Les requêtes échouent avec une erreur de quota insuffisant ; rechargez ou échangez des crédits, puis réessayez."
+      },
+      "ja": {
+        "question": "残高不足のときはどうなりますか？",
+        "answer": "リクエストはクレジット不足エラーで失敗します。チャージまたは引き換え後に再試行してください。"
+      },
+      "ru": {
+        "question": "Что происходит при недостаточном балансе?",
+        "answer": "Запросы завершаются ошибкой недостаточной квоты; пополните или обменяйте кредиты, затем повторите."
+      },
+      "vi": {
+        "question": "Số dư không đủ thì sẽ thế nào?",
+        "answer": "Yêu cầu thất bại với lỗi hạn mức không đủ; nạp hoặc đổi hạn mức rồi thử lại."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "question": "Why did my request fail?",
+    "answer": "Common causes: invalid key, insufficient quota, disabled model, rate limit (429), or upstream provider error.",
+    "translations": {
+      "en": {
+        "question": "Why did my request fail?",
+        "answer": "Common causes: invalid key, insufficient quota, disabled model, rate limit (429), or upstream provider error."
+      },
+      "zh": {
+        "question": "请求为什么会失败？",
+        "answer": "常见原因：密钥无效、额度不足、模型未启用、速率限制（429）或上游服务商异常。"
+      },
+      "zh-TW": {
+        "question": "請求為什麼會失敗？",
+        "answer": "常見原因：金鑰無效、額度不足、模型未啟用、速率限制（429）或上游服務商異常。"
+      },
+      "fr": {
+        "question": "Pourquoi ma requête a échoué ?",
+        "answer": "Causes courantes : clé invalide, quota insuffisant, modèle désactivé, limite de débit (429) ou erreur du fournisseur en amont."
+      },
+      "ja": {
+        "question": "リクエストが失敗した理由は？",
+        "answer": "一般的な原因：無効なキー、クレジット不足、無効なモデル、レート制限（429）、上流プロバイダのエラー。"
+      },
+      "ru": {
+        "question": "Почему мой запрос завершился ошибкой?",
+        "answer": "Частые причины: недействительный ключ, недостаточная квота, отключенная модель, лимит запросов (429) или ошибка вышестоящего провайдера."
+      },
+      "vi": {
+        "question": "Tại sao yêu cầu của tôi thất bại?",
+        "answer": "Nguyên nhân phổ biến: khóa không hợp lệ, hạn mức không đủ, mô hình bị tắt, giới hạn tốc độ (429) hoặc lỗi nhà cung cấp upstream."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "question": "What should I do if my API Key is exposed?",
+    "answer": "Immediately disable or delete the key in the console, create a new one, and rotate any client using it.",
+    "translations": {
+      "en": {
+        "question": "What should I do if my API Key is exposed?",
+        "answer": "Immediately disable or delete the key in the console, create a new one, and rotate any client using it."
+      },
+      "zh": {
+        "question": "API 密钥泄露后该怎么办？",
+        "answer": "立即在控制台禁用或删除该密钥，创建新密钥，并更新所有使用该密钥的客户端。"
+      },
+      "zh-TW": {
+        "question": "API 金鑰外洩後該怎麼辦？",
+        "answer": "立即在控制台停用或刪除該金鑰，建立新金鑰，並更新所有使用該金鑰的用戶端。"
+      },
+      "fr": {
+        "question": "Que faire si ma clé API est exposée ?",
+        "answer": "Désactivez ou supprimez immédiatement la clé dans la console, créez-en une nouvelle et mettez à jour tous les clients qui l’utilisent."
+      },
+      "ja": {
+        "question": "API キーが漏洩した場合は？",
+        "answer": "直ちにコンソールでキーを無効化または削除し、新しいキーを作成して、使用しているクライアントを更新してください。"
+      },
+      "ru": {
+        "question": "Что делать, если мой API-ключ скомпрометирован?",
+        "answer": "Немедленно отключите или удалите ключ в консоли, создайте новый и обновите всех клиентов, использующих его."
+      },
+      "vi": {
+        "question": "Khóa API bị lộ phải làm gì?",
+        "answer": "Ngay lập tức vô hiệu hóa hoặc xóa khóa trong bảng điều khiển, tạo khóa mới và cập nhật tất cả ứng dụng khách đang sử dụng nó."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "question": "Is the OpenAI SDK supported?",
+    "answer": "Yes—set the API key to your NovaPuraAI key and base_url/baseURL to {ORIGIN}/v1.",
+    "translations": {
+      "en": {
+        "question": "Is the OpenAI SDK supported?",
+        "answer": "Yes—set the API key to your NovaPuraAI key and base_url/baseURL to {ORIGIN}/v1."
+      },
+      "zh": {
+        "question": "是否支持 OpenAI SDK？",
+        "answer": "支持——将 API 密钥设为 NovaPuraAI 密钥，base_url/baseURL 设为 {ORIGIN}/v1 即可。"
+      },
+      "zh-TW": {
+        "question": "是否支援 OpenAI SDK？",
+        "answer": "支援——將 API 金鑰設為 NovaPuraAI 金鑰，base_url/baseURL 設為 {ORIGIN}/v1 即可。"
+      },
+      "fr": {
+        "question": "Le SDK OpenAI est-il pris en charge ?",
+        "answer": "Oui — définissez la clé API sur votre clé NovaPuraAI et base_url/baseURL sur {ORIGIN}/v1."
+      },
+      "ja": {
+        "question": "OpenAI SDK はサポートされていますか？",
+        "answer": "はい—API キーを NovaPuraAI のキーに、base_url/baseURL を {ORIGIN}/v1 に設定してください。"
+      },
+      "ru": {
+        "question": "Поддерживается ли OpenAI SDK?",
+        "answer": "Да — укажите API-ключ как ваш ключ NovaPuraAI и base_url/baseURL как {ORIGIN}/v1."
+      },
+      "vi": {
+        "question": "Có hỗ trợ OpenAI SDK không?",
+        "answer": "Có—đặt khóa API thành khóa NovaPuraAI của bạn và base_url/baseURL thành {ORIGIN}/v1."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "question": "Can I request a refund?",
+    "answer": "Refund eligibility depends on your deployment’s policy; contact technical support with your order details.",
+    "translations": {
+      "en": {
+        "question": "Can I request a refund?",
+        "answer": "Refund eligibility depends on your deployment’s policy; contact technical support with your order details."
+      },
+      "zh": {
+        "question": "可以申请退款吗？",
+        "answer": "退款资格取决于部署方的政策，请联系技术支持并提供订单详情。"
+      },
+      "zh-TW": {
+        "question": "可以申請退款嗎？",
+        "answer": "退款資格取決於部署方的政策，請聯繫技術支援並提供訂單詳情。"
+      },
+      "fr": {
+        "question": "Puis-je demander un remboursement ?",
+        "answer": "L’éligibilité au remboursement dépend de la politique de votre déploiement ; contactez le support technique avec les détails de votre commande."
+      },
+      "ja": {
+        "question": "返金をリクエストできますか？",
+        "answer": "返金の可否はデプロイのポリシーに依存します。注文詳細を添えてテクニカルサポートにお問い合わせください。"
+      },
+      "ru": {
+        "question": "Могу ли я запросить возврат средств?",
+        "answer": "Право на возврат зависит от политики вашего развертывания; свяжитесь с технической поддержкой и укажите данные заказа."
+      },
+      "vi": {
+        "question": "Tôi có thể yêu cầu hoàn tiền không?",
+        "answer": "Điều kiện hoàn tiền phụ thuộc vào chính sách của nhà triển khai; liên hệ hỗ trợ kỹ thuật và cung cấp chi tiết đơn hàng."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "question": "How do I contact technical support?",
+    "answer": "Use the support channel listed on your deployment’s console or docs footer; include timestamps and redacted request details.",
+    "translations": {
+      "en": {
+        "question": "How do I contact technical support?",
+        "answer": "Use the support channel listed on your deployment’s console or docs footer; include timestamps and redacted request details."
+      },
+      "zh": {
+        "question": "如何联系技术支持？",
+        "answer": "请通过部署方控制台或文档页脚中列出的支持渠道联系，并提供时间戳与已脱敏的请求详情。"
+      },
+      "zh-TW": {
+        "question": "如何聯繫技術支援？",
+        "answer": "請透過部署方控制台或文件頁尾列出的支援管道聯繫，並提供時間戳與已脫敏的請求詳情。"
+      },
+      "fr": {
+        "question": "Comment contacter le support technique ?",
+        "answer": "Utilisez le canal d’assistance indiqué dans la console ou le pied de page de la documentation de votre déploiement ; incluez des horodatages et des détails de requête expurgés."
+      },
+      "ja": {
+        "question": "テクニカルサポートに連絡するには？",
+        "answer": "デプロイのコンソールまたはドキュメントのフッターに記載のサポートチャンネルをご利用ください。タイムスタンプと秘匿化したリクエスト詳細を含めてください。"
+      },
+      "ru": {
+        "question": "Как связаться с технической поддержкой?",
+        "answer": "Используйте канал поддержки, указанный в консоли или в подвале документации вашего развертывания; укажите временные метки и обезличенные данные запроса."
+      },
+      "vi": {
+        "question": "Làm thế nào để liên hệ hỗ trợ kỹ thuật?",
+        "answer": "Sử dụng kênh hỗ trợ được liệt kê trong bảng điều khiển hoặc chân trang tài liệu của nhà triển khai; kèm theo dấu thời gian và chi tiết yêu cầu đã được che giấu."
+      }
+    }
+  }
+]
