@@ -36,6 +36,25 @@ export function getFAQEntryTranslation(
   return undefined
 }
 
+/**
+ * Convert an i18next interface language code (such as `zhCN` / `zhTW`) into the
+ * FAQ translation language code used by the backend FAQ payload (`zh` /
+ * `zh-TW`). Any unknown value falls back to `en`, matching the top-level
+ * `question` / `answer` fallback already stored on every FAQ entry.
+ */
+export function toFAQTranslationLanguage(
+  interfaceLanguage: string | null | undefined
+): FAQTranslationLanguage {
+  if (!interfaceLanguage) return 'en'
+  if (interfaceLanguage === 'zhCN') return 'zh'
+  if (interfaceLanguage === 'zhTW') return 'zh-TW'
+  return FAQ_TRANSLATION_LANGUAGES.includes(
+    interfaceLanguage as FAQTranslationLanguage
+  )
+    ? (interfaceLanguage as FAQTranslationLanguage)
+    : 'en'
+}
+
 type FAQBatchResult =
   | { success: true; entries: FAQEntry[] }
   | {
