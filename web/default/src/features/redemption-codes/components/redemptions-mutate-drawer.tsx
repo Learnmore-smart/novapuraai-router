@@ -24,6 +24,14 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Sheet,
   SheetClose,
   SheetContent,
@@ -32,12 +40,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { getCurrencyDisplay, getCurrencyLabel } from '@/lib/currency'
-import { formatQuota, parseQuotaFromDollars } from '@/lib/format'
 import { addTimeToDate } from '@/lib/time'
 
 import { createRedemption, updateRedemption, getRedemption } from '../api'
-import { SUCCESS_MESSAGES } from '../constants'
+import {
+  REDEMPTION_CURRENCIES,
+  REDEMPTION_CURRENCY_LABELS,
+  REDEMPTION_CURRENCY_SYMBOLS,
+  SUCCESS_MESSAGES,
+  type RedemptionCurrency,
+} from '../constants'
 import {
   getRedemptionFormSchema,
   type RedemptionFormValues,
@@ -124,8 +136,13 @@ export function RedemptionsMutateDrawer({
     if (!isUpdate) {
       const name = form.getValues('name')
       if (!name?.trim()) {
-        const quota = parseQuotaFromDollars(form.getValues('quota_dollars'))
-        form.setValue('name', formatQuota(quota), { shouldValidate: true })
+        // Auto-generate name from price + currency, e.g. "10 USD"
+        const amount = form.getValues('amount')
+        const currency = form.getValues('currency')
+        const symbol = REDEMPTION_CURRENCY_SYMBOLS[currency]
+        const label = REDEMPTION_CURRENCY_LABELS[currency]
+        const autoName = `${symbol}${amount} ${label}`.slice(0, 20)
+        form.setValue('name', autoName, { shouldValidate: true })
       }
     }
 
@@ -137,13 +154,10 @@ export function RedemptionsMutateDrawer({
     form.setValue('expired_time', newDate)
   }
 
-  const { meta: currencyMeta } = getCurrencyDisplay()
-  const currencyLabel = getCurrencyLabel()
-  const tokensOnly = currencyMeta.kind === 'tokens'
-  const quotaLabel = t('Quota ({{currency}})', { currency: currencyLabel })
-  const quotaPlaceholder = tokensOnly
-    ? t('Enter quota in tokens')
-    : t('Enter quota in {{currency}}', { currency: currencyLabel })
+  const selectedCurrency: RedemptionCurrency = form.watch('currency')
+  const currencySymbol = REDEMPTION_CURRENCY_SYMBOLS[selectedCurrency]
+  const currencyLabel = REDEMPTION_CURRENCY_LABELS[selectedCurrency]
+  const amountLabel = t('Amount ({{currency}})', { currency: currencyLabel })
 
   return (
     <Sheet
@@ -195,29 +209,106 @@ export function RedemptionsMutateDrawer({
                 )}
               />
 
+              <div className='grid grid-cols-1 gap-4 sm:grid-cols-[140px_1fr]'>
+                <FormField
+                  control={form.control}
+                  name='currency'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Currency')}</FormLabel>
+                      <Select
+                        items={REDEMPTION_CURRENCIES.map((c) => ({
+                          value: c,
+                          label: REDEMPTION_CURRENCY_LABELS[c],
+                        }))}
+                        onValueChange={(value) =>
+                          value !== null &&
+                          field.onChange(value as RedemptionCurrency)
+                        }
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue
+                              placeholder={t('Select currency')}
+                            />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent alignItemWithTrigger={false}>
+                          <SelectGroup>
+                            {REDEMPTION_CURRENCIES.map((c) => (
+                              <SelectItem key={c} value={c}>
+                                {REDEMPTION_CURRENCY_LABELS[c]}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        {t('Currency of the redemption amount')}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='amount'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{amountLabel}</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type='number'
+                          step='0.01'
+                          min='0.01'
+                          placeholder={t('Enter amount in {{currency}}', {
+                            currency: currencyLabel,
+                          })}
+                          onChange={(e) =>
+                            field.onChange(parseFloat(e.target.value) || 0)
+                          }
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          'Free quota credited to the user, e.g. {{symbol}}10 = 10 {{currency}} worth of credit',
+                          {
+                            symbol: currencySymbol,
+                            currency: currencyLabel,
+                          }
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <FormField
                 control={form.control}
-                name='quota_dollars'
+                name='max_redeems'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{quotaLabel}</FormLabel>
+                    <FormLabel>{t('Total Redemption Count')}</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
                         type='number'
-                        step={tokensOnly ? 1 : 0.01}
-                        placeholder={quotaPlaceholder}
+                        min='1'
+                        max='100000'
+                        placeholder={t('Total times this code can be redeemed')}
                         onChange={(e) =>
-                          field.onChange(parseFloat(e.target.value) || 0)
+                          field.onChange(parseInt(e.target.value, 10) || 1)
                         }
                       />
                     </FormControl>
                     <FormDescription>
-                      {tokensOnly
-                        ? t('Enter the quota amount in tokens')
-                        : t('Enter the quota amount in {{currency}}', {
-                            currency: currencyLabel,
-                          })}
+                      {t(
+                        'How many users can redeem this code in total. Each user can redeem it only once.'
+                      )}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

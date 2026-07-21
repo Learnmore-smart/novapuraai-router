@@ -3,15 +3,53 @@ package controller
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/setting"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
 
 	"github.com/gin-gonic/gin"
 )
+
+// computeQuotaFromCurrencyAmount converts a (currency, amount) pair into
+// internal quota units using the current effective FX rates. currency must
+// already be normalized to one of "usd"/"cny"/"cad" (empty is treated as USD).
+func computeQuotaFromCurrencyAmount(currency string, amount float64) int {
+	currency = strings.ToLower(strings.TrimSpace(currency))
+	if amount <= 0 {
+		return 0
+	}
+	var fxPerUSD float64
+	switch currency {
+	case setting.BillingCurrencyCNY:
+		fxPerUSD = setting.EffectiveUSDCNYRate(operation_setting.USDExchangeRate)
+	case setting.BillingCurrencyCAD:
+		fxPerUSD = operation_setting.GetGeneralSetting().CADExchangeRate
+	default: // "usd" or "" (legacy)
+		fxPerUSD = 1
+	}
+	if fxPerUSD <= 0 {
+		fxPerUSD = 1
+	}
+	usd := amount / fxPerUSD
+	return common.QuotaFromFloat(usd * common.QuotaPerUnit)
+}
+
+// normalizeRedemptionCurrency validates and normalizes the currency code on
+// incoming create/update requests. Empty currency is treated as USD for
+// backward compatibility with legacy single-currency clients.
+func normalizeRedemptionCurrency(currency string) (string, bool) {
+	currency = strings.ToLower(strings.TrimSpace(currency))
+	if currency == "" {
+		return setting.BillingCurrencyUSD, true
+	}
+	return currency, setting.IsSupportedBillingCurrency(currency)
+}
 
 func GetAllRedemptions(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
@@ -83,6 +121,39 @@ func AddRedemption(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": msg})
 		return
 	}
+	// 货币选择：cny/usd/cad。空串视为 USD（兼容旧客户端）。
+	currency, ok := normalizeRedemptionCurrency(redemption.Currency)
+	if !ok {
+		common.ApiErrorI18n(c, i18n.MsgRedemptionCurrencyInvalid)
+		return
+	}
+	redemption.Currency = currency
+	// 价格必须为正数。允许旧的"直接传 quota"调用方继续工作：当 amount <= 0
+	// 但 quota > 0 时按 USD 反推 amount。
+	if redemption.Amount <= 0 {
+		if redemption.Quota <= 0 {
+			common.ApiErrorI18n(c, i18n.MsgRedemptionAmountPositive)
+			return
+		}
+		// 兼容旧调用：从 quota 反推 USD 价格
+		redemption.Amount = float64(redemption.Quota) / common.QuotaPerUnit
+		redemption.Currency = setting.BillingCurrencyUSD
+	}
+	// 总兑换次数：0 或 1 都按 1 次处理；上限 100000 防滥用。
+	if redemption.MaxRedeems < 0 {
+		common.ApiErrorI18n(c, i18n.MsgRedemptionMaxRedeemsInvalid)
+		return
+	}
+	if redemption.MaxRedeems == 0 {
+		redemption.MaxRedeems = 1
+	}
+	if redemption.MaxRedeems > 100000 {
+		common.ApiErrorI18n(c, i18n.MsgRedemptionMaxRedeemsInvalid)
+		return
+	}
+	// 用当前汇率把 (currency, amount) 换算为内部 quota
+	redemption.Quota = computeQuotaFromCurrencyAmount(redemption.Currency, redemption.Amount)
+
 	var keys []string
 	for i := 0; i < redemption.Count; i++ {
 		key := common.GetUUID()
@@ -92,6 +163,9 @@ func AddRedemption(c *gin.Context) {
 			Key:         key,
 			CreatedTime: common.GetTimestamp(),
 			Quota:       redemption.Quota,
+			Currency:    redemption.Currency,
+			Amount:      redemption.Amount,
+			MaxRedeems:  redemption.MaxRedeems,
 			ExpiredTime: redemption.ExpiredTime,
 		}
 		err = cleanRedemption.Insert()
@@ -107,9 +181,12 @@ func AddRedemption(c *gin.Context) {
 		keys = append(keys, key)
 	}
 	recordManageAudit(c, "redemption.create", map[string]interface{}{
-		"name":  redemption.Name,
-		"count": redemption.Count,
-		"quota": logger.LogQuota(redemption.Quota),
+		"name":        redemption.Name,
+		"count":       redemption.Count,
+		"currency":    redemption.Currency,
+		"amount":      redemption.Amount,
+		"max_redeems": redemption.MaxRedeems,
+		"quota":       logger.LogQuota(redemption.Quota),
 	})
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -151,9 +228,36 @@ func UpdateRedemption(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"success": false, "message": msg})
 			return
 		}
-		// If you add more fields, please also update redemption.Update()
+		// 货币选择：cny/usd/cad。空串视为 USD（兼容旧客户端）。
+		currency, ok := normalizeRedemptionCurrency(redemption.Currency)
+		if !ok {
+			common.ApiErrorI18n(c, i18n.MsgRedemptionCurrencyInvalid)
+			return
+		}
+		cleanRedemption.Currency = currency
+		// 价格优先；如果 amount <= 0 但 quota > 0，保留原 quota 并按 USD 反推 amount。
+		if redemption.Amount > 0 {
+			cleanRedemption.Amount = redemption.Amount
+			cleanRedemption.Quota = computeQuotaFromCurrencyAmount(currency, redemption.Amount)
+		} else if redemption.Quota > 0 {
+			// 兼容旧客户端：直接传 quota
+			cleanRedemption.Quota = redemption.Quota
+			cleanRedemption.Amount = float64(redemption.Quota) / common.QuotaPerUnit
+			cleanRedemption.Currency = setting.BillingCurrencyUSD
+		}
+		// 总兑换次数：0 表示不更新，1+ 表示新上限。不允许低于已兑换次数。
+		if redemption.MaxRedeems > 0 {
+			if redemption.MaxRedeems > 100000 {
+				common.ApiErrorI18n(c, i18n.MsgRedemptionMaxRedeemsInvalid)
+				return
+			}
+			if redemption.MaxRedeems < cleanRedemption.RedeemedCount {
+				common.ApiErrorI18n(c, i18n.MsgRedemptionMaxRedeemsBelowUsed)
+				return
+			}
+			cleanRedemption.MaxRedeems = redemption.MaxRedeems
+		}
 		cleanRedemption.Name = redemption.Name
-		cleanRedemption.Quota = redemption.Quota
 		cleanRedemption.ExpiredTime = redemption.ExpiredTime
 	}
 	if statusOnly != "" {

@@ -60,6 +60,11 @@ redemption.expired: "该兑换码已过期"
 redemption.failed: "兑换失败，请稍后重试"
 redemption.not_provided: "未提供兑换码"
 redemption.expire_time_invalid: "过期时间不能早于当前时间"
+redemption.currency_invalid: "货币必须是 USD、CNY、CAD 之一"
+redemption.amount_positive: "兑换码金额必须大于 0"
+redemption.max_redeems_invalid: "总兑换次数必须在 1 到 100000 之间"
+redemption.max_redeems_below_used: "总兑换次数不能小于已兑换次数"
+redemption.already_used_by_user: "您已经兑换过此兑换码"
 
 # User messages
 user.password_login_disabled: "管理员关闭了密码登录"

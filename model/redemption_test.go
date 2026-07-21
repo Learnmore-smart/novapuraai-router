@@ -102,10 +102,12 @@ func TestSearchRedemptionsFiltersAndPaginates(t *testing.T) {
 
 func setupRedeemFixture(t *testing.T, quota int) (userId int, key string) {
 	t.Helper()
-	require.NoError(t, DB.AutoMigrate(&Redemption{}))
+	require.NoError(t, DB.AutoMigrate(&Redemption{}, &RedemptionUsage{}))
 	require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&Redemption{}).Error)
+	require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&RedemptionUsage{}).Error)
 	t.Cleanup(func() {
 		require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&Redemption{}).Error)
+		require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&RedemptionUsage{}).Error)
 		DB.Exec("DELETE FROM users")
 		DB.Exec("DELETE FROM logs")
 	})
@@ -178,4 +180,102 @@ func TestRedeemConcurrentSingleSuccess(t *testing.T) {
 	var user User
 	require.NoError(t, DB.First(&user, "id = ?", userId).Error)
 	assert.Equal(t, 300, user.Quota, "quota must be credited exactly once")
+}
+
+// setupMultiRedeemFixture creates a single Redemption that can be redeemed
+// by `maxRedeems` distinct users. Each user may redeem it only once.
+func setupMultiRedeemFixture(t *testing.T, quota, maxRedeems int) (key string) {
+	t.Helper()
+	require.NoError(t, DB.AutoMigrate(&Redemption{}, &RedemptionUsage{}))
+	require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&Redemption{}).Error)
+	require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&RedemptionUsage{}).Error)
+	t.Cleanup(func() {
+		require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&Redemption{}).Error)
+		require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&RedemptionUsage{}).Error)
+		DB.Exec("DELETE FROM users")
+		DB.Exec("DELETE FROM logs")
+	})
+
+	key = "20000000000000000000000000000001"
+	redemption := &Redemption{
+		Name:        "multi-redeem-test",
+		Key:         key,
+		Status:      common.RedemptionCodeStatusEnabled,
+		Quota:       quota,
+		MaxRedeems:  maxRedeems,
+		CreatedTime: common.GetTimestamp(),
+	}
+	require.NoError(t, DB.Create(redemption).Error)
+	return key
+}
+
+func makeRedeemUser(t *testing.T, name string) int {
+	t.Helper()
+	user := &User{
+		Username: name,
+		Password: "password",
+		Status:   common.UserStatusEnabled,
+		Quota:   0,
+		AffCode: common.GetRandomString(8),
+	}
+	require.NoError(t, DB.Create(user).Error)
+	return user.Id
+}
+
+// A code with MaxRedeems > 1 must accept redemptions from distinct users
+// until the cap is reached; after the cap the status flips to Used.
+func TestRedeemMultiUseAcrossDistinctUsers(t *testing.T) {
+	key := setupMultiRedeemFixture(t, 500, 3)
+
+	u1 := makeRedeemUser(t, "multi-u1")
+	u2 := makeRedeemUser(t, "multi-u2")
+	u3 := makeRedeemUser(t, "multi-u3")
+	u4 := makeRedeemUser(t, "multi-u4")
+
+	// First 3 distinct users all succeed.
+	_, err := Redeem(key, u1)
+	require.NoError(t, err)
+	_, err = Redeem(key, u2)
+	require.NoError(t, err)
+	_, err = Redeem(key, u3)
+	require.NoError(t, err)
+
+	var r Redemption
+	require.NoError(t, DB.First(&r, "key = ?", key).Error)
+	assert.Equal(t, common.RedemptionCodeStatusUsed, r.Status)
+	assert.Equal(t, 3, r.RedeemedCount)
+
+	// 4th user must fail because the total cap is reached.
+	_, err = Redeem(key, u4)
+	require.Error(t, err)
+
+	// Same user re-redeeming must also fail.
+	_, err = Redeem(key, u1)
+	require.Error(t, err)
+
+	// Each successful user has 500 quota credited.
+	for _, uid := range []int{u1, u2, u3} {
+		var u User
+		require.NoError(t, DB.First(&u, "id = ?", uid).Error)
+		assert.Equal(t, 500, u.Quota)
+	}
+}
+
+// Even with MaxRedeems > 1, the same user can redeem a code only once.
+func TestRedeemMultiUseSameUserRejected(t *testing.T) {
+	key := setupMultiRedeemFixture(t, 500, 5)
+
+	u1 := makeRedeemUser(t, "once-u1")
+
+	_, err := Redeem(key, u1)
+	require.NoError(t, err)
+
+	// Same user cannot redeem again, even though the cap is not reached.
+	_, err = Redeem(key, u1)
+	require.Error(t, err)
+
+	var r Redemption
+	require.NoError(t, DB.First(&r, "key = ?", key).Error)
+	assert.Equal(t, common.RedemptionCodeStatusEnabled, r.Status)
+	assert.Equal(t, 1, r.RedeemedCount)
 }

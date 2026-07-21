@@ -20,11 +20,12 @@ For commercial licensing, please contact support@quantumnous.com
 import React from 'react';
 import { Tag, Button, Space, Popover, Dropdown } from '@douyinfe/semi-ui';
 import { IconMore } from '@douyinfe/semi-icons';
-import { renderQuota, timestamp2string } from '../../../helpers';
+import { timestamp2string } from '../../../helpers';
 import {
   REDEMPTION_STATUS,
   REDEMPTION_STATUS_MAP,
   REDEMPTION_ACTIONS,
+  formatRedemptionPrice,
 } from '../../../constants/redemption.constants';
 
 /**
@@ -105,15 +106,29 @@ export const getRedemptionsColumns = ({
       },
     },
     {
-      title: t('额度'),
-      dataIndex: 'quota',
-      render: (text) => {
+      title: t('价格'),
+      dataIndex: 'amount',
+      key: 'price',
+      render: (text, record) => {
         return (
-          <div>
-            <Tag color='grey' shape='circle'>
-              {renderQuota(parseInt(text))}
-            </Tag>
-          </div>
+          <Tag color='grey' shape='circle'>
+            {formatRedemptionPrice(record)}
+          </Tag>
+        );
+      },
+    },
+    {
+      title: t('兑换次数'),
+      dataIndex: 'redeemed_count',
+      key: 'usage',
+      render: (text, record) => {
+        const redeemed = parseInt(text, 10) || 0;
+        const max = parseInt(record?.max_redeems, 10) || 1;
+        const isFull = redeemed >= max;
+        return (
+          <Tag color={isFull ? 'green' : 'grey'} shape='circle'>
+            {redeemed} / {max}
+          </Tag>
         );
       },
     },

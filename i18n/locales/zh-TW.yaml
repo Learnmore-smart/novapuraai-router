@@ -60,6 +60,11 @@ redemption.expired: "該兌換碼已過期"
 redemption.failed: "兌換失敗，請稍後重試"
 redemption.not_provided: "未提供兌換碼"
 redemption.expire_time_invalid: "過期時間不能早於當前時間"
+redemption.currency_invalid: "貨幣必須是 USD、CNY、CAD 之一"
+redemption.amount_positive: "兌換碼金額必須大於 0"
+redemption.max_redeems_invalid: "總兌換次數必須在 1 到 100000 之間"
+redemption.max_redeems_below_used: "總兌換次數不能小於已兌換次數"
+redemption.already_used_by_user: "您已經兌換過此兌換碼"
 
 # User messages
 user.password_login_disabled: "管理員關閉了密碼登錄"

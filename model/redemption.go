@@ -12,18 +12,34 @@ import (
 )
 
 type Redemption struct {
-	Id           int            `json:"id"`
-	UserId       int            `json:"user_id"`
-	Key          string         `json:"key" gorm:"type:char(32);uniqueIndex"`
-	Status       int            `json:"status" gorm:"default:1"`
-	Name         string         `json:"name" gorm:"index"`
-	Quota        int            `json:"quota" gorm:"default:100"`
-	CreatedTime  int64          `json:"created_time" gorm:"bigint"`
-	RedeemedTime int64          `json:"redeemed_time" gorm:"bigint"`
-	Count        int            `json:"count" gorm:"-:all"` // only for api request
-	UsedUserId   int            `json:"used_user_id"`
-	DeletedAt    gorm.DeletedAt `gorm:"index"`
-	ExpiredTime  int64          `json:"expired_time" gorm:"bigint"` // 过期时间，0 表示不过期
+	Id            int            `json:"id"`
+	UserId        int            `json:"user_id"`
+	Key           string         `json:"key" gorm:"type:char(32);uniqueIndex"`
+	Status        int            `json:"status" gorm:"default:1"`
+	Name          string         `json:"name" gorm:"index"`
+	Quota         int            `json:"quota" gorm:"default:100"` // 内部 quota（由 Currency × Amount 换算得出）
+	Currency      string         `json:"currency" gorm:"type:varchar(8);default:''"` // 原币种代码：usd/cny/cad，空串视为旧数据 USD
+	Amount        float64        `json:"amount" gorm:"default:0"` // 原币种价格，例如 currency=cny amount=10 表示 10 元人民币
+	MaxRedeems    int            `json:"max_redeems" gorm:"default:0"` // 总兑换次数上限，0 表示按 1 次（兼容旧数据），>1 为多次
+	RedeemedCount int            `json:"redeemed_count" gorm:"default:0"` // 已兑换次数
+	CreatedTime   int64          `json:"created_time" gorm:"bigint"`
+	RedeemedTime  int64          `json:"redeemed_time" gorm:"bigint"`
+	Count         int            `json:"count" gorm:"-:all"` // only for api request
+	UsedUserId    int            `json:"used_user_id"`
+	DeletedAt     gorm.DeletedAt `gorm:"index"`
+	ExpiredTime   int64          `json:"expired_time" gorm:"bigint"` // 过期时间，0 表示不过期
+}
+
+// EffectiveMaxRedeems returns the effective total redeem limit.
+// 0 is treated as 1 for backward compatibility with legacy single-use codes.
+func (r *Redemption) EffectiveMaxRedeems() int {
+	if r == nil {
+		return 1
+	}
+	if r.MaxRedeems <= 0 {
+		return 1
+	}
+	return r.MaxRedeems
 }
 
 func GetAllRedemptions(startIdx int, num int) (redemptions []*Redemption, total int64, err error) {
@@ -159,21 +175,55 @@ func Redeem(key string, userId int) (quota int, err error) {
 		if redemption.ExpiredTime != 0 && redemption.ExpiredTime < common.GetTimestamp() {
 			return errors.New("该兑换码已过期")
 		}
-		// Compare-and-swap on status: only the transaction that flips
-		// enabled -> used may credit quota, so a concurrent redeem of the
-		// same code loses here even without a row lock (e.g. on SQLite).
-		result := tx.Model(&Redemption{}).
-			Where("id = ? AND status = ?", redemption.Id, common.RedemptionCodeStatusEnabled).
-			Updates(map[string]interface{}{
-				"redeemed_time": common.GetTimestamp(),
-				"status":        common.RedemptionCodeStatusUsed,
-				"used_user_id":  userId,
-			})
-		if result.Error != nil {
-			return result.Error
+		// Per-user-once: insert a usage row; the unique index
+		// (redemption_id, user_id) rejects duplicate redemptions by the
+		// same user even under concurrent transactions.
+		usage := &RedemptionUsage{
+			RedemptionId: redemption.Id,
+			UserId:       userId,
+			CreatedTime:   common.GetTimestamp(),
+			Quota:        redemption.Quota,
 		}
-		if result.RowsAffected == 0 {
-			return errors.New("该兑换码已被使用")
+		if insertErr := tx.Create(usage).Error; insertErr != nil {
+			return ErrRedeemAlreadyUsedByUser
+		}
+
+		maxRedeems := redemption.EffectiveMaxRedeems()
+		newCount := redemption.RedeemedCount + 1
+		now := common.GetTimestamp()
+		// Mark as Used when this redeem consumes the last slot. For
+		// single-use codes (legacy default), this preserves the old
+		// enabled -> used transition via compare-and-swap.
+		if newCount >= maxRedeems {
+			result := tx.Model(&Redemption{}).
+				Where("id = ? AND status = ?", redemption.Id, common.RedemptionCodeStatusEnabled).
+				Updates(map[string]interface{}{
+					"redeemed_time":  now,
+					"status":         common.RedemptionCodeStatusUsed,
+					"used_user_id":  userId,
+					"redeemed_count": newCount,
+				})
+			if result.Error != nil {
+				return result.Error
+			}
+			if result.RowsAffected == 0 {
+				return errors.New("该兑换码已被使用")
+			}
+		} else {
+			// Increment redeemed_count without flipping status yet.
+			result := tx.Model(&Redemption{}).
+				Where("id = ? AND status = ?", redemption.Id, common.RedemptionCodeStatusEnabled).
+				Updates(map[string]interface{}{
+					"redeemed_time":  now,
+					"used_user_id":  userId,
+					"redeemed_count": newCount,
+				})
+			if result.Error != nil {
+				return result.Error
+			}
+			if result.RowsAffected == 0 {
+				return errors.New("该兑换码已被使用")
+			}
 		}
 		// Redemption codes are gift/promo, not cash top-up.
 		return tx.Model(&User{}).Where("id = ?", userId).Updates(map[string]any{
@@ -203,7 +253,7 @@ func (redemption *Redemption) SelectUpdate() error {
 // Update Make sure your token's fields is completed, because this will update non-zero values
 func (redemption *Redemption) Update() error {
 	var err error
-	err = DB.Model(redemption).Select("name", "status", "quota", "redeemed_time", "expired_time").Updates(redemption).Error
+	err = DB.Model(redemption).Select("name", "status", "quota", "currency", "amount", "max_redeems", "redeemed_time", "expired_time").Updates(redemption).Error
 	return err
 }
 

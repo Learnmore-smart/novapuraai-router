@@ -59,6 +59,11 @@ redemption.expired: "This redemption code has expired"
 redemption.failed: "Redemption failed, please try again later"
 redemption.not_provided: "Redemption code not provided"
 redemption.expire_time_invalid: "Expiration time cannot be earlier than current time"
+redemption.currency_invalid: "Currency must be one of: USD, CNY, CAD"
+redemption.amount_positive: "Redemption amount must be greater than 0"
+redemption.max_redeems_invalid: "Max redemption count must be between 1 and 100000"
+redemption.max_redeems_below_used: "Max redemption count cannot be less than already redeemed count"
+redemption.already_used_by_user: "You have already redeemed this code"
 
 # User messages
 user.password_login_disabled: "Password login has been disabled by administrator"

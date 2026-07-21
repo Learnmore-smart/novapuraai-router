@@ -11,6 +11,10 @@ export const redemptionSchema = z.object({
   key: z.string(),
   status: z.number(), // 1: enabled, 2: disabled, 3: used
   quota: z.number(),
+  currency: z.string().optional().default(''),
+  amount: z.number().optional().default(0),
+  max_redeems: z.number().optional().default(0),
+  redeemed_count: z.number().optional().default(0),
   created_time: z.number(),
   redeemed_time: z.number(),
   expired_time: z.number(), // 0 for never expires
@@ -56,6 +60,9 @@ export interface RedemptionFormData {
   id?: number
   name: string
   quota: number
+  currency?: string // cny/usd/cad
+  amount?: number // price in the chosen currency
+  max_redeems?: number // total times redeemable across the platform
   expired_time: number
   count?: number // Only for create
   status?: number // Only for status update
