@@ -71,7 +71,9 @@ func TestShouldRetryByStatusCode(t *testing.T) {
 
 func TestShouldRetryByStatusCode_DefaultMatchesLegacyBehavior(t *testing.T) {
 	require.False(t, ShouldRetryByStatusCode(200))
-	require.False(t, ShouldRetryByStatusCode(400))
+	// 400 is retryable by default so the key-pool can fail over to another key/channel
+	// when one key throws a per-key error (e.g. "Invalid model id").
+	require.True(t, ShouldRetryByStatusCode(400))
 	require.True(t, ShouldRetryByStatusCode(401))
 	require.False(t, ShouldRetryByStatusCode(408))
 	require.True(t, ShouldRetryByStatusCode(429))

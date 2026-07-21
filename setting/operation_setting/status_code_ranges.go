@@ -18,11 +18,14 @@ type StatusCodeRange struct {
 var AutomaticDisableStatusCodeRanges = []StatusCodeRange{{Start: 401, End: 403}}
 
 // Default behavior matches legacy hardcoded retry rules in controller/relay.go shouldRetry:
-// retry for 1xx, 3xx, 4xx(except 400/408), 5xx(except 504/524), and no retry for 2xx.
+// retry for 1xx, 3xx, 4xx(except 408), 5xx(except 504/524), and no retry for 2xx.
+// 400 is included so that a key-pool can fail over to another key/channel when one key
+// throws a per-key/per-channel error such as "Invalid model id" — the request may succeed
+// on a different channel that maps or supports the model differently.
 var AutomaticRetryStatusCodeRanges = []StatusCodeRange{
 	{Start: 100, End: 199},
 	{Start: 300, End: 399},
-	{Start: 401, End: 407},
+	{Start: 400, End: 407},
 	{Start: 409, End: 499},
 	{Start: 500, End: 503},
 	{Start: 505, End: 523},
