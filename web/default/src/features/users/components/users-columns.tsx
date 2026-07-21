@@ -155,6 +155,34 @@ export function useUsersColumns(): ColumnDef<User>[] {
       meta: { mobileOrder: 40 },
     },
     {
+      accessorKey: 'used_quota',
+      header: t('Used Quota'),
+      cell: ({ row }) => {
+        const used = row.getValue('used_quota') as number
+        return (
+          <span className='tabular-nums text-sm'>
+            {formatQuota(used)}
+          </span>
+        )
+      },
+      size: 140,
+      meta: { mobileHidden: true },
+    },
+    {
+      accessorKey: 'request_count',
+      header: t('Requests'),
+      cell: ({ row }) => {
+        const count = row.getValue('request_count') as number
+        return (
+          <span className='text-muted-foreground tabular-nums text-sm'>
+            {count.toLocaleString()}
+          </span>
+        )
+      },
+      size: 110,
+      meta: { mobileHidden: true },
+    },
+    {
       accessorKey: 'group',
       header: t('Group'),
       cell: ({ row }) => {
