@@ -36,6 +36,14 @@ type gitHubUser struct {
 	Email string `json:"email"`
 }
 
+// gitHubEmail represents one entry from GitHub's /user/emails endpoint.
+type gitHubEmail struct {
+	Email      string `json:"email"`
+	Verified   bool   `json:"verified"`
+	Primary    bool   `json:"primary"`
+	Visibility string `json:"visibility"`
+}
+
 func (p *GitHubProvider) GetName() string {
 	return "GitHub"
 }
@@ -150,6 +158,19 @@ func (p *GitHubProvider) GetUserInfo(ctx context.Context, token *OAuthToken) (*O
 		return nil, NewOAuthError(i18n.MsgOAuthUserInfoEmpty, map[string]any{"Provider": "GitHub"})
 	}
 
+	// GitHub only returns a public email from /user. When the user keeps their
+	// email private, the field is null even with the user:email scope granted.
+	// Fall back to /user/emails so registration (and the register promo that
+	// keys off user.Email) works for private-email accounts too.
+	if githubUser.Email == "" {
+		if email, ferr := p.fetchPrimaryEmail(ctx, token); ferr != nil {
+			logger.LogDebug(ctx, "[OAuth-GitHub] GetUserInfo: /user/emails fallback failed: %s", ferr.Error())
+		} else if email != "" {
+			githubUser.Email = email
+			logger.LogDebug(ctx, "[OAuth-GitHub] GetUserInfo: email filled from /user/emails: %s", email)
+		}
+	}
+
 	logger.LogDebug(ctx, "[OAuth-GitHub] GetUserInfo success: id=%d, login=%s, name=%s, email=%s",
 		githubUser.Id, githubUser.Login, githubUser.Name, githubUser.Email)
 
@@ -162,6 +183,64 @@ func (p *GitHubProvider) GetUserInfo(ctx context.Context, token *OAuthToken) (*O
 			"legacy_id": githubUser.Login, // Store login for migration from old accounts
 		},
 	}, nil
+}
+
+// fetchPrimaryEmail calls GET /user/emails and returns the best available
+// email: primary+verified first, then primary, then any verified one.
+// Returns "" when no usable email is found.
+func (p *GitHubProvider) fetchPrimaryEmail(ctx context.Context, token *OAuthToken) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/user/emails", nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
+
+	client := http.Client{
+		Timeout: 20 * time.Second,
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		logger.LogError(ctx, fmt.Sprintf("[OAuth-GitHub] /user/emails error: %s", err.Error()))
+		return "", err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(res.Body)
+		bodyStr := string(body)
+		if len(bodyStr) > 500 {
+			bodyStr = bodyStr[:500] + "..."
+		}
+		logger.LogError(ctx, fmt.Sprintf("[OAuth-GitHub] /user/emails failed: status=%d, body=%s", res.StatusCode, bodyStr))
+		return "", fmt.Errorf("status %d", res.StatusCode)
+	}
+
+	var emails []gitHubEmail
+	if err := common.DecodeJson(res.Body, &emails); err != nil {
+		logger.LogError(ctx, fmt.Sprintf("[OAuth-GitHub] /user/emails decode error: %s", err.Error()))
+		return "", err
+	}
+
+	var primaryUnverified string
+	var verifiedFallback string
+	for _, e := range emails {
+		if e.Email == "" {
+			continue
+		}
+		if e.Primary && e.Verified {
+			return e.Email, nil
+		}
+		if e.Primary && primaryUnverified == "" {
+			primaryUnverified = e.Email
+		}
+		if e.Verified && verifiedFallback == "" {
+			verifiedFallback = e.Email
+		}
+	}
+	if primaryUnverified != "" {
+		return primaryUnverified, nil
+	}
+	return verifiedFallback, nil
 }
 
 func (p *GitHubProvider) IsUserIDTaken(providerUserID string) bool {
