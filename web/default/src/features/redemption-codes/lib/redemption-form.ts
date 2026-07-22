@@ -36,7 +36,18 @@ export function getRedemptionFormSchema(t: TFunction) {
       .min(REDEMPTION_VALIDATION.COUNT_MIN, msg.COUNT_INVALID)
       .max(REDEMPTION_VALIDATION.COUNT_MAX, msg.COUNT_INVALID)
       .optional(),
-  })
+    key: z
+      .string()
+      .trim()
+      .optional()
+      .refine(
+        (val) => !val || /^[A-Za-z0-9_-]{3,64}$/.test(val),
+        msg.KEY_INVALID
+      ),
+  }).refine(
+    (data) => !data.key?.trim() || (data.count ?? 1) === 1,
+    { path: ['key'], message: msg.KEY_REQUIRES_SINGLE }
+  )
 }
 
 export type RedemptionFormValues = {
@@ -46,6 +57,7 @@ export type RedemptionFormValues = {
   max_redeems: number
   expired_time?: Date
   count?: number
+  key?: string
 }
 
 // ============================================================================
@@ -59,6 +71,7 @@ export const REDEMPTION_FORM_DEFAULT_VALUES: RedemptionFormValues = {
   max_redeems: 1,
   expired_time: undefined,
   count: 1,
+  key: '',
 }
 
 // ============================================================================
@@ -73,7 +86,7 @@ export const REDEMPTION_FORM_DEFAULT_VALUES: RedemptionFormValues = {
 export function transformFormDataToPayload(
   data: RedemptionFormValues
 ): RedemptionFormData {
-  return {
+  const payload: RedemptionFormData = {
     name: data.name,
     currency: data.currency,
     amount: data.amount,
@@ -84,6 +97,13 @@ export function transformFormDataToPayload(
       : 0,
     count: data.count || 1,
   }
+  // Only send custom key when non-empty and count is 1 (backend rejects
+  // custom key with count > 1).
+  const customKey = (data.key ?? '').trim()
+  if (customKey && (data.count || 1) === 1) {
+    payload.key = customKey
+  }
+  return payload
 }
 
 /**
@@ -110,5 +130,6 @@ export function transformRedemptionToFormDefaults(
         ? new Date(redemption.expired_time * 1000)
         : undefined,
     count: 1,
+    key: '',
   }
 }

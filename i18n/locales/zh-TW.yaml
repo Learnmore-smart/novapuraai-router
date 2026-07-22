@@ -65,6 +65,9 @@ redemption.amount_positive: "兌換碼金額必須大於 0"
 redemption.max_redeems_invalid: "總兌換次數必須在 1 到 100000 之間"
 redemption.max_redeems_below_used: "總兌換次數不能小於已兌換次數"
 redemption.already_used_by_user: "您已經兌換過此兌換碼"
+redemption.key_invalid: "自訂兌換碼必須為 3-64 位字元，僅支援字母、數字、連字號或下底線"
+redemption.key_exists: "該兌換碼已存在"
+redemption.key_requires_single: "自訂兌換碼只能單個生成（數量必須為 1）"
 
 # User messages
 user.password_login_disabled: "管理員關閉了密碼登錄"

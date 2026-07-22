@@ -279,3 +279,90 @@ func TestRedeemMultiUseSameUserRejected(t *testing.T) {
 	assert.Equal(t, common.RedemptionCodeStatusEnabled, r.Status)
 	assert.Equal(t, 1, r.RedeemedCount)
 }
+
+// TestRedeemCustomShortKey verifies that a short, human-readable custom key
+// (like the "Launch-2026" promo code) can be stored and redeemed. Before the
+// varchar(64) migration and custom-key support, the char(32) column could not
+// hold short keys and AddRedemption always overwrote Key with a UUID, making
+// such codes impossible to create.
+func TestRedeemCustomShortKey(t *testing.T) {
+	require.NoError(t, DB.AutoMigrate(&Redemption{}, &RedemptionUsage{}))
+	require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&Redemption{}).Error)
+	require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&RedemptionUsage{}).Error)
+	t.Cleanup(func() {
+		require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&Redemption{}).Error)
+		require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&RedemptionUsage{}).Error)
+		DB.Exec("DELETE FROM users")
+		DB.Exec("DELETE FROM logs")
+	})
+
+	user := &User{Username: "promo-user", Password: "password", Status: common.UserStatusEnabled, Quota: 0}
+	require.NoError(t, DB.Create(user).Error)
+
+	const customKey = "Launch-2026"
+	redemption := &Redemption{
+		Name:        "launch-promo",
+		Key:         customKey,
+		Status:      common.RedemptionCodeStatusEnabled,
+		Quota:       500000,
+		Currency:    "usd",
+		Amount:      1,
+		CreatedTime: common.GetTimestamp(),
+	}
+	require.NoError(t, DB.Create(redemption).Error)
+
+	quota, err := Redeem(customKey, user.Id)
+	require.NoError(t, err)
+	assert.Equal(t, 500000, quota)
+
+	var updated User
+	require.NoError(t, DB.First(&updated, "id = ?", user.Id).Error)
+	assert.Equal(t, 500000, updated.Quota)
+}
+
+// TestIsRedemptionKeyTaken verifies that key uniqueness checks include
+// soft-deleted rows. The unique index on `key` covers soft-deleted rows too,
+// so IsRedemptionKeyTaken must use Unscoped to prevent duplicate-key insert
+// errors when re-creating a previously deleted key.
+func TestIsRedemptionKeyTaken(t *testing.T) {
+	require.NoError(t, DB.AutoMigrate(&Redemption{}))
+	require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&Redemption{}).Error)
+	t.Cleanup(func() {
+		require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&Redemption{}).Error)
+	})
+
+	// Non-existent key is not taken.
+	taken, err := IsRedemptionKeyTaken("no-such-key-2026")
+	require.NoError(t, err)
+	assert.False(t, taken)
+
+	// Create a redemption with a custom key.
+	r := &Redemption{
+		Name:        "key-taken-test",
+		Key:         "Launch-2026",
+		Status:      common.RedemptionCodeStatusEnabled,
+		Quota:       100,
+		CreatedTime: common.GetTimestamp(),
+	}
+	require.NoError(t, DB.Create(r).Error)
+
+	// Active key is taken.
+	taken, err = IsRedemptionKeyTaken("Launch-2026")
+	require.NoError(t, err)
+	assert.True(t, taken)
+
+	// Soft-delete the redemption.
+	require.NoError(t, DB.Delete(r).Error)
+
+	// Soft-deleted key is still taken (unique index covers soft-deleted rows).
+	// Without Unscoped, this would return false and a subsequent insert would
+	// fail with a duplicate-key error.
+	taken, err = IsRedemptionKeyTaken("Launch-2026")
+	require.NoError(t, err)
+	assert.True(t, taken)
+
+	// Empty key is never taken.
+	taken, err = IsRedemptionKeyTaken("")
+	require.NoError(t, err)
+	assert.False(t, taken)
+}

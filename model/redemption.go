@@ -14,7 +14,7 @@ import (
 type Redemption struct {
 	Id            int            `json:"id"`
 	UserId        int            `json:"user_id"`
-	Key           string         `json:"key" gorm:"type:char(32);uniqueIndex"`
+	Key           string         `json:"key" gorm:"type:varchar(64);uniqueIndex"`
 	Status        int            `json:"status" gorm:"default:1"`
 	Name          string         `json:"name" gorm:"index"`
 	Quota         int            `json:"quota" gorm:"default:100"` // 内部 quota（由 Currency × Amount 换算得出）
@@ -237,6 +237,26 @@ func Redeem(key string, userId int) (quota int, err error) {
 	}
 	RecordLog(userId, LogTypeTopup, fmt.Sprintf("通过兑换码充值 %s，兑换码ID %d", logger.LogQuota(redemption.Quota), redemption.Id))
 	return redemption.Quota, nil
+}
+
+// IsRedemptionKeyTaken reports whether any redemption (including soft-deleted
+// ones) already uses the given key. The unique index on `key` covers soft-deleted
+// rows too, so we must check with Unscoped to avoid a duplicate-key insert when
+// re-creating a key that was previously deleted.
+func IsRedemptionKeyTaken(key string) (bool, error) {
+	if key == "" {
+		return false, nil
+	}
+	keyCol := "`key`"
+	if common.UsingMainDatabase(common.DatabaseTypePostgreSQL) {
+		keyCol = `"key"`
+	}
+	var count int64
+	err := DB.Unscoped().Model(&Redemption{}).Where(keyCol+" = ?", key).Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
 
 func (redemption *Redemption) Insert() error {

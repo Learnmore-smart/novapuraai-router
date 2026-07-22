@@ -2,6 +2,7 @@ package controller
 
 import (
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -15,6 +16,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+// customKeyCodePattern constrains admin-supplied custom redemption codes
+// (marketing promo codes like "Launch-2026"). 3–64 chars, letters, digits,
+// '-' and '_'. Matches the DB column width (varchar(64)).
+var customKeyCodePattern = regexp.MustCompile(`^[A-Za-z0-9_-]{3,64}$`)
 
 // computeQuotaFromCurrencyAmount converts a (currency, amount) pair into
 // internal quota units using the current effective FX rates. currency must
@@ -154,13 +160,43 @@ func AddRedemption(c *gin.Context) {
 	// 用当前汇率把 (currency, amount) 换算为内部 quota
 	redemption.Quota = computeQuotaFromCurrencyAmount(redemption.Currency, redemption.Amount)
 
+	// 可选自定义可读 key（如营销优惠码）。留空则按原逻辑自动生成 UUID。
+	customKey := strings.TrimSpace(redemption.Key)
+	if customKey != "" {
+		if redemption.Count != 1 {
+			common.ApiErrorI18n(c, i18n.MsgRedemptionKeyRequiresSingle)
+			return
+		}
+		if !customKeyCodePattern.MatchString(customKey) {
+			common.ApiErrorI18n(c, i18n.MsgRedemptionKeyInvalid)
+			return
+		}
+		taken, err := model.IsRedemptionKeyTaken(customKey)
+		if err != nil {
+			common.SysError("failed to check redemption key uniqueness: " + err.Error())
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": i18n.T(c, i18n.MsgRedemptionCreateFailed),
+				"data":    nil,
+			})
+			return
+		}
+		if taken {
+			common.ApiErrorI18n(c, i18n.MsgRedemptionKeyExists)
+			return
+		}
+	}
+
 	var keys []string
 	for i := 0; i < redemption.Count; i++ {
-		key := common.GetUUID()
+		code := customKey
+		if code == "" {
+			code = common.GetUUID()
+		}
 		cleanRedemption := model.Redemption{
 			UserId:      c.GetInt("id"),
 			Name:        redemption.Name,
-			Key:         key,
+			Key:         code,
 			CreatedTime: common.GetTimestamp(),
 			Quota:       redemption.Quota,
 			Currency:    redemption.Currency,
@@ -178,7 +214,7 @@ func AddRedemption(c *gin.Context) {
 			})
 			return
 		}
-		keys = append(keys, key)
+		keys = append(keys, code)
 	}
 	recordManageAudit(c, "redemption.create", map[string]interface{}{
 		"name":        redemption.Name,
