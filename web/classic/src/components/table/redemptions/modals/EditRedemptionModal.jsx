@@ -66,6 +66,7 @@ const EditRedemptionModal = (props) => {
 
   const getInitValues = () => ({
     name: '',
+    key: '',
     quota: 100000,
     amount: Number(quotaToDisplayAmount(100000).toFixed(6)),
     currency: 'usd',
@@ -73,6 +74,30 @@ const EditRedemptionModal = (props) => {
     count: 1,
     expired_time: null,
   });
+
+  // 校验自定义兑换码：仅在创建时使用，count 必须为 1，正则同后端
+  const validateCustomKey = (values) => {
+    const customKey = (values.key || '').trim();
+    if (!customKey) {
+      return { ok: true, key: '' };
+    }
+    const count = parseInt(values.count, 10) || 1;
+    if (count !== 1) {
+      return {
+        ok: false,
+        message: t('自定义兑换码只能在生成数量为 1 时使用'),
+      };
+    }
+    if (!/^[A-Za-z0-9_-]{3,64}$/.test(customKey)) {
+      return {
+        ok: false,
+        message: t(
+          '自定义兑换码需 3-64 位，仅支持字母、数字、下划线、连字符',
+        ),
+      };
+    }
+    return { ok: true, key: customKey };
+  };
 
   const handleCancel = () => {
     props.handleClose();
@@ -126,12 +151,28 @@ const EditRedemptionModal = (props) => {
     if (!isEdit && (!name || name === '')) {
       name = `${symbol}${Number(values.amount || 0).toFixed(2)} ${label}`;
     }
+    // 自定义兑换码校验（仅创建时）
+    let customKey = '';
+    if (!isEdit) {
+      const result = validateCustomKey(values);
+      if (!result.ok) {
+        showError(result.message);
+        return;
+      }
+      customKey = result.key;
+    }
     setLoading(true);
     let localInputs = { ...values };
     localInputs.count = parseInt(localInputs.count) || 0;
     localInputs.currency = currency;
     localInputs.amount = Number(localInputs.amount) || 0;
     localInputs.max_redeems = parseInt(localInputs.max_redeems) || 1;
+    // 自定义兑换码：仅当非空且 count=1 时传给后端
+    if (!isEdit && customKey && localInputs.count === 1) {
+      localInputs.key = customKey;
+    } else {
+      delete localInputs.key;
+    }
     if (
       localInputs.max_redeems < REDEMPTION_VALIDATION.MAX_REDEEMS_MIN ||
       localInputs.max_redeems > REDEMPTION_VALIDATION.MAX_REDEEMS_MAX
@@ -400,6 +441,27 @@ const EditRedemptionModal = (props) => {
                           ]}
                           style={{ width: '100%' }}
                           showClear
+                        />
+                      </Col>
+                    )}
+                    {!isEdit && (
+                      <Col span={24}>
+                        <Form.Input
+                          field='key'
+                          label={t('自定义兑换码（可选）')}
+                          placeholder={t('例如 Launch-2026')}
+                          disabled={
+                            parseInt(values.count, 10) > 1
+                          }
+                          style={{ width: '100%' }}
+                          showClear
+                          extraText={
+                            parseInt(values.count, 10) > 1
+                              ? t('自定义兑换码只能在生成数量为 1 时使用')
+                              : t(
+                                  '3-64 位：字母、数字、下划线、连字符。留空则自动生成。',
+                                )
+                          }
                         />
                       </Col>
                     )}
