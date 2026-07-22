@@ -158,6 +158,8 @@ export function RedemptionsMutateDrawer({
   const currencySymbol = REDEMPTION_CURRENCY_SYMBOLS[selectedCurrency]
   const currencyLabel = REDEMPTION_CURRENCY_LABELS[selectedCurrency]
   const amountLabel = t('Amount ({{currency}})', { currency: currencyLabel })
+  const count = form.watch('count') ?? 1
+  const isCustomCodeDisabled = count > 1
 
   return (
     <Sheet
@@ -393,6 +395,36 @@ export function RedemptionsMutateDrawer({
                       </FormControl>
                       <FormDescription>
                         {t('Create multiple redemption codes at once (1-100)')}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {!isUpdate && (
+                <FormField
+                  control={form.control}
+                  name='key'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Custom Code (optional)')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          value={field.value ?? ''}
+                          placeholder={t('e.g. Launch-2026')}
+                          disabled={isCustomCodeDisabled}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {isCustomCodeDisabled
+                          ? t(
+                              'Custom code is only available when quantity is 1'
+                            )
+                          : t(
+                              '3-64 characters: letters, digits, hyphens, underscores. Leave empty for auto-generated code.'
+                            )}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

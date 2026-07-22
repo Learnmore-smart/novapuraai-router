@@ -38,6 +38,18 @@ function formatRedemptionPrice(redemption: Redemption): string {
   return `${symbol}${formattedAmount} ${label}`
 }
 
+// maskRedemptionKey masks a redemption code for safe display in the table.
+// Adapts to short custom codes (3-64 chars) vs long UUIDs (32 chars):
+// - 1-4 chars: fully masked
+// - 5-12 chars: show first 2 + last 2
+// - 13+ chars: show first 8 + last 8 (original behavior for UUIDs)
+function maskRedemptionKey(key: string): string {
+  const len = key.length
+  if (len <= 4) return '*'.repeat(len)
+  if (len <= 12) return key.slice(0, 2) + '*'.repeat(len - 4) + key.slice(-2)
+  return key.slice(0, 8) + '*'.repeat(16) + key.slice(-8)
+}
+
 export function useRedemptionsColumns(): ColumnDef<Redemption>[] {
   const { t } = useTranslation()
   return [
@@ -142,7 +154,7 @@ export function useRedemptionsColumns(): ColumnDef<Redemption>[] {
       cell: function CodeCell({ row }) {
         const redemption = row.original
         const key = redemption.key
-        const maskedKey = `${key.slice(0, 8)}${'*'.repeat(16)}${key.slice(-8)}`
+        const maskedKey = maskRedemptionKey(key)
 
         return (
           <MaskedValueDisplay

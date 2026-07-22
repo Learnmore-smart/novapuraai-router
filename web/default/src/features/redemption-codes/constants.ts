@@ -112,6 +112,8 @@ export const REDEMPTION_VALIDATION = {
   AMOUNT_MIN: 0.01,
   MAX_REDEEMS_MIN: 1,
   MAX_REDEEMS_MAX: 100000,
+  KEY_MIN_LENGTH: 3,
+  KEY_MAX_LENGTH: 64,
 } as const
 
 // ============================================================================
@@ -133,6 +135,8 @@ export const ERROR_MESSAGES = {
   EXPIRED_TIME_INVALID: 'Expired time cannot be earlier than current time',
   AMOUNT_INVALID: 'Amount must be greater than {{min}}',
   MAX_REDEEMS_INVALID: 'Max redemption count must be between {{min}} and {{max}}',
+  KEY_INVALID: 'Custom code must be {{min}}-{{max}} characters: letters, digits, hyphens, underscores only',
+  KEY_REQUIRES_SINGLE: 'Custom code can only be used when quantity is 1',
 } as const
 
 /** For form schema only: returns translated messages with interpolation. */
@@ -154,6 +158,11 @@ export function getRedemptionFormErrorMessages(t: TFunction) {
       min: REDEMPTION_VALIDATION.MAX_REDEEMS_MIN,
       max: REDEMPTION_VALIDATION.MAX_REDEEMS_MAX,
     }),
+    KEY_INVALID: t(ERROR_MESSAGES.KEY_INVALID, {
+      min: REDEMPTION_VALIDATION.KEY_MIN_LENGTH,
+      max: REDEMPTION_VALIDATION.KEY_MAX_LENGTH,
+    }),
+    KEY_REQUIRES_SINGLE: t(ERROR_MESSAGES.KEY_REQUIRES_SINGLE),
   } as const
 }
 

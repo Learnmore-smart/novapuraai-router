@@ -74,6 +74,9 @@ const (
 	MsgRedemptionMaxRedeemsInvalid  = "redemption.max_redeems_invalid"
 	MsgRedemptionMaxRedeemsBelowUsed = "redemption.max_redeems_below_used"
 	MsgRedemptionAlreadyUsedByUser  = "redemption.already_used_by_user"
+	MsgRedemptionKeyInvalid         = "redemption.key_invalid"
+	MsgRedemptionKeyExists          = "redemption.key_exists"
+	MsgRedemptionKeyRequiresSingle  = "redemption.key_requires_single"
 )
 
 // User related messages

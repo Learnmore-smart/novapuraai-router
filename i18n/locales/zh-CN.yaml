@@ -65,6 +65,9 @@ redemption.amount_positive: "兑换码金额必须大于 0"
 redemption.max_redeems_invalid: "总兑换次数必须在 1 到 100000 之间"
 redemption.max_redeems_below_used: "总兑换次数不能小于已兑换次数"
 redemption.already_used_by_user: "您已经兑换过此兑换码"
+redemption.key_invalid: "自定义兑换码必须为 3-64 位字符，仅支持字母、数字、连字符或下划线"
+redemption.key_exists: "该兑换码已存在"
+redemption.key_requires_single: "自定义兑换码只能单个生成（数量必须为 1）"
 
 # User messages
 user.password_login_disabled: "管理员关闭了密码登录"

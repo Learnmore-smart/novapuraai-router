@@ -59,6 +59,7 @@ export interface SearchRedemptionsParams {
 export interface RedemptionFormData {
   id?: number
   name: string
+  key?: string // optional custom readable code (e.g. "Launch-2026"); only for create, count=1
   quota: number
   currency?: string // cny/usd/cad
   amount?: number // price in the chosen currency
