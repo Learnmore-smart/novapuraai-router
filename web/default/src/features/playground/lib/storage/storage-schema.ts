@@ -16,6 +16,8 @@ export const playgroundConfigSchema = z.object({
   presence_penalty: z.number().optional(),
   seed: z.number().nullable().optional(),
   stream: z.boolean().optional(),
+  autoResendEnabled: z.boolean().optional(),
+  autoResendMaxRetries: z.number().optional(),
 })
 
 export const parameterEnabledSchema = z.object({
@@ -68,6 +70,7 @@ const messageSchema = z.object({
   isContentComplete: z.boolean().optional(),
   status: messageStatusSchema.optional(),
   errorCode: z.string().nullable().optional(),
+  pendingAutoResend: z.boolean().optional(),
 })
 
 export const messagesSchema = z.array(messageSchema)
