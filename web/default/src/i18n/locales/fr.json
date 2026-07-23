@@ -5744,6 +5744,12 @@
     "Zero retention": "Aucune rétention",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Auto-resend on reload": "Renvoi automatique après rechargement",
+    "Enable to resend the last request after a reload.": "Activer pour renvoyer la dernière requête après un rechargement.",
+    "Max retries": "Tentatives maximales",
+    "Number of retry attempts before falling back to an error.": "Nombre de tentatives de renvoi avant de revenir à une erreur.",
+    "Retrying ({{n}}/{{max}})...": "Nouvelle tentative ({{n}}/{{max}})...",
+    "When the page is reloaded mid-generation, automatically resend the request. Retries may incur multiple charges.": "Lors d'un rechargement en cours de génération, renvoie automatiquement la requête. Les nouvelles tentatives peuvent entraîner des frais multiples."
   }
 }

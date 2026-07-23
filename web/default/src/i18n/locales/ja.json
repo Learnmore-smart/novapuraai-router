@@ -5744,6 +5744,12 @@
     "Zero retention": "データ保持なし",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V 4",
-    "Zoom": "ズーム"
+    "Zoom": "ズーム",
+    "Auto-resend on reload": "リロード後に自動再送",
+    "Enable to resend the last request after a reload.": "リロード後に最後のリクエストを再送信できるようにします。",
+    "Max retries": "最大再試行回数",
+    "Number of retry attempts before falling back to an error.": "エラーにフォールバックする前の再試行回数。",
+    "Retrying ({{n}}/{{max}})...": "再試行中 ({{n}}/{{max}})...",
+    "When the page is reloaded mid-generation, automatically resend the request. Retries may incur multiple charges.": "生成中にページをリロードした場合、リクエストを自動的に再送信します。再試行により複数回課金される場合があります。"
   }
 }

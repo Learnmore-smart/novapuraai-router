@@ -5744,6 +5744,12 @@
     "Zero retention": "Без хранения данных",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Auto-resend on reload": "Автоматическая повторная отправка после перезагрузки",
+    "Enable to resend the last request after a reload.": "Включите, чтобы повторно отправить последний запрос после перезагрузки.",
+    "Max retries": "Максимум повторов",
+    "Number of retry attempts before falling back to an error.": "Количество попыток перед возвратом ошибки.",
+    "Retrying ({{n}}/{{max}})...": "Повторная попытка ({{n}}/{{max}})...",
+    "When the page is reloaded mid-generation, automatically resend the request. Retries may incur multiple charges.": "При перезагрузке страницы во время генерации запрос отправляется повторно. Повторные попытки могут привести к многократному списанию средств."
   }
 }

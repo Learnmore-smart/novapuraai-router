@@ -5744,6 +5744,12 @@
     "Zero retention": "Không lưu dữ liệu",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Auto-resend on reload": "Tự động gửi lại khi tải lại trang",
+    "Enable to resend the last request after a reload.": "Bật để gửi lại yêu cầu cuối cùng sau khi tải lại trang.",
+    "Max retries": "Số lần thử lại tối đa",
+    "Number of retry attempts before falling back to an error.": "Số lần thử lại trước khi quay lại lỗi.",
+    "Retrying ({{n}}/{{max}})...": "Đang thử lại ({{n}}/{{max}})...",
+    "When the page is reloaded mid-generation, automatically resend the request. Retries may incur multiple charges.": "Khi trang được tải lại trong lúc tạo, yêu cầu sẽ được gửi lại tự động. Các lần thử lại có thể phát sinh nhiều khoản phí."
   }
 }

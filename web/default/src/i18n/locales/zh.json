@@ -5744,6 +5744,12 @@
     "Zero retention": "零数据保留",
     "Zhipu": "智谱",
     "Zhipu V4": "智谱 V4",
-    "Zoom": "缩放"
+    "Zoom": "缩放",
+    "Auto-resend on reload": "刷新后自动重发",
+    "Enable to resend the last request after a reload.": "启用后在刷新后重发上一次请求。",
+    "Max retries": "最大重试次数",
+    "Number of retry attempts before falling back to an error.": "回落到错误前的重试次数。",
+    "Retrying ({{n}}/{{max}})...": "重试中 ({{n}}/{{max}})...",
+    "When the page is reloaded mid-generation, automatically resend the request. Retries may incur multiple charges.": "生成中刷新页面时自动重发请求。重试可能产生多次扣费。"
   }
 }
