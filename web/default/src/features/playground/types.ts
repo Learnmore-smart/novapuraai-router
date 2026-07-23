@@ -31,6 +31,7 @@ export interface Message {
   isContentComplete?: boolean
   status?: MessageStatus
   errorCode?: string | null
+  pendingAutoResend?: boolean
 }
 
 // API payload types
@@ -108,6 +109,8 @@ export interface PlaygroundConfig {
   presence_penalty: number
   seed: number | null
   stream: boolean
+  autoResendEnabled: boolean
+  autoResendMaxRetries: number
 }
 
 export interface ParameterEnabled {

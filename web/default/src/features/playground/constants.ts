@@ -36,6 +36,8 @@ export const DEFAULT_CONFIG: PlaygroundConfig = {
   presence_penalty: 0,
   seed: null,
   stream: true,
+  autoResendEnabled: true,
+  autoResendMaxRetries: 3,
 }
 
 export const DEFAULT_PARAMETER_ENABLED: ParameterEnabled = {
@@ -62,6 +64,12 @@ export const ERROR_MESSAGES = {
   STREAM_START_ERROR: 'Error establishing connection',
   CONNECTION_CLOSED: 'Connection closed',
   INTERRUPTED: 'Generation was interrupted',
+} as const
+
+// Auto-resend on reload constants
+export const AUTO_RESEND = {
+  BASE_DELAY_MS: 1000,
+  MAX_RETRIES_LIMIT: 5,
 } as const
 
 // Message action button styles
