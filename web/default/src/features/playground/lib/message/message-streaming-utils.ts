@@ -1,6 +1,4 @@
-import { t } from 'i18next'
-
-import { ERROR_MESSAGES, MESSAGE_ROLES, MESSAGE_STATUS } from '../../constants'
+import { MESSAGE_STATUS } from '../../constants'
 import type { ChatCompletionResponse, Message } from '../../types'
 import { parseThinkTags } from './message-reasoning-utils'
 import {
@@ -10,9 +8,14 @@ import {
 } from './message-timing-utils'
 import {
   getCurrentVersion,
-  hasMessageContent,
   updateCurrentVersionContent,
 } from './message-utils'
+
+export {
+  isAssistantMessagePending,
+  isPendingAssistantMessage,
+  sanitizeMessagesOnLoad,
+} from './sanitize-on-load'
 
 /**
  * Process content chunk during streaming.
@@ -144,20 +147,6 @@ export function isAssistantMessageFinal(message: Message): boolean {
   )
 }
 
-export function isAssistantMessagePending(message: Message): boolean {
-  return (
-    message.status === MESSAGE_STATUS.LOADING ||
-    message.status === MESSAGE_STATUS.STREAMING
-  )
-}
-
-export function isPendingAssistantMessage(message?: Message): boolean {
-  return Boolean(
-    message?.from === MESSAGE_ROLES.ASSISTANT &&
-    isAssistantMessagePending(message)
-  )
-}
-
 type ChatCompletionChoice = ChatCompletionResponse['choices'][number]
 
 export function hasChatCompletionChoice(
@@ -190,49 +179,4 @@ export function applyChatCompletionResponse(
   }
 
   return applyChatCompletionChoice(message, choice)
-}
-
-/**
- * Sanitize messages loaded from storage.
- * Converts stuck loading/streaming messages to stable state.
- */
-export function sanitizeMessagesOnLoad(messages: Message[]): Message[] {
-  let targetIndex = -1
-
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const message = messages[i]
-
-    if (isPendingAssistantMessage(message)) {
-      targetIndex = i
-      break
-    }
-  }
-
-  if (targetIndex === -1) return messages
-
-  const finalized = finalizeMessage(messages[targetIndex])
-  const hasContent = hasMessageContent(finalized)
-  const hasReasoning = finalized.reasoning?.content?.trim()
-
-  const sanitized: Message =
-    hasContent || hasReasoning
-      ? completeAssistantTiming({
-          ...finalized,
-          status: MESSAGE_STATUS.COMPLETE,
-          isReasoningStreaming: false,
-        })
-      : completeAssistantTiming({
-          ...updateCurrentVersionContent(
-            finalized,
-            `${t(ERROR_MESSAGES.API_REQUEST_ERROR)}: ${t(
-              ERROR_MESSAGES.INTERRUPTED
-            )}`
-          ),
-          status: MESSAGE_STATUS.ERROR,
-          isReasoningStreaming: false,
-        })
-
-  const result = [...messages]
-  result[targetIndex] = sanitized
-  return result
 }
