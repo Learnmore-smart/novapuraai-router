@@ -27,6 +27,7 @@ import {
 } from '../../lib'
 import type { ParameterEnabled, PlaygroundConfig } from '../../types'
 import { PlaygroundParameterPanel } from './playground-parameter-panel'
+import { PlaygroundAutoResendSettings } from './playground-auto-resend-settings'
 
 type PlaygroundInputToolsProps = {
   config: PlaygroundConfig
@@ -137,6 +138,12 @@ export function PlaygroundInputTools({
           onConfigChange={onConfigChange}
           onParameterEnabledChange={onParameterEnabledChange}
           parameterEnabled={parameterEnabled}
+        />
+
+        <PlaygroundAutoResendSettings
+          config={config}
+          disabled={disabled}
+          onConfigChange={onConfigChange}
         />
 
         <Tooltip>
