@@ -26,6 +26,7 @@ export function Playground() {
   const { sendChat, stopGeneration, isGenerating } = useChatHandler({
     config,
     parameterEnabled,
+    messages,
     onMessageUpdate: updateMessages,
   })
 

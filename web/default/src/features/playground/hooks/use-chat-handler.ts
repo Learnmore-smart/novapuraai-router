@@ -7,14 +7,17 @@ import { ERROR_MESSAGES } from '../constants'
 import {
   applyStreamingChunk,
   buildChatCompletionPayload,
-  updateAssistantMessageWithError,
-  updateLastAssistantMessage,
-  parseRequestErrorDetails,
-  applyChatCompletionResponse,
   completeAssistantMessage,
+  decideAutoResend,
   hasChatCompletionChoice,
+  hasPendingAutoResend,
   isAssistantMessageFinal,
   isAssistantMessagePending,
+  parseRequestErrorDetails,
+  applyChatCompletionResponse,
+  resetPendingMessageForRetry,
+  updateAssistantMessageWithError,
+  updateLastAssistantMessage,
 } from '../lib'
 import type { Message, PlaygroundConfig, ParameterEnabled } from '../types'
 import { useStreamRequest } from './use-stream-request'
@@ -22,6 +25,7 @@ import { useStreamRequest } from './use-stream-request'
 interface UseChatHandlerOptions {
   config: PlaygroundConfig
   parameterEnabled: ParameterEnabled
+  messages: Message[]
   onMessageUpdate: (updater: (prev: Message[]) => Message[]) => void
 }
 
@@ -50,6 +54,7 @@ function mergePendingStreamChunk(
 export function useChatHandler({
   config,
   parameterEnabled,
+  messages,
   onMessageUpdate,
 }: UseChatHandlerOptions) {
   const { t } = useTranslation()
@@ -62,6 +67,13 @@ export function useChatHandler({
     reasoning: '',
   })
   const streamFlushTimerRef = useRef<number | null>(null)
+
+  const autoResendRetryCountRef = useRef(-1)
+  const autoResendTimerRef = useRef<number | null>(null)
+  const isAutoResendModeRef = useRef(false)
+  const latestMessagesRef = useRef<Message[]>(messages)
+  latestMessagesRef.current = messages
+  const sendChatRef = useRef<(messages: Message[]) => void>(() => {})
 
   const flushStreamUpdates = useCallback(() => {
     if (streamFlushTimerRef.current !== null) {
@@ -120,6 +132,26 @@ export function useChatHandler({
     []
   )
 
+  const clearAutoResendTimer = useCallback(() => {
+    if (autoResendTimerRef.current !== null) {
+      window.clearTimeout(autoResendTimerRef.current)
+      autoResendTimerRef.current = null
+    }
+  }, [])
+
+  const exitAutoResendMode = useCallback(() => {
+    clearAutoResendTimer()
+    isAutoResendModeRef.current = false
+    autoResendRetryCountRef.current = -1
+  }, [clearAutoResendTimer])
+
+  useEffect(
+    () => () => {
+      clearAutoResendTimer()
+    },
+    [clearAutoResendTimer]
+  )
+
   const getDisplayError = useCallback(
     (error: string) => {
       if (KNOWN_ERROR_MESSAGES.has(error)) {
@@ -153,20 +185,54 @@ export function useChatHandler({
   // Handle stream complete
   const handleStreamComplete = useCallback(() => {
     flushStreamUpdates()
+    exitAutoResendMode()
     setIsRequesting(false)
     onMessageUpdate((prev) =>
-      updateLastAssistantMessage(prev, (message) =>
-        isAssistantMessageFinal(message)
-          ? message
-          : completeAssistantMessage(message)
-      )
+      updateLastAssistantMessage(prev, (message) => {
+        if (isAssistantMessageFinal(message) && !message.pendingAutoResend) {
+          return message
+        }
+        const completed = completeAssistantMessage(message)
+        return { ...completed, pendingAutoResend: undefined }
+      })
     )
-  }, [flushStreamUpdates, onMessageUpdate])
+  }, [flushStreamUpdates, exitAutoResendMode, onMessageUpdate])
 
   // Handle stream error
   const handleStreamError = useCallback(
     (error: string, errorCode?: string) => {
       flushStreamUpdates()
+
+      const decision = decideAutoResend({
+        isAutoResendMode: isAutoResendModeRef.current,
+        autoResendEnabled: config.autoResendEnabled,
+        retryCount: autoResendRetryCountRef.current,
+        maxRetries: config.autoResendMaxRetries,
+      })
+
+      if (decision.shouldRetry) {
+        const nextRetryCount = autoResendRetryCountRef.current + 1
+        autoResendRetryCountRef.current = nextRetryCount
+        toast.info(
+          t('Retrying ({{n}}/{{max}})...', {
+            n: nextRetryCount,
+            max: config.autoResendMaxRetries,
+          })
+        )
+        autoResendTimerRef.current = window.setTimeout(() => {
+          autoResendTimerRef.current = null
+          const resetMessages = latestMessagesRef.current.map((message) =>
+            message.pendingAutoResend
+              ? resetPendingMessageForRetry(message)
+              : message
+          )
+          onMessageUpdate(() => resetMessages)
+          sendChatRef.current(resetMessages)
+        }, decision.delayMs)
+        return
+      }
+
+      exitAutoResendMode()
       setIsRequesting(false)
       const displayError = getDisplayError(error)
       toast.error(displayError)
@@ -180,7 +246,15 @@ export function useChatHandler({
         )
       )
     },
-    [flushStreamUpdates, getDisplayError, onMessageUpdate, t]
+    [
+      flushStreamUpdates,
+      exitAutoResendMode,
+      getDisplayError,
+      onMessageUpdate,
+      t,
+      config.autoResendEnabled,
+      config.autoResendMaxRetries,
+    ]
   )
 
   // Send streaming chat request
@@ -264,34 +338,74 @@ export function useChatHandler({
   // Send chat request (stream or non-stream based on config)
   const sendChat = useCallback(
     (messages: Message[]) => {
+      clearAutoResendTimer()
+      if (!messages.some((m) => m.pendingAutoResend)) {
+        // User-initiated send (not an auto-resend): exit auto-resend mode so a
+        // later failure does not get mistaken for an auto-resend retry.
+        isAutoResendModeRef.current = false
+        autoResendRetryCountRef.current = -1
+      }
       if (config.stream) {
         sendStreamingChat(messages)
       } else {
         sendNonStreamingChat(messages)
       }
     },
-    [config.stream, sendStreamingChat, sendNonStreamingChat]
+    [
+      config.stream,
+      sendStreamingChat,
+      sendNonStreamingChat,
+      clearAutoResendTimer,
+    ]
   )
+  sendChatRef.current = sendChat
 
   // Stop generation
   const stopGeneration = useCallback(() => {
     stopStream()
+    exitAutoResendMode()
     flushStreamUpdates()
     abortControllerRef.current?.abort()
     abortControllerRef.current = null
     setIsRequesting(false)
     onMessageUpdate((prev) =>
-      updateLastAssistantMessage(prev, (message) =>
-        isAssistantMessagePending(message)
-          ? completeAssistantMessage(message)
+      updateLastAssistantMessage(prev, (message) => {
+        if (!isAssistantMessagePending(message)) {
+          return message
+        }
+        const completed = completeAssistantMessage(message)
+        return { ...completed, pendingAutoResend: undefined }
+      })
+    )
+  }, [stopStream, exitAutoResendMode, flushStreamUpdates, onMessageUpdate])
+
+  // Trigger the first auto-resend attempt after a page reload that recovered
+  // a stuck message. Resets the pending message to a fresh LOADING state,
+  // enters auto-resend mode, and calls sendChat.
+  const triggerAutoResend = useCallback(
+    (messages: Message[]) => {
+      if (!hasPendingAutoResend(messages)) {
+        return
+      }
+
+      const resetMessages = messages.map((message) =>
+        message.pendingAutoResend
+          ? resetPendingMessageForRetry(message)
           : message
       )
-    )
-  }, [stopStream, flushStreamUpdates, onMessageUpdate])
+
+      onMessageUpdate(() => resetMessages)
+      isAutoResendModeRef.current = true
+      autoResendRetryCountRef.current = 0
+      sendChat(resetMessages)
+    },
+    [onMessageUpdate, sendChat]
+  )
 
   return {
     sendChat,
     stopGeneration,
+    triggerAutoResend,
     isGenerating: isStreaming || isRequesting,
   }
 }
