@@ -1,5 +1,10 @@
+import { useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
+
 import { PlaygroundChat } from './components/chat/playground-chat'
 import { PlaygroundInput } from './components/input/playground-input'
+import { ERROR_MESSAGES, MESSAGE_STATUS } from './constants'
+import { hasPendingAutoResend } from './lib'
 import {
   useChatHandler,
   usePlaygroundConversation,
@@ -8,6 +13,7 @@ import {
 } from './hooks'
 
 export function Playground() {
+  const { t } = useTranslation()
   const {
     config,
     parameterEnabled,
@@ -23,12 +29,13 @@ export function Playground() {
     clearMessages,
   } = usePlaygroundState()
 
-  const { sendChat, stopGeneration, isGenerating } = useChatHandler({
-    config,
-    parameterEnabled,
-    messages,
-    onMessageUpdate: updateMessages,
-  })
+  const { sendChat, stopGeneration, triggerAutoResend, isGenerating } =
+    useChatHandler({
+      config,
+      parameterEnabled,
+      messages,
+      onMessageUpdate: updateMessages,
+    })
 
   const {
     editingMessageKey,
@@ -56,6 +63,53 @@ export function Playground() {
     setModels,
     updateConfig,
   })
+
+  const hasTriggeredAutoResendRef = useRef(false)
+
+  useEffect(() => {
+    if (isLoadingMessages || hasTriggeredAutoResendRef.current) {
+      return
+    }
+
+    if (!hasPendingAutoResend(messages)) {
+      return
+    }
+
+    hasTriggeredAutoResendRef.current = true
+
+    if (!config.autoResendEnabled) {
+      // Feature disabled: fall back to ERROR + Retry button (legacy behavior).
+      updateMessages((prev) =>
+        prev.map((message, index) =>
+          index === prev.length - 1 && message.pendingAutoResend
+            ? {
+                ...message,
+                pendingAutoResend: undefined,
+                status: MESSAGE_STATUS.ERROR,
+                versions: [
+                  {
+                    ...message.versions[0],
+                    content: `${t(ERROR_MESSAGES.API_REQUEST_ERROR)}: ${t(
+                      ERROR_MESSAGES.INTERRUPTED
+                    )}`,
+                  },
+                ],
+              }
+            : message
+        )
+      )
+      return
+    }
+
+    triggerAutoResend(messages)
+  }, [
+    isLoadingMessages,
+    messages,
+    config.autoResendEnabled,
+    updateMessages,
+    triggerAutoResend,
+    t,
+  ])
 
   return (
     <div className='relative flex size-full min-h-0 flex-col overflow-hidden'>
