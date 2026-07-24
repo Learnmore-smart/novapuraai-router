@@ -502,6 +502,10 @@ func GetSelf(c *gin.Context) {
 		"aff_count":         user.AffCount,
 		"aff_quota":         user.AffQuota,
 		"aff_history_quota": user.AffHistoryQuota,
+		"commission_approved":        user.CommissionApproved,
+		"pending_commission_cents":   user.PendingCommissionCents,
+		"commission_balance_cents":   user.CommissionBalanceCents,
+		"commission_total_cents":     user.CommissionTotalCents,
 		"inviter_id":        user.InviterId,
 		"linux_do_id":       user.LinuxDOId,
 		"setting":           user.Setting,
@@ -713,10 +717,14 @@ func UpdateUser(c *gin.Context) {
 	if err := model.InvalidateUserCache(updatedUser.Id); err != nil {
 		common.SysLog(fmt.Sprintf("failed to invalidate user cache for user %d: %s", updatedUser.Id, err.Error()))
 	}
-	recordManageAuditFor(c, updatedUser.Id, "user.update", map[string]interface{}{
+	auditParams := map[string]interface{}{
 		"username": originUser.Username,
 		"id":       updatedUser.Id,
-	})
+	}
+	if updatedUser.CommissionApproved != originUser.CommissionApproved {
+		auditParams["commission_approved"] = updatedUser.CommissionApproved
+	}
+	recordManageAuditFor(c, updatedUser.Id, "user.update", auditParams)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",

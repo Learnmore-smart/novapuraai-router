@@ -408,13 +408,20 @@ func handleWaffoPayment(c *gin.Context, wh *core.WebhookHandler, result *core.Pa
 	LockOrder(merchantOrderId)
 	defer UnlockOrder(merchantOrderId)
 
-	if err := model.RechargeWaffo(merchantOrderId, c.ClientIP()); err != nil {
+	// OrderAmount is a decimal string in major units of OrderCurrency. Convert
+	// to USD cents for commission accounting (USD passes through; non-USD
+	// converts via EffectiveUSDCNYRate).
+	currency := strings.ToUpper(result.OrderCurrency)
+	amountMajor, _ := strconv.ParseFloat(result.OrderAmount, 64)
+	paidAmountCents := model.ConvertAmountToUSDCents(amountMajor, currency)
+
+	if err := model.RechargeWaffo(merchantOrderId, c.ClientIP(), paidAmountCents, currency); err != nil {
 		logger.LogError(c.Request.Context(), fmt.Sprintf("Waffo 充值处理失败 trade_no=%s client_ip=%s error=%q", merchantOrderId, c.ClientIP(), err.Error()))
 		sendWaffoWebhookResponse(c, wh, false, err.Error())
 		return
 	}
 
-	logger.LogInfo(c.Request.Context(), fmt.Sprintf("Waffo 充值成功 trade_no=%s client_ip=%s", merchantOrderId, c.ClientIP()))
+	logger.LogInfo(c.Request.Context(), fmt.Sprintf("Waffo 充值成功 trade_no=%s order_amount=%s order_currency=%s paid_usd_cents=%d client_ip=%s", merchantOrderId, result.OrderAmount, currency, paidAmountCents, c.ClientIP()))
 	sendWaffoWebhookResponse(c, wh, true, "")
 }
 

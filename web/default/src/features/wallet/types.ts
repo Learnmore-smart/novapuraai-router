@@ -229,6 +229,14 @@ export interface UserWalletData {
   aff_history_quota: number
   /** Number of successful affiliate invites */
   aff_count: number
+  /** Admin-approved affiliate commission member (cash commission) */
+  commission_approved?: boolean
+  /** Frozen cash commission (settled, within CommissionFreezeDays hold) — USD cents */
+  pending_commission_cents?: number
+  /** Withdrawable cash commission balance (post-freeze) — USD cents */
+  commission_balance_cents?: number
+  /** Lifetime earned cash commission (frozen + available, excluding reverted) — USD cents */
+  commission_total_cents?: number
   /** User group */
   group: string
 }

@@ -250,15 +250,20 @@ func fulfillOrder(ctx context.Context, event stripe.Event, referenceId string, c
 		return
 	}
 
-	err := model.Recharge(referenceId, customerId, callerIp)
+	// amount_total is in minor units (cents) of the session currency.
+	// Convert to USD cents for commission accounting (USD passes through;
+	// non-USD converts via EffectiveUSDCNYRate).
+	totalCents, _ := strconv.ParseFloat(event.GetObjectValue("amount_total"), 64)
+	currency := strings.ToUpper(event.GetObjectValue("currency"))
+	paidAmountCents := model.ConvertAmountToUSDCents(totalCents/100.0, currency)
+
+	err := model.Recharge(referenceId, customerId, callerIp, paidAmountCents, currency)
 	if err != nil {
 		logger.LogError(ctx, fmt.Sprintf("Stripe 充值处理失败 trade_no=%s event_type=%s client_ip=%s error=%q", referenceId, string(event.Type), callerIp, err.Error()))
 		return
 	}
 
-	total, _ := strconv.ParseFloat(event.GetObjectValue("amount_total"), 64)
-	currency := strings.ToUpper(event.GetObjectValue("currency"))
-	logger.LogInfo(ctx, fmt.Sprintf("Stripe 充值成功 trade_no=%s amount_total=%.2f currency=%s event_type=%s client_ip=%s", referenceId, total/100, currency, string(event.Type), callerIp))
+	logger.LogInfo(ctx, fmt.Sprintf("Stripe 充值成功 trade_no=%s amount_total=%.2f currency=%s paid_usd_cents=%d event_type=%s client_ip=%s", referenceId, totalCents/100, currency, paidAmountCents, string(event.Type), callerIp))
 }
 
 func sessionExpired(ctx context.Context, event stripe.Event) {

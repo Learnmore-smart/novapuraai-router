@@ -4,6 +4,7 @@ import {
   CreditCard,
   FileText,
   FlaskConical,
+  HandCoins,
   Key,
   LayoutDashboard,
   ListTodo,
@@ -115,6 +116,11 @@ export function useSidebarData(): SidebarData {
             title: t('Users'),
             url: '/users',
             icon: Users,
+          },
+          {
+            title: t('Withdrawals'),
+            url: '/withdrawals',
+            icon: HandCoins,
           },
           {
             title: t('Redemption Codes'),

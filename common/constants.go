@@ -156,6 +156,20 @@ var DelayedInviteReward = true
 // ShareRewardCNYYuan one-time after admin approve.
 var ShareRewardCNYYuan = 10.0
 
+// --- Affiliate commission plan (cash commission, withdrawable) ---
+// AffCommissionRate: fraction of invitee's paid amount credited to an approved
+// inviter as cash commission. 0~1, admin-configurable. Default 0.25 (25%).
+var AffCommissionRate = 0.25
+
+// MinWithdrawalCents: minimum withdrawable cash commission amount in USD cents
+// (1 USD = 100 cents). Default 1000 = $10. Admin-configurable.
+var MinWithdrawalCents int64 = 1000
+
+// CommissionFreezeDays: commission enters PendingCommissionCents first; after this
+// many days a job releases it to CommissionBalanceCents (withdrawable). 0 = immediate.
+// Mitigates refund/chargeback risk. Admin-configurable. Default 14.
+var CommissionFreezeDays = 14
+
 // ChannelCooldownSeconds on 429
 var ChannelCooldownSeconds = 60
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -517,12 +518,18 @@ func WaffoPancakeWebhook(c *gin.Context) {
 	LockOrder(tradeNo)
 	defer UnlockOrder(tradeNo)
 
-	if err := model.RechargeWaffoPancake(tradeNo); err != nil {
+	// event.Data.Amount is a decimal string in major units of Currency.
+	// Convert to USD cents for commission accounting.
+	currency := strings.ToUpper(event.Data.Currency)
+	amountMajor, _ := strconv.ParseFloat(event.Data.Amount, 64)
+	paidAmountCents := model.ConvertAmountToUSDCents(amountMajor, currency)
+
+	if err := model.RechargeWaffoPancake(tradeNo, paidAmountCents, currency); err != nil {
 		logger.LogError(c.Request.Context(), fmt.Sprintf("Waffo Pancake 充值处理失败 trade_no=%s event_id=%s order_id=%s client_ip=%s error=%q", tradeNo, event.ID, event.Data.OrderID, c.ClientIP(), err.Error()))
 		c.String(http.StatusInternalServerError, "retry")
 		return
 	}
 
-	logger.LogInfo(c.Request.Context(), fmt.Sprintf("Waffo Pancake 充值成功 trade_no=%s event_id=%s order_id=%s client_ip=%s", tradeNo, event.ID, event.Data.OrderID, c.ClientIP()))
+	logger.LogInfo(c.Request.Context(), fmt.Sprintf("Waffo Pancake 充值成功 trade_no=%s event_id=%s order_id=%s amount=%s currency=%s paid_usd_cents=%d client_ip=%s", tradeNo, event.ID, event.Data.OrderID, event.Data.Amount, currency, paidAmountCents, c.ClientIP()))
 	c.String(http.StatusOK, "OK")
 }

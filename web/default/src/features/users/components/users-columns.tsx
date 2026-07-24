@@ -236,9 +236,29 @@ export function useUsersColumns(): ColumnDef<User>[] {
         const affCount = user.aff_count || 0
         const affHistoryQuota = user.aff_history_quota || 0
         const inviterId = user.inviter_id || 0
+        const commissionApproved = user.commission_approved === true
 
         return (
           <div className='flex max-w-full min-w-0 flex-wrap items-center gap-1 overflow-hidden'>
+            {commissionApproved && (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <StatusBadge
+                      label={t('Commission')}
+                      variant='success'
+                      copyable={false}
+                      className='cursor-help'
+                    />
+                  }
+                />
+                <TooltipContent>
+                  <p className='text-xs'>
+                    {t('Affiliate commission member (25% cash commission)')}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            )}
             <Tooltip>
               <TooltipTrigger
                 render={

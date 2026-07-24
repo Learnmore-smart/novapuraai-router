@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -156,6 +157,10 @@ func InitOptionMap() {
 	common.OptionMap["QuotaForInvitee"] = strconv.Itoa(common.QuotaForInvitee)
 	common.OptionMap["QuotaRemindThreshold"] = strconv.Itoa(common.QuotaRemindThreshold)
 	common.OptionMap["PreConsumedQuota"] = strconv.Itoa(common.PreConsumedQuota)
+	// Affiliate commission plan (cash, withdrawable)
+	common.OptionMap["AffCommissionRate"] = strconv.FormatFloat(common.AffCommissionRate, 'f', -1, 64)
+	common.OptionMap["MinWithdrawalCents"] = strconv.FormatInt(common.MinWithdrawalCents, 10)
+	common.OptionMap["CommissionFreezeDays"] = strconv.Itoa(common.CommissionFreezeDays)
 	common.OptionMap["ModelRequestRateLimitCount"] = strconv.Itoa(setting.ModelRequestRateLimitCount)
 	common.OptionMap["ModelRequestRateLimitDurationMinutes"] = strconv.Itoa(setting.ModelRequestRateLimitDurationMinutes)
 	common.OptionMap["ModelRequestRateLimitSuccessCount"] = strconv.Itoa(setting.ModelRequestRateLimitSuccessCount)
@@ -631,6 +636,32 @@ func updateOptionMap(key string, value string) (err error) {
 		common.QuotaRemindThreshold, _ = strconv.Atoi(value)
 	case "PreConsumedQuota":
 		common.PreConsumedQuota, _ = strconv.Atoi(value)
+	case "AffCommissionRate":
+		rate, parseErr := strconv.ParseFloat(value, 64)
+		if parseErr != nil || math.IsNaN(rate) || math.IsInf(rate, 0) {
+			rate = 0
+		}
+		if rate < 0 {
+			rate = 0
+		} else if rate > 1 {
+			rate = 1
+		}
+		common.AffCommissionRate = rate
+		value = strconv.FormatFloat(rate, 'f', -1, 64)
+	case "MinWithdrawalCents":
+		v, parseErr := strconv.ParseInt(value, 10, 64)
+		if parseErr != nil || v < 0 {
+			v = common.MinWithdrawalCents
+		}
+		common.MinWithdrawalCents = v
+		value = strconv.FormatInt(v, 10)
+	case "CommissionFreezeDays":
+		v, parseErr := strconv.Atoi(value)
+		if parseErr != nil || v < 0 {
+			v = 0
+		}
+		common.CommissionFreezeDays = v
+		value = strconv.Itoa(v)
 	case "ModelRequestRateLimitCount":
 		setting.ModelRequestRateLimitCount, _ = strconv.Atoi(value)
 	case "ModelRequestRateLimitDurationMinutes":
