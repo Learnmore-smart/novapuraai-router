@@ -129,6 +129,10 @@ func main() {
 	// Release frozen cash commissions past their CommissionFreezeDays hold.
 	service.StartCommissionMaturityTask()
 
+	// Stripe Connect reconciliation: retries stuck/awaiting payouts and
+	// surfaces action_required withdrawals (master node only, ~5 min tick).
+	service.StartStripeConnectReconciliationTask()
+
 	// Keep display-currency conversion on the latest published ECB reference
 	// rates while preserving the persisted last-known-good values on failure.
 	service.StartBillingFXRefreshTask()
@@ -349,6 +353,13 @@ func InitResources() error {
 			common.FatalLog("failed to validate Stripe top-up runtime: " + err.Error())
 			return err
 		}
+	}
+
+	// Stripe Connect (分佣自动打款) env init — fail-fast when enabled but
+	// misconfigured, mirroring the Stripe top-up validation above.
+	if err = setting.InitStripeConnectEnv(); err != nil {
+		common.FatalLog("failed to initialize Stripe Connect env: " + err.Error())
+		return err
 	}
 
 	// 清理旧的磁盘缓存文件

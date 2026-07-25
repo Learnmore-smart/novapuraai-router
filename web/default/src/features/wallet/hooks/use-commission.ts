@@ -71,11 +71,11 @@ export function useCommission(enabled: boolean) {
   )
 
   const withdraw = useCallback(
-    async (amountCents: number): Promise<boolean> => {
+    async (amountCents: number, payoutChannel?: string): Promise<boolean> => {
       if (!enabled) return false
       try {
         setWithdrawing(true)
-        const response = await requestWithdrawal(amountCents)
+        const response = await requestWithdrawal(amountCents, payoutChannel)
         if (response.success) {
           toast.success(
             response.message || i18next.t('Withdrawal request submitted')

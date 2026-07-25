@@ -6,10 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatusBadge } from '@/components/status-badge'
 import { formatCurrencyFromUSD } from '@/lib/currency'
-import type {
-  WithdrawalRequest,
-  WithdrawalStatus,
-} from '@/features/withdrawals/types'
+import { WITHDRAWAL_STATUSES } from '@/features/withdrawals/constants'
+import type { WithdrawalRequest } from '@/features/withdrawals/types'
 
 interface WithdrawalHistoryDialogProps {
   open: boolean
@@ -25,15 +23,6 @@ function formatTime(unixSeconds: number): string {
 
 function formatCents(cents: number): string {
   return formatCurrencyFromUSD(cents / 100)
-}
-
-const STATUS_BADGE: Record<
-  WithdrawalStatus,
-  { label: string; variant: 'warning' | 'success' | 'danger' }
-> = {
-  pending: { label: 'Pending', variant: 'warning' },
-  paid: { label: 'Paid', variant: 'success' },
-  rejected: { label: 'Rejected', variant: 'danger' },
 }
 
 export function WithdrawalHistoryDialog({
@@ -79,7 +68,7 @@ export function WithdrawalHistoryDialog({
       {!loading && items.length > 0 && (
         <div className='space-y-3'>
           {items.map((w) => {
-            const status = STATUS_BADGE[w.status]
+            const status = WITHDRAWAL_STATUSES[w.status]
             return (
               <article
                 key={w.id}
@@ -90,12 +79,14 @@ export function WithdrawalHistoryDialog({
                     <span className='text-sm font-semibold tabular-nums'>
                       {formatCents(w.amount_cents)}
                     </span>
-                    <StatusBadge
-                      label={t(status.label)}
-                      variant={status.variant}
-                      size='sm'
-                      copyable={false}
-                    />
+                    {status && (
+                      <StatusBadge
+                        label={t(status.labelKey)}
+                        variant={status.variant}
+                        size='sm'
+                        copyable={false}
+                      />
+                    )}
                   </div>
                   <span className='text-muted-foreground text-xs'>
                     {formatTime(w.requested_at)}

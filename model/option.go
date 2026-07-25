@@ -102,6 +102,9 @@ func InitOptionMap() {
 	common.OptionMap["StripeTestAccountID"] = setting.StripeTestAccountID
 	common.OptionMap["StripeProdAccountID"] = setting.StripeProdAccountID
 	common.OptionMap["StripeTopupEnabled"] = strconv.FormatBool(setting.StripeTopupEnabled)
+	common.OptionMap["StripeConnectEnabled"] = "false"
+	common.OptionMap["StripeConnectReturnURL"] = ""
+	common.OptionMap["StripeConnectRefreshURL"] = ""
 	common.OptionMap["BillingCurrencyConfig"] = setting.BillingCurrencyConfigJSON()
 	common.OptionMap["StripeUnitPrice"] = strconv.FormatFloat(setting.StripeUnitPrice, 'f', -1, 64)
 	common.OptionMap["StripePromotionCodesEnabled"] = strconv.FormatBool(setting.StripePromotionCodesEnabled)
@@ -522,6 +525,12 @@ func updateOptionMap(key string, value string) (err error) {
 		setting.ApplyStripeRuntimeProfile()
 	case "StripeTopupEnabled":
 		setting.StripeTopupEnabled = value == "true"
+	case "StripeConnectEnabled":
+		setting.StripeConnectEnabled = value == "true"
+	case "StripeConnectReturnURL":
+		setting.StripeConnectReturnURL = value
+	case "StripeConnectRefreshURL":
+		setting.StripeConnectRefreshURL = value
 	case "StripeUnitPrice":
 		setting.StripeUnitPrice, _ = strconv.ParseFloat(value, 64)
 	case "StripeMinTopUp":

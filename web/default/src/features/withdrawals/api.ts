@@ -5,6 +5,7 @@ import type {
   WithdrawalRequest,
   ApiResponse,
   ProcessWithdrawalPayload,
+  ReverseWithdrawalPayload,
   CommissionSummary,
 } from './types'
 
@@ -31,6 +32,11 @@ export async function getWithdrawalQueue(
 
 /**
  * Process a withdrawal request (admin). Action is "paid" or "rejected".
+ *
+ * When action=paid and payout_channel=stripe_connect, the backend delegates to
+ * the synchronous Stripe Connect Transfer flow (service.ApproveStripeConnectWithdrawal)
+ * instead of the manual paid path — the withdrawal transitions through
+ * transfer_creating → awaiting_funds → payout_creating → processing → paid.
  */
 export async function processWithdrawal(
   id: number,
@@ -38,6 +44,26 @@ export async function processWithdrawal(
 ): Promise<ApiResponse<WithdrawalRequest>> {
   const res = await api.post(
     `/api/commission/withdrawals/${id}/process`,
+    payload
+  )
+  return res.data
+}
+
+/**
+ * Manually reverse the Stripe Transfer for an `action_required` withdrawal
+ * (admin). Refunds the user's commission balance by the reversed amount and
+ * transitions the withdrawal to `failed`. Body: `{ reason: "..." }`.
+ *
+ * Returns the updated withdrawal on success. Errors (e.g. Stripe
+ * insufficient_funds, already-terminal) are surfaced via the standard
+ * `success: false` envelope.
+ */
+export async function reverseWithdrawal(
+  id: number,
+  payload: ReverseWithdrawalPayload
+): Promise<ApiResponse<WithdrawalRequest>> {
+  const res = await api.post(
+    `/api/user/withdrawal/${id}/reverse`,
     payload
   )
   return res.data
@@ -57,13 +83,20 @@ export async function getCommissionSummary(): Promise<ApiResponse<CommissionSumm
 
 /**
  * Request a withdrawal (user). Amount is in USD cents.
+ *
+ * `payoutChannel` ("manual" | "stripe_connect") is forwarded so the backend can
+ * route the request to the chosen payout flow. The legacy manual-only contract
+ * is preserved when the channel is omitted.
  */
 export async function requestWithdrawal(
-  amountCents: number
+  amountCents: number,
+  payoutChannel?: string
 ): Promise<ApiResponse<WithdrawalRequest>> {
-  const res = await api.post('/api/commission/withdraw', {
-    amount_cents: amountCents,
-  })
+  const body: Record<string, unknown> = { amount_cents: amountCents }
+  if (payoutChannel) {
+    body.payout_channel = payoutChannel
+  }
+  const res = await api.post('/api/commission/withdraw', body)
   return res.data
 }
 

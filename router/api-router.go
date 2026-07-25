@@ -55,6 +55,8 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.GET("/ratio_config", middleware.CriticalRateLimit(), controller.GetRatioConfig)
 
 		apiRouter.POST("/stripe/webhook", anonymousRequestBodyLimit, controller.StripeWebhook)
+		// Stripe Connect (分佣自动打款) webhook — public, signature-verified.
+		apiRouter.POST("/stripe/connect_webhook", anonymousRequestBodyLimit, controller.StripeConnectWebhook)
 
 		// NovaPura one-time Stripe top-up (multi-currency Checkout)
 		billingRoute := apiRouter.Group("/billing")
@@ -154,6 +156,10 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.POST("/commission/withdraw", middleware.CriticalRateLimit(), controller.RequestWithdrawal)
 				selfRoute.GET("/commission/withdrawals", controller.ListMyWithdrawals)
 
+				// Stripe Connect onboarding (user): start + status
+				selfRoute.POST("/stripe_connect/start", controller.StartStripeConnect)
+				selfRoute.GET("/stripe_connect/status", controller.GetStripeConnectStatus)
+
 				// Custom OAuth bindings
 				selfRoute.GET("/oauth/bindings", controller.GetUserOAuthBindings)
 				selfRoute.DELETE("/oauth/bindings/:provider_id", controller.UnbindCustomOAuth)
@@ -171,6 +177,8 @@ func SetApiRouter(router *gin.Engine) {
 				// Admin commission withdrawal review queue
 				adminRoute.GET("/commission/queue", controller.AdminListWithdrawals)
 				adminRoute.POST("/commission/withdrawals/:id/process", controller.AdminProcessWithdrawal)
+				// Admin manual Stripe Connect Transfer reversal (refund a stuck withdrawal)
+				adminRoute.POST("/withdrawal/:id/reverse", controller.AdminReverseStripeConnectTransfer)
 				adminRoute.GET("/search", controller.SearchUsers)
 				adminRoute.GET("/:id/oauth/bindings", controller.GetUserOAuthBindingsByAdmin)
 				adminRoute.DELETE("/:id/oauth/bindings/:provider_id", controller.UnbindCustomOAuthByAdmin)
