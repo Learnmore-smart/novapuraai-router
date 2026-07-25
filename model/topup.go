@@ -22,6 +22,13 @@ type TopUp struct {
 	CreateTime      int64   `json:"create_time"`
 	CompleteTime    int64   `json:"complete_time"`
 	Status          string  `json:"status"`
+	// PaidAmountCents: actual paid amount captured from the provider's payment-success
+	// callback (Stripe amount_received, etc.), converted to USD cents (1 USD = 100).
+	// Used as the commission base for approved inviters — NOT Money/Amount, which may
+	// include group-ratio/gift markups. 0 = not captured (commission skipped, safe-fail).
+	PaidAmountCents int64  `json:"paid_amount_cents" gorm:"type:bigint;default:0;column:paid_amount_cents"`
+	// PaidCurrency: ISO currency of the original payment (USD/CNY/...), kept for audit.
+	PaidCurrency string `json:"paid_currency" gorm:"type:varchar(8);default:'';column:paid_currency"`
 }
 
 const (
@@ -106,12 +113,13 @@ func UpdatePendingTopUpStatus(tradeNo string, expectedPaymentProvider string, ta
 	})
 }
 
-func Recharge(referenceId string, customerId string, callerIp string) (err error) {
+func Recharge(referenceId string, customerId string, callerIp string, paidAmountCents int64, paidCurrency string) (err error) {
 	if referenceId == "" {
 		return errors.New("未提供支付单号")
 	}
 
 	var quota float64
+	var settlement *CommissionSettlement
 	topUp := &TopUp{}
 
 	refCol := "`trade_no`"
@@ -135,6 +143,8 @@ func Recharge(referenceId string, customerId string, callerIp string) (err error
 
 		topUp.CompleteTime = common.GetTimestamp()
 		topUp.Status = common.TopUpStatusSuccess
+		topUp.PaidAmountCents = paidAmountCents
+		topUp.PaidCurrency = paidCurrency
 		err = tx.Save(topUp).Error
 		if err != nil {
 			return err
@@ -146,6 +156,13 @@ func Recharge(referenceId string, customerId string, callerIp string) (err error
 			return err
 		}
 
+		// Cash commission for approved inviters. Same tx as the status flip so
+		// the top-up's own idempotency protects commission idempotency too.
+		s, settleErr := SettleRechargeCommission(tx, topUp.UserId, topUp.TradeNo, paidAmountCents, paidCurrency)
+		if settleErr != nil {
+			return settleErr
+		}
+		settlement = s
 		return nil
 	})
 
@@ -155,6 +172,7 @@ func Recharge(referenceId string, customerId string, callerIp string) (err error
 	}
 
 	RecordTopupLog(topUp.UserId, fmt.Sprintf("使用在线充值成功，充值金额: %v，支付金额：%d", logger.FormatQuota(int(quota)), topUp.Amount), callerIp, topUp.PaymentMethod, PaymentMethodStripe)
+	LogCommissionSettlement(settlement)
 
 	return nil
 }
@@ -317,13 +335,14 @@ func SearchAllTopUps(keyword string, pageInfo *common.PageInfo) (topups []*TopUp
 }
 
 type ManualTopUpResult struct {
-	UserId           int
-	QuotaAdded       int
-	QuotaBefore      int
-	QuotaAfter       int
-	PayMoney         float64
-	PaymentMethod    string
-	AlreadyCompleted bool
+	UserId            int
+	QuotaAdded        int
+	QuotaBefore       int
+	QuotaAfter        int
+	PayMoney          float64
+	PaymentMethod     string
+	AlreadyCompleted  bool
+	CommissionSettled bool
 }
 
 // ManualCompleteTopUp atomically completes a pending order and returns the
@@ -339,6 +358,7 @@ func ManualCompleteTopUp(tradeNo string) (*ManualTopUpResult, error) {
 	}
 
 	var result *ManualTopUpResult
+	var settlement *CommissionSettlement
 
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		topUp := &TopUp{}
@@ -391,9 +411,24 @@ func ManualCompleteTopUp(tradeNo string) (*ManualTopUpResult, error) {
 		}
 		quotaAfter := user.Quota + quotaToAdd
 
+		// Manual completion has no payment-success callback, so we derive the
+		// commission base from the topUp itself. Prefer an already-captured
+		// PaidAmountCents (rare; from a prior partial-webhook attempt). Otherwise
+		// approximate from topUp.Money + provider's currency convention.
+		// Note: topUp.Money may include group-ratio markups; this is a documented
+		// fallback for the rare case where the webhook didn't fire.
+		paidCents := topUp.PaidAmountCents
+		paidCurrency := topUp.PaidCurrency
+		if paidCents <= 0 {
+			paidCurrency = currencyGuessForProvider(topUp.PaymentProvider)
+			paidCents = ConvertAmountToUSDCents(topUp.Money, paidCurrency)
+		}
+
 		// 标记完成
 		topUp.CompleteTime = common.GetTimestamp()
 		topUp.Status = common.TopUpStatusSuccess
+		topUp.PaidAmountCents = paidCents
+		topUp.PaidCurrency = paidCurrency
 		if err := tx.Save(topUp).Error; err != nil {
 			return err
 		}
@@ -404,13 +439,21 @@ func ManualCompleteTopUp(tradeNo string) (*ManualTopUpResult, error) {
 			return err
 		}
 
+		// Cash commission for approved inviters (same tx as status flip).
+		s, settleErr := SettleRechargeCommission(tx, topUp.UserId, topUp.TradeNo, paidCents, paidCurrency)
+		if settleErr != nil {
+			return settleErr
+		}
+		settlement = s
+
 		result = &ManualTopUpResult{
-			UserId:        topUp.UserId,
-			QuotaAdded:    quotaToAdd,
-			QuotaBefore:   user.Quota,
-			QuotaAfter:    quotaAfter,
-			PayMoney:      topUp.Money,
-			PaymentMethod: topUp.PaymentMethod,
+			UserId:            topUp.UserId,
+			QuotaAdded:        quotaToAdd,
+			QuotaBefore:       user.Quota,
+			QuotaAfter:        quotaAfter,
+			PayMoney:          topUp.Money,
+			PaymentMethod:     topUp.PaymentMethod,
+			CommissionSettled: settlement != nil,
 		}
 		return nil
 	})
@@ -423,14 +466,29 @@ func ManualCompleteTopUp(tradeNo string) (*ManualTopUpResult, error) {
 			common.SysError(fmt.Sprintf("failed to invalidate user cache after manual top-up: %v", err))
 		}
 	}
+	LogCommissionSettlement(settlement)
 	return result, nil
 }
-func RechargeCreem(referenceId string, customerEmail string, customerName string, callerIp string) (err error) {
+
+// currencyGuessForProvider returns the assumed accounting currency for a
+// provider when no PaidCurrency was captured at webhook time. Used only by the
+// manual-completion fallback path. Stripe/Creem/Waffo/WaffoPancake settle in
+// USD; Epay is always CNY.
+func currencyGuessForProvider(provider string) string {
+	switch provider {
+	case PaymentProviderEpay:
+		return "CNY"
+	default:
+		return "USD"
+	}
+}
+func RechargeCreem(referenceId string, customerEmail string, customerName string, callerIp string, paidAmountCents int64, paidCurrency string) (err error) {
 	if referenceId == "" {
 		return errors.New("未提供支付单号")
 	}
 
 	var quota int64
+	var settlement *CommissionSettlement
 	topUp := &TopUp{}
 
 	refCol := "`trade_no`"
@@ -454,6 +512,8 @@ func RechargeCreem(referenceId string, customerEmail string, customerName string
 
 		topUp.CompleteTime = common.GetTimestamp()
 		topUp.Status = common.TopUpStatusSuccess
+		topUp.PaidAmountCents = paidAmountCents
+		topUp.PaidCurrency = paidCurrency
 		err = tx.Save(topUp).Error
 		if err != nil {
 			return err
@@ -487,6 +547,12 @@ func RechargeCreem(referenceId string, customerEmail string, customerName string
 			return err
 		}
 
+		// Cash commission for approved inviters.
+		s, settleErr := SettleRechargeCommission(tx, topUp.UserId, topUp.TradeNo, paidAmountCents, paidCurrency)
+		if settleErr != nil {
+			return settleErr
+		}
+		settlement = s
 		return nil
 	})
 
@@ -496,16 +562,18 @@ func RechargeCreem(referenceId string, customerEmail string, customerName string
 	}
 
 	RecordTopupLog(topUp.UserId, fmt.Sprintf("使用Creem充值成功，充值额度: %v，支付金额：%.2f", quota, topUp.Money), callerIp, topUp.PaymentMethod, PaymentMethodCreem)
+	LogCommissionSettlement(settlement)
 
 	return nil
 }
 
-func RechargeWaffo(tradeNo string, callerIp string) (err error) {
+func RechargeWaffo(tradeNo string, callerIp string, paidAmountCents int64, paidCurrency string) (err error) {
 	if tradeNo == "" {
 		return errors.New("未提供支付单号")
 	}
 
 	var quotaToAdd int
+	var settlement *CommissionSettlement
 	topUp := &TopUp{}
 
 	refCol := "`trade_no`"
@@ -540,6 +608,8 @@ func RechargeWaffo(tradeNo string, callerIp string) (err error) {
 
 		topUp.CompleteTime = common.GetTimestamp()
 		topUp.Status = common.TopUpStatusSuccess
+		topUp.PaidAmountCents = paidAmountCents
+		topUp.PaidCurrency = paidCurrency
 		if err := tx.Save(topUp).Error; err != nil {
 			return err
 		}
@@ -548,6 +618,12 @@ func RechargeWaffo(tradeNo string, callerIp string) (err error) {
 			return err
 		}
 
+		// Cash commission for approved inviters.
+		s, settleErr := SettleRechargeCommission(tx, topUp.UserId, topUp.TradeNo, paidAmountCents, paidCurrency)
+		if settleErr != nil {
+			return settleErr
+		}
+		settlement = s
 		return nil
 	})
 
@@ -559,16 +635,18 @@ func RechargeWaffo(tradeNo string, callerIp string) (err error) {
 	if quotaToAdd > 0 {
 		RecordTopupLog(topUp.UserId, fmt.Sprintf("Waffo充值成功，充值额度: %v，支付金额: %.2f", logger.FormatQuota(quotaToAdd), topUp.Money), callerIp, topUp.PaymentMethod, PaymentMethodWaffo)
 	}
+	LogCommissionSettlement(settlement)
 
 	return nil
 }
 
-func RechargeWaffoPancake(tradeNo string) (err error) {
+func RechargeWaffoPancake(tradeNo string, paidAmountCents int64, paidCurrency string) (err error) {
 	if tradeNo == "" {
 		return errors.New("未提供支付单号")
 	}
 
 	var quotaToAdd int
+	var settlement *CommissionSettlement
 	topUp := &TopUp{}
 
 	refCol := "`trade_no`"
@@ -601,6 +679,8 @@ func RechargeWaffoPancake(tradeNo string) (err error) {
 
 		topUp.CompleteTime = common.GetTimestamp()
 		topUp.Status = common.TopUpStatusSuccess
+		topUp.PaidAmountCents = paidAmountCents
+		topUp.PaidCurrency = paidCurrency
 		if err := tx.Save(topUp).Error; err != nil {
 			return err
 		}
@@ -609,6 +689,12 @@ func RechargeWaffoPancake(tradeNo string) (err error) {
 			return err
 		}
 
+		// Cash commission for approved inviters.
+		s, settleErr := SettleRechargeCommission(tx, topUp.UserId, topUp.TradeNo, paidAmountCents, paidCurrency)
+		if settleErr != nil {
+			return settleErr
+		}
+		settlement = s
 		return nil
 	})
 
@@ -620,6 +706,7 @@ func RechargeWaffoPancake(tradeNo string) (err error) {
 	if quotaToAdd > 0 {
 		RecordLog(topUp.UserId, LogTypeTopup, fmt.Sprintf("Waffo Pancake充值成功，充值额度: %v，支付金额: %.2f", logger.FormatQuota(quotaToAdd), topUp.Money))
 	}
+	LogCommissionSettlement(settlement)
 
 	return nil
 }

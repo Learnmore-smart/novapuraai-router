@@ -126,6 +126,9 @@ func main() {
 	// Subscription quota reset task (daily/weekly/monthly/custom)
 	service.StartSubscriptionQuotaResetTask()
 
+	// Release frozen cash commissions past their CommissionFreezeDays hold.
+	service.StartCommissionMaturityTask()
+
 	// Keep display-currency conversion on the latest published ECB reference
 	// rates while preserving the persisted last-known-good values on failure.
 	service.StartBillingFXRefreshTask()

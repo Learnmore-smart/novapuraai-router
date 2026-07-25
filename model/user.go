@@ -53,6 +53,21 @@ type User struct {
 	// InviteRewardPending: invitee not yet qualified for delayed invite rewards.
 	// Set in code on register when DelayedInviteReward; avoid gorm boolean default tags (cross-DB AutoMigrate churn).
 	InviteRewardPending bool                       `json:"invite_reward_pending" gorm:"column:invite_reward_pending"`
+	// CommissionApproved: admin-approved affiliate plan member. When true, this user
+	// receives 25% (AffCommissionRate) cash commission on invitee paid amounts instead
+	// of the fixed ¥100 invite reward. No gorm default tag (cross-DB AutoMigrate churn;
+	// Go zero value false = not approved).
+	CommissionApproved bool `json:"commission_approved" gorm:"column:commission_approved"`
+	// PendingCommissionCents: frozen cash commission (settled but not yet past the
+	// CommissionFreezeDays hold). USD cents int64. Released to CommissionBalanceCents
+	// by ReleaseMaturedCommissions job.
+	PendingCommissionCents int64 `json:"pending_commission_cents" gorm:"type:bigint;default:0;column:pending_commission_cents"`
+	// CommissionBalanceCents: withdrawable cash commission balance (post-freeze).
+	// USD cents int64. Decremented on withdrawal; refunded on reject/mark-failed.
+	CommissionBalanceCents int64 `json:"commission_balance_cents" gorm:"type:bigint;default:0;column:commission_balance_cents"`
+	// CommissionTotalCents: lifetime earned commission (frozen + available, excluding
+	// withdrawn). USD cents int64. For display/reconciliation.
+	CommissionTotalCents int64 `json:"commission_total_cents" gorm:"type:bigint;default:0;column:commission_total_cents"`
 	DeletedAt           gorm.DeletedAt             `gorm:"index"`
 	LinuxDOId           string                     `json:"linux_do_id" gorm:"column:linux_do_id;index"`
 	Setting             string                     `json:"setting" gorm:"type:text;column:setting"`
@@ -444,6 +459,12 @@ func inviteUser(inviterId int) (err error) {
 			return err
 		}
 		user.AffCount++
+		// Approved affiliates are mutually exclusive with the fixed invite reward:
+		// they earn cash commission via SettleRechargeCommission on invitee top-ups
+		// instead, so skip the AffQuota grant here (AffCount still increments).
+		if user.CommissionApproved {
+			return tx.Model(&user).Update("aff_count", user.AffCount).Error
+		}
 		if user.RewardedInviteCount >= common.MaxValidInvites {
 			// Still count invite, no more reward
 			return tx.Model(&user).Update("aff_count", user.AffCount).Error
@@ -718,10 +739,11 @@ func (user *User) EditWithTx(tx *gorm.DB, updatePassword bool) error {
 
 	newUser := *user
 	updates := map[string]interface{}{
-		"username":     newUser.Username,
-		"display_name": newUser.DisplayName,
-		"group":        newUser.Group,
-		"remark":       newUser.Remark,
+		"username":            newUser.Username,
+		"display_name":        newUser.DisplayName,
+		"group":               newUser.Group,
+		"remark":              newUser.Remark,
+		"commission_approved": newUser.CommissionApproved,
 	}
 	if updatePassword {
 		updates["password"] = newUser.Password

@@ -8,10 +8,13 @@ import { useSystemConfig } from '@/hooks/use-system-config'
 import { getSelf } from '@/lib/api'
 
 import { AffiliateRewardsCard } from './components/affiliate-rewards-card'
+import { CommissionCard } from './components/commission-card'
 import { BillingHistoryDialog } from './components/dialogs/billing-history-dialog'
 import { CreemConfirmDialog } from './components/dialogs/creem-confirm-dialog'
 import { PaymentConfirmDialog } from './components/dialogs/payment-confirm-dialog'
 import { TransferDialog } from './components/dialogs/transfer-dialog'
+import { WithdrawalDialog } from './components/dialogs/withdrawal-dialog'
+import { WithdrawalHistoryDialog } from './components/dialogs/withdrawal-history-dialog'
 import { RechargeFormCard } from './components/recharge-form-card'
 import { ShareRewardCard } from './components/share-reward-card'
 import { StripeTopupCard } from './components/stripe-topup-card'
@@ -23,6 +26,7 @@ import {
   useTopupInfo,
   usePayment,
   useAffiliate,
+  useCommission,
   useRedemption,
   useCreemPayment,
   useWaffoPayment,
@@ -56,6 +60,8 @@ export function Wallet(props: WalletProps) {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [transferDialogOpen, setTransferDialogOpen] = useState(false)
   const [billingDialogOpen, setBillingDialogOpen] = useState(false)
+  const [withdrawalDialogOpen, setWithdrawalDialogOpen] = useState(false)
+  const [withdrawalHistoryOpen, setWithdrawalHistoryOpen] = useState(false)
   const [redemptionCode, setRedemptionCode] = useState('')
   const [creemDialogOpen, setCreemDialogOpen] = useState(false)
   const [selectedCreemProduct, setSelectedCreemProduct] =
@@ -108,6 +114,15 @@ export function Wallet(props: WalletProps) {
     transferQuota,
     transferring,
   } = useAffiliate()
+  const commissionApproved = !!user?.commission_approved
+  const {
+    summary: commissionSummary,
+    loading: commissionLoading,
+    withdrawing,
+    history: withdrawalHistory,
+    historyTotal: withdrawalHistoryTotal,
+    withdraw,
+  } = useCommission(commissionApproved)
   const { redeeming, redeemCode } = useRedemption()
   const { processing: creemProcessing, processCreemPayment } = useCreemPayment()
   const { processWaffoPayment } = useWaffoPayment()
@@ -231,6 +246,15 @@ export function Wallet(props: WalletProps) {
     return success
   }
 
+  // Handle cash commission withdrawal
+  const handleWithdraw = async (amountCents: number) => {
+    const success = await withdraw(amountCents)
+    if (success) {
+      await fetchUser()
+    }
+    return success
+  }
+
   // Handle Creem product selection
   const handleCreemProductSelect = (product: CreemProduct) => {
     setSelectedCreemProduct(product)
@@ -338,6 +362,16 @@ export function Wallet(props: WalletProps) {
               loading={affiliateLoading}
             />
 
+            <CommissionCard
+              summary={commissionSummary}
+              loading={commissionLoading}
+              approved={commissionApproved}
+              withdrawing={withdrawing}
+              onWithdraw={() => setWithdrawalDialogOpen(true)}
+              onShowHistory={() => setWithdrawalHistoryOpen(true)}
+              hasHistory={withdrawalHistoryTotal > 0}
+            />
+
             <ShareRewardCard />
           </div>
         </SectionPageLayout.Content>
@@ -362,6 +396,23 @@ export function Wallet(props: WalletProps) {
         onConfirm={handleTransfer}
         availableQuota={user?.aff_quota ?? 0}
         transferring={transferring}
+      />
+
+      <WithdrawalDialog
+        open={withdrawalDialogOpen}
+        onOpenChange={setWithdrawalDialogOpen}
+        onConfirm={handleWithdraw}
+        balanceCents={commissionSummary?.balance_cents ?? 0}
+        minWithdrawalCents={commissionSummary?.min_withdrawal_cents ?? 1000}
+        freezeDays={commissionSummary?.freeze_days ?? 14}
+        submitting={withdrawing}
+      />
+
+      <WithdrawalHistoryDialog
+        open={withdrawalHistoryOpen}
+        onOpenChange={setWithdrawalHistoryOpen}
+        items={withdrawalHistory}
+        loading={false}
       />
 
       <BillingHistoryDialog

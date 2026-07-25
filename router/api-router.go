@@ -149,6 +149,11 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.GET("/share", controller.ListMyShareSubmissions)
 				selfRoute.POST("/share", middleware.TurnstileCheck("share_reward"), controller.SubmitShareReward)
 
+				// Cash commission: summary, withdraw, history
+				selfRoute.GET("/commission/summary", controller.GetCommissionSummary)
+				selfRoute.POST("/commission/withdraw", middleware.CriticalRateLimit(), controller.RequestWithdrawal)
+				selfRoute.GET("/commission/withdrawals", controller.ListMyWithdrawals)
+
 				// Custom OAuth bindings
 				selfRoute.GET("/oauth/bindings", controller.GetUserOAuthBindings)
 				selfRoute.DELETE("/oauth/bindings/:provider_id", controller.UnbindCustomOAuth)
@@ -163,6 +168,9 @@ func SetApiRouter(router *gin.Engine) {
 				// Admin share queue (must not reuse GET /share — that is user self-list)
 				adminRoute.GET("/share/queue", controller.AdminListShareSubmissions)
 				adminRoute.POST("/share/:id/review", controller.AdminReviewShareSubmission)
+				// Admin commission withdrawal review queue
+				adminRoute.GET("/commission/queue", controller.AdminListWithdrawals)
+				adminRoute.POST("/commission/withdrawals/:id/process", controller.AdminProcessWithdrawal)
 				adminRoute.GET("/search", controller.SearchUsers)
 				adminRoute.GET("/:id/oauth/bindings", controller.GetUserOAuthBindingsByAdmin)
 				adminRoute.DELETE("/:id/oauth/bindings/:provider_id", controller.UnbindCustomOAuthByAdmin)

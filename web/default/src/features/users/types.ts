@@ -41,6 +41,10 @@ export const userSchema = z.object({
   last_login_at: z.number().optional(),
   DeletedAt: z.any().nullable().optional(),
   remark: z.string().optional(),
+  commission_approved: z.boolean().optional(),
+  pending_commission_cents: z.number().optional(),
+  commission_balance_cents: z.number().optional(),
+  commission_total_cents: z.number().optional(),
   admin_permissions: z
     .record(z.string(), z.record(z.string(), z.boolean()))
     .optional(),
@@ -93,6 +97,7 @@ export interface UserFormData {
   quota?: number // Only used when updating user
   group?: string // Only used when updating user
   remark?: string // Only used when updating user
+  commission_approved?: boolean // Only used when updating user
   admin_permissions?: AdminPermissionMatrix
 }
 

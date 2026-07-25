@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
@@ -347,14 +348,19 @@ func handleCheckoutCompleted(c *gin.Context, event *CreemWebhookEvent) {
 		logger.LogWarn(c.Request.Context(), fmt.Sprintf("Creem 回调客户姓名为空 trade_no=%s creem_order_id=%s", referenceId, event.Object.Order.Id))
 	}
 
-	err := model.RechargeCreem(referenceId, customerEmail, customerName, c.ClientIP())
+	// AmountPaid is in minor units (cents) of Order.Currency. Convert to USD
+	// cents for commission accounting (USD passes through; non-USD converts).
+	currency := strings.ToUpper(event.Object.Order.Currency)
+	paidAmountCents := model.ConvertAmountToUSDCents(float64(event.Object.Order.AmountPaid)/100.0, currency)
+
+	err := model.RechargeCreem(referenceId, customerEmail, customerName, c.ClientIP(), paidAmountCents, currency)
 	if err != nil {
 		logger.LogError(c.Request.Context(), fmt.Sprintf("Creem 充值处理失败 trade_no=%s creem_order_id=%s client_ip=%s error=%q", referenceId, event.Object.Order.Id, c.ClientIP(), err.Error()))
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	logger.LogInfo(c.Request.Context(), fmt.Sprintf("Creem 充值成功 trade_no=%s creem_order_id=%s quota=%d money=%.2f client_ip=%s", referenceId, event.Object.Order.Id, topUp.Amount, topUp.Money, c.ClientIP()))
+	logger.LogInfo(c.Request.Context(), fmt.Sprintf("Creem 充值成功 trade_no=%s creem_order_id=%s quota=%d money=%.2f paid_usd_cents=%d client_ip=%s", referenceId, event.Object.Order.Id, topUp.Amount, topUp.Money, paidAmountCents, c.ClientIP()))
 	c.Status(http.StatusOK)
 }
 

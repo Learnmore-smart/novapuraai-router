@@ -288,6 +288,8 @@ func migrateDB() error {
 		&Log{},
 		&Midjourney{},
 		&TopUp{},
+		&Commission{},
+		&WithdrawalRequest{},
 		&QuotaData{},
 		&Task{},
 		&Model{},

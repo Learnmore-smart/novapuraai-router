@@ -225,10 +225,13 @@ func TrySettleDelayedInviteReward(inviteeId int) error {
 		paidInvitee = true
 		inviteeStateChanged = true
 
-		// Pay inviter if under cap
+		// Pay inviter if under cap. Approved affiliates are mutually exclusive with
+		// the fixed ¥100 invite reward: they earn cash commission via
+		// SettleRechargeCommission on the invitee's paid top-ups instead, so skip
+		// the quota grant here (AffCount still increments for affiliate tracking).
 		inviter.AffCount++
 		updates := map[string]any{"aff_count": inviter.AffCount}
-		if inviter.RewardedInviteCount < common.MaxValidInvites {
+		if !inviter.CommissionApproved && inviter.RewardedInviteCount < common.MaxValidInvites {
 			// unique kind per invitee for inviter side
 			kind := fmt.Sprintf("%s:%d", CampaignKindInviteInviter, inviteeId)
 			if err := tx.Where("user_id = ? AND kind = ?", inviter.Id, kind).First(&CampaignClaim{}).Error; err == nil {
