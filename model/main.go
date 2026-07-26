@@ -290,6 +290,7 @@ func migrateDB() error {
 		&TopUp{},
 		&Commission{},
 		&WithdrawalRequest{},
+		&StripeConnectAccount{},
 		&QuotaData{},
 		&Task{},
 		&Model{},

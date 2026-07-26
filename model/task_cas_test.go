@@ -48,6 +48,7 @@ func TestMain(m *testing.M) {
 		&TopUp{},
 		&Commission{},
 		&WithdrawalRequest{},
+		&StripeConnectAccount{},
 		&CampaignClaim{},
 		&CampaignCounter{},
 		&ShareSubmission{},
@@ -83,6 +84,7 @@ func truncateTables(t *testing.T) {
 		DB.Exec("DELETE FROM top_ups")
 		DB.Exec("DELETE FROM commissions")
 		DB.Exec("DELETE FROM withdrawal_requests")
+		DB.Exec("DELETE FROM stripe_connect_accounts")
 		DB.Exec("DELETE FROM campaign_claims")
 		DB.Exec("DELETE FROM campaign_counters")
 		DB.Exec("DELETE FROM share_submissions")

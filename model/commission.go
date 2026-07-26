@@ -345,7 +345,18 @@ type WithdrawalRequest struct {
 	ReviewedBy    int    `json:"reviewed_by" gorm:"column:reviewed_by"`
 	RequestedAt   int64  `json:"requested_at" gorm:"column:requested_at"`
 	ReviewedAt    int64  `json:"reviewed_at" gorm:"column:reviewed_at"`
-	CreatedAt     int64  `json:"created_at" gorm:"autoCreateTime;column:created_at"`
+	// Stripe Connect 打款字段（仅 payout_channel=stripe_connect 时填充）
+	StripeAccountId              string `json:"stripe_account_id" gorm:"column:stripe_account_id;type:varchar(64);index"`
+	StripeTransferId             string `json:"stripe_transfer_id" gorm:"column:stripe_transfer_id;type:varchar(64);index"`
+	StripeTransferStatus         string `json:"stripe_transfer_status" gorm:"column:stripe_transfer_status;type:varchar(16)"`
+	StripeTransferAmountReversed int64  `json:"stripe_transfer_amount_reversed" gorm:"column:stripe_transfer_amount_reversed;type:bigint;default:0"`
+	StripePayoutId               string `json:"stripe_payout_id" gorm:"column:stripe_payout_id;type:varchar(64);index"`
+	StripePayoutStatus           string `json:"stripe_payout_status" gorm:"column:stripe_payout_status;type:varchar(16)"`
+	StripePayoutAttempt          int    `json:"stripe_payout_attempt" gorm:"column:stripe_payout_attempt;type:int;default:0"`
+	LastReconcileAt              int64  `json:"last_reconcile_at" gorm:"column:last_reconcile_at;index"`
+	LastReconcileError           string `json:"last_reconcile_error" gorm:"column:last_reconcile_error;type:text"`
+	NextActionAt                 int64  `json:"next_action_at" gorm:"column:next_action_at;index"`
+	CreatedAt                    int64  `json:"created_at" gorm:"autoCreateTime;column:created_at"`
 }
 
 func (WithdrawalRequest) TableName() string { return "withdrawal_requests" }

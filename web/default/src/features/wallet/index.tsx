@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
@@ -17,6 +17,7 @@ import { WithdrawalDialog } from './components/dialogs/withdrawal-dialog'
 import { WithdrawalHistoryDialog } from './components/dialogs/withdrawal-history-dialog'
 import { RechargeFormCard } from './components/recharge-form-card'
 import { ShareRewardCard } from './components/share-reward-card'
+import { StripeConnectCard } from './components/stripe-connect-card'
 import { StripeTopupCard } from './components/stripe-topup-card'
 import { SubscriptionPlansCard } from './components/subscription-plans-card'
 import { WalletStatsCard } from './components/wallet-stats-card'
@@ -31,6 +32,7 @@ import {
   useCreemPayment,
   useWaffoPayment,
   useWaffoPancakePayment,
+  useStripeConnect,
 } from './hooks'
 import {
   getDefaultPaymentType,
@@ -67,6 +69,8 @@ export function Wallet(props: WalletProps) {
   const [selectedCreemProduct, setSelectedCreemProduct] =
     useState<CreemProduct | null>(null)
   const [showSubscriptionPanel, setShowSubscriptionPanel] = useState(true)
+
+  const stripeConnectCardRef = useRef<HTMLDivElement>(null)
 
   const { status } = useStatus()
   const { currency } = useSystemConfig()
@@ -123,6 +127,13 @@ export function Wallet(props: WalletProps) {
     historyTotal: withdrawalHistoryTotal,
     withdraw,
   } = useCommission(commissionApproved)
+  const {
+    status: stripeConnectStatus,
+    loading: stripeConnectLoading,
+    starting: stripeConnectStarting,
+    start: startStripeConnect,
+    refresh: refreshStripeConnect,
+  } = useStripeConnect(commissionApproved)
   const { redeeming, redeemCode } = useRedemption()
   const { processing: creemProcessing, processCreemPayment } = useCreemPayment()
   const { processWaffoPayment } = useWaffoPayment()
@@ -247,13 +258,24 @@ export function Wallet(props: WalletProps) {
   }
 
   // Handle cash commission withdrawal
-  const handleWithdraw = async (amountCents: number) => {
-    const success = await withdraw(amountCents)
+  const handleWithdraw = async (
+    amountCents: number,
+    payoutChannel: string
+  ) => {
+    const success = await withdraw(amountCents, payoutChannel)
     if (success) {
       await fetchUser()
     }
     return success
   }
+
+  // Jump from the withdrawal dialog (Stripe payout disabled) to the onboarding card.
+  const handleJumpToStripeOnboarding = useCallback(() => {
+    stripeConnectCardRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    })
+  }, [])
 
   // Handle Creem product selection
   const handleCreemProductSelect = (product: CreemProduct) => {
@@ -372,6 +394,18 @@ export function Wallet(props: WalletProps) {
               hasHistory={withdrawalHistoryTotal > 0}
             />
 
+            {commissionApproved && (
+              <div ref={stripeConnectCardRef}>
+                <StripeConnectCard
+                  status={stripeConnectStatus}
+                  loading={stripeConnectLoading}
+                  starting={stripeConnectStarting}
+                  onStart={startStripeConnect}
+                  onRefresh={refreshStripeConnect}
+                />
+              </div>
+            )}
+
             <ShareRewardCard />
           </div>
         </SectionPageLayout.Content>
@@ -406,6 +440,11 @@ export function Wallet(props: WalletProps) {
         minWithdrawalCents={commissionSummary?.min_withdrawal_cents ?? 1000}
         freezeDays={commissionSummary?.freeze_days ?? 14}
         submitting={withdrawing}
+        stripeConnectStarted={!!stripeConnectStatus?.started}
+        stripeConnectEnabled={
+          stripeConnectStatus?.account?.onboarding_state === 'enabled'
+        }
+        onJumpToOnboarding={handleJumpToStripeOnboarding}
       />
 
       <WithdrawalHistoryDialog

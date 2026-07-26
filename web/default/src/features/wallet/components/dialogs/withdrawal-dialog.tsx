@@ -6,16 +6,37 @@ import { Dialog } from '@/components/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { formatCurrencyFromUSD } from '@/lib/currency'
+import { cn } from '@/lib/utils'
+
+import { PAYOUT_CHANNEL_MANUAL, PAYOUT_CHANNEL_STRIPE_CONNECT } from '@/features/withdrawals/constants'
 
 interface WithdrawalDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onConfirm: (amountCents: number) => Promise<boolean>
+  onConfirm: (amountCents: number, payoutChannel: string) => Promise<boolean>
   balanceCents: number
   minWithdrawalCents: number
   freezeDays: number
   submitting: boolean
+  /**
+   * True when the user has a Stripe Connect account record on file. When false,
+   * the payout-channel selector is hidden and the request falls back to the
+   * legacy manual flow — preserving the original behavior for users who never
+   * touched Stripe Connect (and for deployments where the feature is off).
+   */
+  stripeConnectStarted?: boolean
+  /** True when the user's Stripe Connect account is fully enabled for payouts. */
+  stripeConnectEnabled?: boolean
+  /** Jump to the Stripe Connect onboarding card (closes this dialog). */
+  onJumpToOnboarding?: () => void
 }
 
 export function WithdrawalDialog({
@@ -26,15 +47,24 @@ export function WithdrawalDialog({
   minWithdrawalCents,
   freezeDays,
   submitting,
+  stripeConnectStarted = false,
+  stripeConnectEnabled = false,
+  onJumpToOnboarding,
 }: WithdrawalDialogProps) {
   const { t } = useTranslation()
   const [amountUSD, setAmountUSD] = useState<number>(0)
+  const [payoutChannel, setPayoutChannel] = useState<string>(
+    PAYOUT_CHANNEL_MANUAL
+  )
 
-  // Default the input to the minimum withdrawable amount.
+  // Default the input to the minimum withdrawable amount and reset the payout
+  // channel to the safe manual default whenever the dialog reopens.
   useEffect(() => {
     if (open) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setAmountUSD(Math.min(minWithdrawalCents, balanceCents) / 100)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPayoutChannel(PAYOUT_CHANNEL_MANUAL)
     }
   }, [open, minWithdrawalCents, balanceCents])
 
@@ -51,10 +81,15 @@ export function WithdrawalDialog({
 
   const handleConfirm = async () => {
     if (!canSubmit) return
-    const success = await onConfirm(amountCents)
+    const success = await onConfirm(amountCents, payoutChannel)
     if (success) {
       onOpenChange(false)
     }
+  }
+
+  const handleJumpToOnboarding = () => {
+    onOpenChange(false)
+    onJumpToOnboarding?.()
   }
 
   const balanceDisplay = formatCurrencyFromUSD(balanceCents / 100)
@@ -137,6 +172,89 @@ export function WithdrawalDialog({
             )}
           </p>
         </div>
+
+        {stripeConnectStarted && (
+          <div className='space-y-2'>
+            <Label className='text-muted-foreground text-xs font-medium tracking-wider uppercase'>
+              {t('Payout Channel')}
+            </Label>
+            <RadioGroup
+              value={payoutChannel}
+              onValueChange={(value) => setPayoutChannel(value as string)}
+              className='grid gap-2 sm:grid-cols-2'
+            >
+              <label
+                htmlFor='payout-manual'
+                className={cn(
+                  'flex cursor-pointer items-center gap-2 rounded-lg border p-2.5 transition-colors hover:bg-muted',
+                  payoutChannel === PAYOUT_CHANNEL_MANUAL && 'border-primary'
+                )}
+              >
+                <RadioGroupItem
+                  id='payout-manual'
+                  value={PAYOUT_CHANNEL_MANUAL}
+                />
+                <span className='text-sm font-medium'>
+                  {t('Manual transfer')}
+                </span>
+              </label>
+
+              {stripeConnectEnabled ? (
+                <label
+                  htmlFor='payout-stripe'
+                  className={cn(
+                    'flex cursor-pointer items-center gap-2 rounded-lg border p-2.5 transition-colors hover:bg-muted',
+                    payoutChannel === PAYOUT_CHANNEL_STRIPE_CONNECT &&
+                      'border-primary'
+                  )}
+                >
+                  <RadioGroupItem
+                    id='payout-stripe'
+                    value={PAYOUT_CHANNEL_STRIPE_CONNECT}
+                  />
+                  <span className='text-sm font-medium'>
+                    {t('Stripe Connect')}
+                  </span>
+                </label>
+              ) : (
+                <TooltipProvider delay={0}>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <label
+                          htmlFor='payout-stripe'
+                          className='flex cursor-not-allowed items-center gap-2 rounded-lg border p-2.5 opacity-60'
+                        />
+                      }
+                    >
+                      <RadioGroupItem
+                        id='payout-stripe'
+                        value={PAYOUT_CHANNEL_STRIPE_CONNECT}
+                        disabled
+                      />
+                      <span className='text-sm font-medium'>
+                        {t('Stripe Connect')}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {t('Complete Stripe onboarding first')}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </RadioGroup>
+
+            {!stripeConnectEnabled && (
+              <button
+                type='button'
+                onClick={handleJumpToOnboarding}
+                className='text-primary text-xs underline underline-offset-2'
+              >
+                {t('Complete Stripe onboarding first')}
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </Dialog>
   )

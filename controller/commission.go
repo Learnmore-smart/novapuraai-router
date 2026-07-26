@@ -1,11 +1,14 @@
 package controller
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/setting"
 
 	"github.com/gin-gonic/gin"
 )
@@ -81,6 +84,10 @@ type processWithdrawalRequest struct {
 
 // AdminProcessWithdrawal marks a pending withdrawal as paid (admin confirmed
 // manual payout) or rejected (funds refunded to user's withdrawable balance).
+//
+// When action=paid and payout_channel=stripe_connect, it delegates to the
+// synchronous Stripe Connect Transfer flow (service.ApproveStripeConnectWithdrawal)
+// instead of the manual paid path.
 func AdminProcessWithdrawal(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
@@ -93,6 +100,58 @@ func AdminProcessWithdrawal(c *gin.Context) {
 		return
 	}
 	adminId := c.GetInt("id")
+
+	// Stripe Connect payout flow: admin approves with stripe_connect channel.
+	if req.Action == "paid" && req.PayoutChannel == "stripe_connect" {
+		if !setting.StripeConnectEnabled {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "stripe connect is not enabled"})
+			return
+		}
+		client := service.NewStripeConnectClient()
+		if client == nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "stripe connect is not configured"})
+			return
+		}
+		result, err := service.ApproveStripeConnectWithdrawal(c.Request.Context(), client, id, adminId)
+		if err != nil {
+			if errors.Is(err, service.ErrWithdrawalAlreadyProcessing) {
+				// Idempotent: admin may have double-clicked. Return current state.
+				if result != nil {
+					recordManageAuditFor(c, result.UserId, "commission.withdrawal_process", map[string]any{
+						"request_id":     result.ID,
+						"action":         result.Status,
+						"amount_cents":   result.AmountCents,
+						"payout_channel": result.PayoutChannel,
+					})
+				}
+				common.ApiSuccess(c, result)
+				return
+			}
+			// Transfer creation failed — withdrawal is now in `failed` state with
+			// balance refunded; surface the error to the admin.
+			if result != nil {
+				recordManageAuditFor(c, result.UserId, "commission.withdrawal_process", map[string]any{
+					"request_id":     result.ID,
+					"action":         result.Status,
+					"amount_cents":   result.AmountCents,
+					"payout_channel": result.PayoutChannel,
+					"error":          err.Error(),
+				})
+			}
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": err.Error()})
+			return
+		}
+		recordManageAuditFor(c, result.UserId, "commission.withdrawal_process", map[string]any{
+			"request_id":         result.ID,
+			"action":             result.Status,
+			"amount_cents":       result.AmountCents,
+			"payout_channel":     result.PayoutChannel,
+			"stripe_transfer_id": result.StripeTransferId,
+		})
+		common.ApiSuccess(c, result)
+		return
+	}
+
 	result, err := model.AdminProcessWithdrawal(id, req.Action, adminId, req.PayoutChannel, req.PayoutTxId, req.AdminRemark)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": err.Error()})
