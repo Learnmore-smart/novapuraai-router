@@ -23,12 +23,16 @@ function turnstileHeaders(token?: string) {
 
 // User login with username and password
 export async function login(payload: LoginPayload) {
-  const res = await api.post<LoginResponse>('/api/user/login', {
-    username: payload.username,
-    password: payload.password,
-  }, {
-    headers: turnstileHeaders(payload.turnstile),
-  })
+  const res = await api.post<LoginResponse>(
+    '/api/user/login',
+    {
+      username: payload.username,
+      password: payload.password,
+    },
+    {
+      headers: turnstileHeaders(payload.turnstile),
+    }
+  )
   return res.data
 }
 
@@ -91,15 +95,19 @@ export async function wechatLoginByCode(code: string): Promise<ApiResponse> {
 
 // User registration
 export async function register(payload: RegisterPayload): Promise<ApiResponse> {
-  const res = await api.post(`/api/user/register`, {
-    username: payload.username,
-    password: payload.password,
-    email: payload.email,
-    verification_code: payload.verification_code,
-    aff_code: payload.aff_code,
-  }, {
-    headers: turnstileHeaders(payload.turnstile),
-  })
+  const res = await api.post(
+    `/api/user/register`,
+    {
+      username: payload.username,
+      password: payload.password,
+      email: payload.email,
+      verification_code: payload.verification_code,
+      aff_code: payload.aff_code,
+    },
+    {
+      headers: turnstileHeaders(payload.turnstile),
+    }
+  )
   return res.data
 }
 

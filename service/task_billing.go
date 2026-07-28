@@ -51,6 +51,18 @@ func LogTaskConsumption(c *gin.Context, info *relaycommon.RelayInfo) {
 		other["is_model_mapped"] = true
 		other["upstream_model_name"] = info.UpstreamModelName
 	}
+	// Subscription-covered free models: log which subscription/plan made the
+	// task free (quota=0). Pre-consume was skipped so BillingSource is empty.
+	if info.PriceData.FreeModel && info.SubscriptionId != 0 && info.BillingSource != BillingSourceSubscription {
+		other["subscription_covered"] = true
+		other["subscription_id"] = info.SubscriptionId
+		if info.SubscriptionPlanId != 0 {
+			other["subscription_plan_id"] = info.SubscriptionPlanId
+		}
+		if info.SubscriptionPlanTitle != "" {
+			other["subscription_plan_title"] = info.SubscriptionPlanTitle
+		}
+	}
 	attachQuotaSaturation(c, info, other)
 	model.RecordConsumeLog(c, info.UserId, model.RecordConsumeLogParams{
 		ChannelId: info.ChannelId,
@@ -200,6 +212,12 @@ func RefundTaskQuota(ctx context.Context, task *model.Task, reason string) {
 // clamps 可选：若计算 actualQuota 时发生额度饱和，将其记入日志 admin_info（仅管理员可见）。
 func RecalculateTaskQuota(ctx context.Context, task *model.Task, actualQuota int, reason string, clamps ...*common.QuotaClamp) {
 	if actualQuota <= 0 {
+		return
+	}
+	// Subscription-covered / zero-ratio free models: the task was submitted
+	// with quota=0 and the subscription covers all usage, so skip the async
+	// post-completion adjustment that would otherwise charge the user.
+	if task.PrivateData.BillingContext != nil && task.PrivateData.BillingContext.FreeModel {
 		return
 	}
 	preConsumedQuota := task.Quota

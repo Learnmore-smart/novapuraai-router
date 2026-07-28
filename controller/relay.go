@@ -158,6 +158,24 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 
 	// common.SetContextKey(c, constant.ContextKeyTokenCountMeta, meta)
 
+	// Subscription coverage: if the user has an active subscription whose plan
+	// covers this model, the request is free (quota=0) but still logged. The
+	// lookup is cached; on error we fall through to the normal billing path
+	// rather than blocking the request.
+	if !priceData.FreeModel {
+		if covered, sub, plan, covErr := model.UserHasSubscriptionCoveringModel(relayInfo.UserId, relayInfo.OriginModelName); covErr == nil && covered && sub != nil && plan != nil {
+			priceData.FreeModel = true
+			priceData.QuotaToPreConsume = 0
+			relayInfo.PriceData = priceData
+			relayInfo.SubscriptionId = sub.Id
+			relayInfo.SubscriptionPlanId = plan.Id
+			relayInfo.SubscriptionPlanTitle = plan.Title
+			logger.LogInfo(c, fmt.Sprintf("模型 %s 由订阅 #%d (套餐 %s) 覆盖，跳过预扣费", relayInfo.OriginModelName, sub.Id, plan.Title))
+		} else if covErr != nil {
+			common.SysError("subscription coverage lookup failed: " + covErr.Error())
+		}
+	}
+
 	if priceData.FreeModel {
 		logger.LogInfo(c, fmt.Sprintf("模型 %s 免费，跳过预扣费", relayInfo.OriginModelName))
 	} else {
@@ -609,6 +627,7 @@ func RelayTask(c *gin.Context) {
 			OtherRatios:     relayInfo.PriceData.OtherRatios(),
 			OriginModelName: relayInfo.OriginModelName,
 			PerCallBilling:  common.StringsContains(constant.TaskPricePatches, relayInfo.OriginModelName) || relayInfo.PriceData.UsePrice,
+			FreeModel:       relayInfo.PriceData.FreeModel,
 		}
 		task.Quota = result.Quota
 		task.Data = result.TaskData

@@ -22,10 +22,7 @@ import {
   sendTransactionalEmailTest,
   switchTransactionalEmailProvider,
 } from '../api'
-import type {
-  EmailProviderHealth,
-  TransactionalEmailProvider,
-} from '../types'
+import type { EmailProviderHealth, TransactionalEmailProvider } from '../types'
 import {
   getEmailProviderSwitchState,
   isValidTestEmailRecipient,

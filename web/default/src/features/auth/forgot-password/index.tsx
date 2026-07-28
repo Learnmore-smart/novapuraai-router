@@ -9,7 +9,7 @@ export function ForgotPassword() {
   return (
     <AuthLayout>
       <div className='w-full space-y-8'>
-        <div className='space-y-3 border-b border-border pb-6'>
+        <div className='border-border space-y-3 border-b pb-6'>
           <p className='editorial-kicker'>{t('Account recovery')}</p>
           <h2 className='text-2xl font-semibold tracking-tight'>
             {t('Reset your password')}

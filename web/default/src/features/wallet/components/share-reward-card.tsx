@@ -15,11 +15,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useTurnstile } from '@/features/auth/hooks/use-turnstile'
 import { formatQuota } from '@/lib/format'
 
-import {
-  getMyShareSubmissions,
-  isApiSuccess,
-  submitShareReward,
-} from '../api'
+import { getMyShareSubmissions, isApiSuccess, submitShareReward } from '../api'
 import type { ShareSubmission, ShareSubmissionStatus } from '../types'
 
 const statusVariants: Record<

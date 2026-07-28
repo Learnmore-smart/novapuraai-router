@@ -1,11 +1,11 @@
-import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
+import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { useMemo, type RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { Button } from '@/components/ui/button'
 import { Markdown } from '@/components/ui/markdown'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 import { findDocItem, findDocNeighbor } from '../config/nav-tree'
@@ -60,7 +60,7 @@ export function DocsContent(props: DocsContentProps) {
 
   return (
     <article className={cn('min-w-0', props.className)}>
-      <header className='border-b border-border pb-4'>
+      <header className='border-border border-b pb-4'>
         <p className='editorial-kicker'>{t('Documentation')}</p>
         <h1 className='mt-1 text-3xl font-semibold tracking-tight sm:text-4xl'>
           {title}

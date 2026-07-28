@@ -2,26 +2,26 @@ NovaPuraAI cung cấp một gateway thống nhất. Client trỏ tới origin c�
 
 ## Base URL khuyến nghị
 
-| Loại client | Base URL |
-| --- | --- |
+| Loại client                             | Base URL                        |
+| --------------------------------------- | ------------------------------- |
 | OpenAI SDK / công cụ tương thích OpenAI | `https://www.novapuraai.com/v1` |
-| HTTP thuần (đường dẫn đã gồm `/v1/...`) | `https://www.novapuraai.com` |
+| HTTP thuần (đường dẫn đã gồm `/v1/...`) | `https://www.novapuraai.com`    |
 
 ## Các endpoint chính
 
-| Phương thức | Đường dẫn | Mục đích |
-| --- | --- | --- |
-| POST | `/v1/chat/completions` | Chat (OpenAI) |
-| POST | `/v1/completions` | Text completions |
-| POST | `/v1/responses` | OpenAI Responses API |
-| POST | `/v1/messages` | Anthropic Messages |
-| POST | `/v1/embeddings` | Embeddings |
-| POST | `/v1/images/generations` | Tạo ảnh |
-| POST | `/v1/audio/transcriptions` | Speech-to-text |
-| POST | `/v1/audio/speech` | Text-to-speech |
-| POST | `/v1/rerank` | Rerank |
-| GET | `/v1/models` | Liệt kê mô hình |
-| POST | `/v1beta/models/{model}:generateContent` | Kiểu Gemini |
+| Phương thức | Đường dẫn                                | Mục đích             |
+| ----------- | ---------------------------------------- | -------------------- |
+| POST        | `/v1/chat/completions`                   | Chat (OpenAI)        |
+| POST        | `/v1/completions`                        | Text completions     |
+| POST        | `/v1/responses`                          | OpenAI Responses API |
+| POST        | `/v1/messages`                           | Anthropic Messages   |
+| POST        | `/v1/embeddings`                         | Embeddings           |
+| POST        | `/v1/images/generations`                 | Tạo ảnh              |
+| POST        | `/v1/audio/transcriptions`               | Speech-to-text       |
+| POST        | `/v1/audio/speech`                       | Text-to-speech       |
+| POST        | `/v1/rerank`                             | Rerank               |
+| GET         | `/v1/models`                             | Liệt kê mô hình      |
+| POST        | `/v1beta/models/{model}:generateContent` | Kiểu Gemini          |
 
 Các route Midjourney và task khác cũng có thể khả dụng tùy cấu hình quản trị.
 

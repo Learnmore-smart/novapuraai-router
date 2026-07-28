@@ -68,7 +68,9 @@ export function DocsToc(props: DocsTocProps) {
     if (!container) return
 
     const headingEls = toc
-      .map((item) => container.querySelector<HTMLElement>(`#${CSS.escape(item.id)}`))
+      .map((item) =>
+        container.querySelector<HTMLElement>(`#${CSS.escape(item.id)}`)
+      )
       .filter((el): el is HTMLElement => el !== null)
 
     if (headingEls.length === 0) return
@@ -126,15 +128,12 @@ export function DocsToc(props: DocsTocProps) {
   if (!hasToc) return null
 
   return (
-    <aside
-      className='hidden xl:block'
-      aria-label={t('On this page')}
-    >
+    <aside className='hidden xl:block' aria-label={t('On this page')}>
       <div className='sticky top-[calc(var(--app-header-height)+2rem)]'>
         <p className='text-muted-foreground mb-2 text-[0.7rem] font-semibold tracking-wider uppercase'>
           {t('On this page')}
         </p>
-        <ul className='space-y-1 border-l border-border'>
+        <ul className='border-border space-y-1 border-l'>
           {groups.map((group) => (
             <li key={group.h2.id}>
               <a

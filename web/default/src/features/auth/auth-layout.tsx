@@ -24,7 +24,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
 
   return (
     <div className='bg-background grid min-h-svh lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]'>
-      <aside className='np-hero-wash relative hidden flex-col justify-between overflow-hidden border-r border-border p-10 lg:flex xl:p-12'>
+      <aside className='np-hero-wash border-border relative hidden flex-col justify-between overflow-hidden border-r p-10 lg:flex xl:p-12'>
         <div
           className='np-grid pointer-events-none absolute inset-0'
           aria-hidden='true'

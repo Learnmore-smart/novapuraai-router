@@ -231,9 +231,7 @@ export function RedemptionsMutateDrawer({
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue
-                              placeholder={t('Select currency')}
-                            />
+                            <SelectValue placeholder={t('Select currency')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent alignItemWithTrigger={false}>

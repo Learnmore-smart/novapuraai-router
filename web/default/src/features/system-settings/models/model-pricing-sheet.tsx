@@ -341,7 +341,10 @@ export const ModelPricingEditorPanel = forwardRef<
     if (nextMode === 'tiered_expr' && !billingExpr) {
       setBillingExpr('tier("base", p * 0 + c * 0)')
     }
-    syncDiscountPrice(form.getValues('discount') || '', discountBaseFor(nextMode))
+    syncDiscountPrice(
+      form.getValues('discount') || '',
+      discountBaseFor(nextMode)
+    )
   }
 
   // Discount rate and discounted price stay in lock-step: editing one derives
@@ -738,9 +741,7 @@ export const ModelPricingEditorPanel = forwardRef<
                                 inputMode='decimal'
                                 placeholder='—'
                                 value={discountPrice}
-                                disabled={
-                                  discountBaseFor(pricingMode) === null
-                                }
+                                disabled={discountBaseFor(pricingMode) === null}
                                 onChange={(event) =>
                                   handleDiscountPriceChange(event.target.value)
                                 }

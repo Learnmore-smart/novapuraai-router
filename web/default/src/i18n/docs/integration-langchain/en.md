@@ -49,18 +49,18 @@ npm install @langchain/openai
 ```
 
 ```typescript
-import { ChatOpenAI } from "@langchain/openai";
+import { ChatOpenAI } from '@langchain/openai'
 
 const llm = new ChatOpenAI({
-  model: "gpt-4o-mini",
+  model: 'gpt-4o-mini',
   apiKey: process.env.NOVAPURA_API_KEY,
   configuration: {
     baseURL: `${process.env.NOVAPURA_BASE_URL}/v1`,
   },
-});
+})
 
-const res = await llm.invoke("Hello from NovaPuraAI");
-console.log(res.content);
+const res = await llm.invoke('Hello from NovaPuraAI')
+console.log(res.content)
 ```
 
 ## LlamaIndex (Python)

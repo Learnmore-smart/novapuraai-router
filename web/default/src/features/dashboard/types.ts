@@ -1,8 +1,8 @@
-import type { TimeGranularity } from '@/lib/time'
 import type {
   FAQTranslation,
   FAQTranslationLanguage,
 } from '@/features/system-settings/content/faq-json'
+import type { TimeGranularity } from '@/lib/time'
 
 // ============================================================================
 // Quota & Usage Data Types

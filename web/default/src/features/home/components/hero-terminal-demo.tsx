@@ -74,7 +74,7 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
           <span className='size-2.5 rounded-full bg-[#57c07f]' />
         </div>
         <div className='bg-muted text-muted-foreground ml-1 flex min-w-0 items-center gap-2 rounded-md px-2.5 py-1'>
-          <span className='border-border text-foreground rounded border bg-background px-1.5 py-0.5 font-mono text-[0.625rem] font-bold'>
+          <span className='border-border text-foreground bg-background rounded border px-1.5 py-0.5 font-mono text-[0.625rem] font-bold'>
             POST
           </span>
           <span className='truncate font-mono text-[0.6875rem]'>
@@ -119,9 +119,7 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
             <span className='text-[0.6875rem] font-semibold tracking-wide uppercase'>
               {t('Ledger entry')}
             </span>
-            <span className='font-mono text-[0.625rem]'>
-              {t('recorded')}
-            </span>
+            <span className='font-mono text-[0.625rem]'>{t('recorded')}</span>
           </div>
           <dl className='divide-border divide-y'>
             {LEDGER_ROWS.map((row) => (

@@ -1,7 +1,4 @@
-import {
-  HtmlContent,
-  type HtmlContentVariant,
-} from '@/components/html-content'
+import { HtmlContent, type HtmlContentVariant } from '@/components/html-content'
 import { Markdown } from '@/components/ui/markdown'
 
 type RichContentMode = 'markdown' | 'html'

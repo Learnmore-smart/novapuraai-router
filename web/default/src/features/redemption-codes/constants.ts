@@ -134,8 +134,10 @@ export const ERROR_MESSAGES = {
   COUNT_INVALID: 'Count must be between {{min}} and {{max}}',
   EXPIRED_TIME_INVALID: 'Expired time cannot be earlier than current time',
   AMOUNT_INVALID: 'Amount must be greater than {{min}}',
-  MAX_REDEEMS_INVALID: 'Max redemption count must be between {{min}} and {{max}}',
-  KEY_INVALID: 'Custom code must be {{min}}-{{max}} characters: letters, digits, hyphens, underscores only',
+  MAX_REDEEMS_INVALID:
+    'Max redemption count must be between {{min}} and {{max}}',
+  KEY_INVALID:
+    'Custom code must be {{min}}-{{max}} characters: letters, digits, hyphens, underscores only',
   KEY_REQUIRES_SINGLE: 'Custom code can only be used when quantity is 1',
 } as const
 

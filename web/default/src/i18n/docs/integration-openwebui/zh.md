@@ -10,10 +10,10 @@ Open WebUI 可将 NovaPuraAI 用作 OpenAI 兼容后端。使用你的 API 密�
 
 在 Open WebUI 管理设置中，打开 **Connections** / **OpenAI** 部分（标签因版本而异）并添加：
 
-| 字段 | 值 |
-| --- | --- |
+| 字段         | 值                              |
+| ------------ | ------------------------------- |
 | API Base URL | `https://www.novapuraai.com/v1` |
-| API Key | `sk-xxxxxxxx` |
+| API Key      | `sk-xxxxxxxx`                   |
 
 保存后刷新模型。Open WebUI 会向你的网关调用 `GET /v1/models` 与 `POST /v1/chat/completions`。
 
@@ -41,12 +41,12 @@ OPENAI_API_KEY=sk-xxxxxxxx
 
 ## 排障
 
-| 问题 | 检查项 |
-| --- | --- |
-| “Incorrect API key” | 密钥前缀、空白字符、令牌是否已禁用 |
-| 模型下拉为空 | Base URL 必须包含 `/v1`；网络须可达网关 |
+| 问题                 | 检查项                                    |
+| -------------------- | ----------------------------------------- |
+| “Incorrect API key”  | 密钥前缀、空白字符、令牌是否已禁用        |
+| 模型下拉为空         | Base URL 必须包含 `/v1`；网络须可达网关   |
 | 多用户负载下出现 429 | 密钥/分组速率限制；创建独立密钥或提高限额 |
-| 首 token 很慢 | 上游延迟；尝试其他模型 |
+| 首 token 很慢        | 上游延迟；尝试其他模型                    |
 
 ## 相关文档
 

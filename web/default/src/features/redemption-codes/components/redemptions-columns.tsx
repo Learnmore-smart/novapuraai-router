@@ -28,9 +28,7 @@ import { DataTableRowActions } from './data-table-row-actions'
 function formatRedemptionPrice(redemption: Redemption): string {
   const currency = normalizeRedemptionCurrency(redemption.currency)
   const amount =
-    redemption.amount > 0
-      ? redemption.amount
-      : redemption.quota / 500000 // legacy: derive USD price from quota
+    redemption.amount > 0 ? redemption.amount : redemption.quota / 500000 // legacy: derive USD price from quota
   const symbol = REDEMPTION_CURRENCY_SYMBOLS[currency]
   const label = REDEMPTION_CURRENCY_LABELS[currency]
   const formattedAmount =

@@ -12,6 +12,10 @@ import type {
   SubscriptionPayResponse,
   SubscriptionPayRequest,
   SelfSubscriptionData,
+  SubscriptionCheckoutRequest,
+  SubscriptionCheckoutData,
+  CouponValidationResponse,
+  SubscriptionPortalData,
 } from './types'
 
 // ============================================================================
@@ -217,5 +221,41 @@ export async function updateBillingPreference(
 
 export async function getGroups(): Promise<ApiResponse<string[]>> {
   const res = await api.get('/api/group')
+  return res.data
+}
+
+// ============================================================================
+// NovaPura v2 Stripe Checkout, Coupon Validation & Customer Portal
+// ============================================================================
+
+// V2 checkout — supports auto_renew + prepaid, coupon, currency selection.
+// The frontend never sends a payment amount; the backend selects the Stripe
+// Price based on plan_id + currency + mode.
+export async function createSubscriptionCheckout(
+  data: SubscriptionCheckoutRequest
+): Promise<ApiResponse<SubscriptionCheckoutData>> {
+  const res = await api.post('/api/subscription/stripe/checkout', data)
+  return res.data
+}
+
+// Validate a coupon code (read-only) — returns the price breakdown the
+// frontend uses to render the coupon confirmation modal.
+export async function validateSubscriptionCoupon(data: {
+  code: string
+  plan_id: number
+  mode: 'auto_renew' | 'prepaid'
+  currency: 'CNY' | 'USD'
+  prepaid_months?: number
+}): Promise<ApiResponse<CouponValidationResponse>> {
+  const res = await api.post('/api/subscription/coupons/validate', data)
+  return res.data
+}
+
+// Create a Stripe Customer Portal session for subscription management
+// (update payment method, cancel, view invoices).
+export async function createSubscriptionPortal(): Promise<
+  ApiResponse<SubscriptionPortalData>
+> {
+  const res = await api.post('/api/subscription/stripe/portal', {})
   return res.data
 }

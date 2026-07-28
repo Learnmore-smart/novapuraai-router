@@ -28,12 +28,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { toIntlLocale } from '@/i18n/languages'
 import {
   formatCurrencyFromUSD,
   formatQuotaWithCurrency,
   getCurrencyLabel,
 } from '@/lib/currency'
-import { toIntlLocale } from '@/i18n/languages'
 import { formatTimestampToDate } from '@/lib/format'
 import { truncateText } from '@/lib/utils'
 
@@ -886,15 +886,9 @@ export function useChannelsColumns(
             } catch {
               /* empty */
             }
-
           }
 
-          if (
-            isCoolingDown ||
-            failureCount > 0 ||
-            statusReason ||
-            statusTime
-          ) {
+          if (isCoolingDown || failureCount > 0 || statusReason || statusTime) {
             return (
               <TooltipProvider delay={100}>
                 <Tooltip>
@@ -910,7 +904,8 @@ export function useChannelsColumns(
                     <div className='space-y-1 text-xs'>
                       {isCoolingDown ? (
                         <div>
-                          {t('Cooldown until')}: {formatTimestampToDate(cooldownUntil)}
+                          {t('Cooldown until')}:{' '}
+                          {formatTimestampToDate(cooldownUntil)}
                         </div>
                       ) : null}
                       {failureCount > 0 ? (

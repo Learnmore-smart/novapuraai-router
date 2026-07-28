@@ -6,14 +6,14 @@ Errors are returned as JSON with an HTTP status code. Message text may be locali
 
 ## Common status codes
 
-| Code | Meaning |
-| --- | --- |
-| 400 | Invalid request body or parameters |
-| 401 | Missing or invalid API key |
-| 403 | Not allowed (model, module, or permission) |
-| 404 | Unknown route or model |
-| 429 | Rate limited |
-| 500 / 502 / 503 | Gateway or upstream failure |
+| Code            | Meaning                                    |
+| --------------- | ------------------------------------------ |
+| 400             | Invalid request body or parameters         |
+| 401             | Missing or invalid API key                 |
+| 403             | Not allowed (model, module, or permission) |
+| 404             | Unknown route or model                     |
+| 429             | Rate limited                               |
+| 500 / 502 / 503 | Gateway or upstream failure                |
 
 ## Example error body
 

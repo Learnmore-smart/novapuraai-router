@@ -19,14 +19,14 @@ curl https://www.novapuraai.com/v1/chat/completions \
 
 ## Important fields
 
-| Field | Notes |
-| --- | --- |
-| `model` | Required. Must be enabled for your account |
-| `messages` | OpenAI chat messages array |
-| `stream` | `true` for SSE token streaming |
-| `temperature` / `top_p` | Sampling controls |
-| `max_tokens` / `max_completion_tokens` | Output bounds (provider-dependent) |
-| `tools` / `tool_choice` | Function calling when the upstream model supports it |
+| Field                                  | Notes                                                |
+| -------------------------------------- | ---------------------------------------------------- |
+| `model`                                | Required. Must be enabled for your account           |
+| `messages`                             | OpenAI chat messages array                           |
+| `stream`                               | `true` for SSE token streaming                       |
+| `temperature` / `top_p`                | Sampling controls                                    |
+| `max_tokens` / `max_completion_tokens` | Output bounds (provider-dependent)                   |
+| `tools` / `tool_choice`                | Function calling when the upstream model supports it |
 
 ## Streaming
 

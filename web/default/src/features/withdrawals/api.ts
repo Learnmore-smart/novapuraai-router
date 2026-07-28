@@ -62,10 +62,7 @@ export async function reverseWithdrawal(
   id: number,
   payload: ReverseWithdrawalPayload
 ): Promise<ApiResponse<WithdrawalRequest>> {
-  const res = await api.post(
-    `/api/user/withdrawal/${id}/reverse`,
-    payload
-  )
+  const res = await api.post(`/api/user/withdrawal/${id}/reverse`, payload)
   return res.data
 }
 
@@ -76,7 +73,9 @@ export async function reverseWithdrawal(
 /**
  * Get the current user's commission balances (pending, available, total, withdrawn).
  */
-export async function getCommissionSummary(): Promise<ApiResponse<CommissionSummary>> {
+export async function getCommissionSummary(): Promise<
+  ApiResponse<CommissionSummary>
+> {
   const res = await api.get('/api/commission/summary')
   return res.data
 }

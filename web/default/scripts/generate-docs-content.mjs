@@ -999,25 +999,61 @@ function setLocal(section, map) {
 // Chinese Simplified for all sections (full professional translations)
 setLocal('quickstart', {
   zh: CONTENT.quickstart.en
-    .replaceAll('NovaPuraAI exposes an OpenAI-compatible HTTP API. With a valid API key and available quota, you can call models through one base URL.', 'NovaPuraAI 提供 OpenAI 兼容的 HTTP API。持有有效 API Key 与可用额度时，即可通过统一 Base URL 调用模型。')
+    .replaceAll(
+      'NovaPuraAI exposes an OpenAI-compatible HTTP API. With a valid API key and available quota, you can call models through one base URL.',
+      'NovaPuraAI 提供 OpenAI 兼容的 HTTP API。持有有效 API Key 与可用额度时，即可通过统一 Base URL 调用模型。'
+    )
     .replaceAll('## What you need', '## 你需要准备')
-    .replaceAll('A NovaPuraAI account on your deployment (for example', '部署站点上的 NovaPuraAI 账号（例如')
-    .replaceAll('An API key (`sk-...`) from **Console → API Keys**.', '在 **控制台 → API 密钥** 创建的 API Key（`sk-...`）。')
-    .replaceAll('Balance or quota for the models you want to use.', '目标模型对应的余额或额度。')
+    .replaceAll(
+      'A NovaPuraAI account on your deployment (for example',
+      '部署站点上的 NovaPuraAI 账号（例如'
+    )
+    .replaceAll(
+      'An API key (`sk-...`) from **Console → API Keys**.',
+      '在 **控制台 → API 密钥** 创建的 API Key（`sk-...`）。'
+    )
+    .replaceAll(
+      'Balance or quota for the models you want to use.',
+      '目标模型对应的余额或额度。'
+    )
     .replaceAll('## Base URL', '## Base URL')
-    .replaceAll('For OpenAI-compatible SDKs, set `base_url` / `baseURL` to your site origin plus `/v1`:', 'OpenAI 兼容 SDK 请将 `base_url` / `baseURL` 设为站点源站并加上 `/v1`：')
-    .replaceAll('Self-hosting? Replace the host with your Cloud Run or reverse-proxy domain.', '自托管时请替换为你的 Cloud Run 或反向代理域名。')
+    .replaceAll(
+      'For OpenAI-compatible SDKs, set `base_url` / `baseURL` to your site origin plus `/v1`:',
+      'OpenAI 兼容 SDK 请将 `base_url` / `baseURL` 设为站点源站并加上 `/v1`：'
+    )
+    .replaceAll(
+      'Self-hosting? Replace the host with your Cloud Run or reverse-proxy domain.',
+      '自托管时请替换为你的 Cloud Run 或反向代理域名。'
+    )
     .replaceAll('## Create a key', '## 创建密钥')
     .replaceAll('1. Sign in to the console.', '1. 登录控制台。')
-    .replaceAll('2. Open **API Keys** (tokens).', '2. 打开 **API 密钥**（令牌）。')
-    .replaceAll('3. Create a key. Optionally restrict models, set a quota, and set an expiry.', '3. 创建密钥。可限制模型、设置额度与过期时间。')
-    .replaceAll('4. Copy the secret once and store it as an environment variable. Never commit it.', '4. 密钥仅显示一次，请保存到环境变量，切勿提交到代码仓库。')
+    .replaceAll(
+      '2. Open **API Keys** (tokens).',
+      '2. 打开 **API 密钥**（令牌）。'
+    )
+    .replaceAll(
+      '3. Create a key. Optionally restrict models, set a quota, and set an expiry.',
+      '3. 创建密钥。可限制模型、设置额度与过期时间。'
+    )
+    .replaceAll(
+      '4. Copy the secret once and store it as an environment variable. Never commit it.',
+      '4. 密钥仅显示一次，请保存到环境变量，切勿提交到代码仓库。'
+    )
     .replaceAll('## First chat request', '## 第一个对话请求')
     .replaceAll('## Official OpenAI SDK', '## 官方 OpenAI SDK')
     .replaceAll('## Next steps', '## 下一步')
-    .replaceAll('[Authentication](/docs/authentication)', '[身份验证](/docs/authentication)')
-    .replaceAll('[Your First Request](/docs/first-request)', '[第一个请求](/docs/first-request)')
-    .replaceAll('[Base URL & Endpoints](/docs/base-url)', '[Base URL 与端点](/docs/base-url)'),
+    .replaceAll(
+      '[Authentication](/docs/authentication)',
+      '[身份验证](/docs/authentication)'
+    )
+    .replaceAll(
+      '[Your First Request](/docs/first-request)',
+      '[第一个请求](/docs/first-request)'
+    )
+    .replaceAll(
+      '[Base URL & Endpoints](/docs/base-url)',
+      '[Base URL 与端点](/docs/base-url)'
+    ),
 })
 
 // For remaining non-en languages we generate quality localized wrappers around EN content
@@ -1025,17 +1061,26 @@ setLocal('quickstart', {
 
 const INTROS = {
   zh: {
-    authentication: '每个中继请求都必须携带 NovaPuraAI API Key。密钥在控制台管理，并由网关的 Token 鉴权中间件校验。',
+    authentication:
+      '每个中继请求都必须携带 NovaPuraAI API Key。密钥在控制台管理，并由网关的 Token 鉴权中间件校验。',
     'first-request': '本页帮助你完成第一次成功调用，并读懂响应结构。',
-    'base-url': 'NovaPuraAI 是统一网关。客户端只访问你的公网域名，由网关路由到上游供应商。',
-    routing: '当客户端请求某个模型名时，NovaPuraAI 会在可用渠道中选择能够提供该模型的上游，并受用户分组、渠道健康度与管理员路由规则约束。',
-    billing: '用量按请求计量。网关会预估费用并在需要时预扣额度，再在上游响应后结算。',
-    'rate-limits': '速率限制用于保护平台与上游供应商。限制可能按 IP、用户或令牌维度生效，取决于管理员配置。',
+    'base-url':
+      'NovaPuraAI 是统一网关。客户端只访问你的公网域名，由网关路由到上游供应商。',
+    routing:
+      '当客户端请求某个模型名时，NovaPuraAI 会在可用渠道中选择能够提供该模型的上游，并受用户分组、渠道健康度与管理员路由规则约束。',
+    billing:
+      '用量按请求计量。网关会预估费用并在需要时预扣额度，再在上游响应后结算。',
+    'rate-limits':
+      '速率限制用于保护平台与上游供应商。限制可能按 IP、用户或令牌维度生效，取决于管理员配置。',
     'api-chat': '`POST /v1/chat/completions` 是主要的 OpenAI 兼容对话接口。',
-    'api-messages': '`POST /v1/messages` 接受 Anthropic Messages 风格请求体，用于网关中配置的 Claude 兼容模型。',
-    'api-gemini': '在管理员启用 Gemini 渠道后，可通过 `/v1beta` 下的 Google 风格路径访问 Gemini。',
-    'api-embeddings': '`POST /v1/embeddings` 用于生成向量，适用于检索、RAG 与聚类。',
-    'api-media': '在对应渠道启用时，NovaPuraAI 会代理图像、音频与重排等媒体接口。',
+    'api-messages':
+      '`POST /v1/messages` 接受 Anthropic Messages 风格请求体，用于网关中配置的 Claude 兼容模型。',
+    'api-gemini':
+      '在管理员启用 Gemini 渠道后，可通过 `/v1beta` 下的 Google 风格路径访问 Gemini。',
+    'api-embeddings':
+      '`POST /v1/embeddings` 用于生成向量，适用于检索、RAG 与聚类。',
+    'api-media':
+      '在对应渠道启用时，NovaPuraAI 会代理图像、音频与重排等媒体接口。',
     'api-models': '`GET /v1/models` 列出当前密钥可用的模型。',
     'api-errors': '错误以 JSON 与 HTTP 状态码返回。文案可能来自平台或上游。',
     'sdk-python': '使用官方 `openai` Python 包，并配置自定义 base_url。',
@@ -1046,21 +1091,31 @@ const INTROS = {
     'integration-nextchat': 'NextChat 支持自定义 OpenAI 端点。',
     'integration-openwebui': 'Open WebUI 可对接 OpenAI 兼容后端。',
     'integration-dify': 'Dify 可通过 OpenAI 兼容模型供应商调用 NovaPuraAI。',
-    'integration-langchain': 'LangChain 与 LlamaIndex 均支持自定义 OpenAI base URL。',
+    'integration-langchain':
+      'LangChain 与 LlamaIndex 均支持自定义 OpenAI base URL。',
     faq: '以下是接入 NovaPuraAI 时最常见的问题。',
   },
   'zh-TW': {
-    authentication: '每個中繼請求都必須攜帶 NovaPuraAI API Key。金鑰在控制台管理，並由閘道的 Token 鑑權中介層校驗。',
+    authentication:
+      '每個中繼請求都必須攜帶 NovaPuraAI API Key。金鑰在控制台管理，並由閘道的 Token 鑑權中介層校驗。',
     'first-request': '本頁協助你完成第一次成功呼叫，並讀懂回應結構。',
-    'base-url': 'NovaPuraAI 是統一閘道。客戶端只需存取你的公開網域，由閘道路由至上游供應商。',
-    routing: '當客戶端請求某個模型名稱時，NovaPuraAI 會在可用通道中選擇能提供該模型的上游，並受使用者分組、通道健康度與管理員路由規則約束。',
-    billing: '用量依請求計量。閘道會預估費用並在需要時預扣額度，再在上游回應後結算。',
-    'rate-limits': '速率限制用於保護平台與上游供應商。限制可能依 IP、使用者或權杖維度生效，取決於管理員設定。',
+    'base-url':
+      'NovaPuraAI 是統一閘道。客戶端只需存取你的公開網域，由閘道路由至上游供應商。',
+    routing:
+      '當客戶端請求某個模型名稱時，NovaPuraAI 會在可用通道中選擇能提供該模型的上游，並受使用者分組、通道健康度與管理員路由規則約束。',
+    billing:
+      '用量依請求計量。閘道會預估費用並在需要時預扣額度，再在上游回應後結算。',
+    'rate-limits':
+      '速率限制用於保護平台與上游供應商。限制可能依 IP、使用者或權杖維度生效，取決於管理員設定。',
     'api-chat': '`POST /v1/chat/completions` 是主要的 OpenAI 相容對話介面。',
-    'api-messages': '`POST /v1/messages` 接受 Anthropic Messages 風格請求體，用於閘道中設定的 Claude 相容模型。',
-    'api-gemini': '在管理員啟用 Gemini 通道後，可透過 `/v1beta` 下的 Google 風格路徑存取 Gemini。',
-    'api-embeddings': '`POST /v1/embeddings` 用於產生向量，適用於檢索、RAG 與分群。',
-    'api-media': '在對應通道啟用時，NovaPuraAI 會代理圖像、音訊與重排等媒體介面。',
+    'api-messages':
+      '`POST /v1/messages` 接受 Anthropic Messages 風格請求體，用於閘道中設定的 Claude 相容模型。',
+    'api-gemini':
+      '在管理員啟用 Gemini 通道後，可透過 `/v1beta` 下的 Google 風格路徑存取 Gemini。',
+    'api-embeddings':
+      '`POST /v1/embeddings` 用於產生向量，適用於檢索、RAG 與分群。',
+    'api-media':
+      '在對應通道啟用時，NovaPuraAI 會代理圖像、音訊與重排等媒體介面。',
     'api-models': '`GET /v1/models` 列出目前金鑰可用的模型。',
     'api-errors': '錯誤以 JSON 與 HTTP 狀態碼回傳。文案可能來自平台或上游。',
     'sdk-python': '使用官方 `openai` Python 套件，並設定自訂 base_url。',
@@ -1071,107 +1126,184 @@ const INTROS = {
     'integration-nextchat': 'NextChat 支援自訂 OpenAI 端點。',
     'integration-openwebui': 'Open WebUI 可對接 OpenAI 相容後端。',
     'integration-dify': 'Dify 可透過 OpenAI 相容模型供應商呼叫 NovaPuraAI。',
-    'integration-langchain': 'LangChain 與 LlamaIndex 皆支援自訂 OpenAI base URL。',
+    'integration-langchain':
+      'LangChain 與 LlamaIndex 皆支援自訂 OpenAI base URL。',
     faq: '以下是接入 NovaPuraAI 時最常見的問題。',
   },
   fr: {
-    authentication: 'Chaque requête de relais doit présenter une clé API NovaPuraAI. Les clés sont gérées dans la console et validées par le middleware d’authentification du gateway.',
-    'first-request': 'Cette page guide un premier appel réussi et explique comment lire la réponse.',
-    'base-url': 'NovaPuraAI est une passerelle unifiée. Les clients appellent votre domaine public ; le gateway route vers les fournisseurs amont.',
-    routing: 'Lorsqu’un client demande un modèle, NovaPuraAI sélectionne un canal amont capable de le servir, selon le groupe, la santé des canaux et les règles d’administration.',
-    billing: 'L’usage est facturé par requête. Le gateway estime le coût, pré-consomme le quota si nécessaire, puis solde après la réponse amont.',
-    'rate-limits': 'Les limites de débit protègent la plateforme et les fournisseurs. Elles peuvent s’appliquer par IP, utilisateur ou jeton selon la configuration.',
-    'api-chat': '`POST /v1/chat/completions` est l’endpoint de chat compatible OpenAI principal.',
-    'api-messages': '`POST /v1/messages` accepte les charges utiles de type Anthropic Messages pour les modèles Claude configurés.',
-    'api-gemini': 'Le trafic compatible Gemini est disponible sous `/v1beta` lorsque les canaux Gemini sont activés.',
-    'api-embeddings': '`POST /v1/embeddings` crée des vecteurs pour la recherche, le RAG et le clustering.',
-    'api-media': 'NovaPuraAI proxifie des endpoints média (image, audio, rerank) lorsque les canaux correspondants sont activés.',
-    'api-models': '`GET /v1/models` liste les modèles disponibles pour la clé authentifiée.',
-    'api-errors': 'Les erreurs sont renvoyées en JSON avec un code HTTP. Le message peut être localisé ou fourni par l’amont.',
-    'sdk-python': 'Utilisez le package Python officiel `openai` avec une base URL personnalisée.',
+    authentication:
+      'Chaque requête de relais doit présenter une clé API NovaPuraAI. Les clés sont gérées dans la console et validées par le middleware d’authentification du gateway.',
+    'first-request':
+      'Cette page guide un premier appel réussi et explique comment lire la réponse.',
+    'base-url':
+      'NovaPuraAI est une passerelle unifiée. Les clients appellent votre domaine public ; le gateway route vers les fournisseurs amont.',
+    routing:
+      'Lorsqu’un client demande un modèle, NovaPuraAI sélectionne un canal amont capable de le servir, selon le groupe, la santé des canaux et les règles d’administration.',
+    billing:
+      'L’usage est facturé par requête. Le gateway estime le coût, pré-consomme le quota si nécessaire, puis solde après la réponse amont.',
+    'rate-limits':
+      'Les limites de débit protègent la plateforme et les fournisseurs. Elles peuvent s’appliquer par IP, utilisateur ou jeton selon la configuration.',
+    'api-chat':
+      '`POST /v1/chat/completions` est l’endpoint de chat compatible OpenAI principal.',
+    'api-messages':
+      '`POST /v1/messages` accepte les charges utiles de type Anthropic Messages pour les modèles Claude configurés.',
+    'api-gemini':
+      'Le trafic compatible Gemini est disponible sous `/v1beta` lorsque les canaux Gemini sont activés.',
+    'api-embeddings':
+      '`POST /v1/embeddings` crée des vecteurs pour la recherche, le RAG et le clustering.',
+    'api-media':
+      'NovaPuraAI proxifie des endpoints média (image, audio, rerank) lorsque les canaux correspondants sont activés.',
+    'api-models':
+      '`GET /v1/models` liste les modèles disponibles pour la clé authentifiée.',
+    'api-errors':
+      'Les erreurs sont renvoyées en JSON avec un code HTTP. Le message peut être localisé ou fourni par l’amont.',
+    'sdk-python':
+      'Utilisez le package Python officiel `openai` avec une base URL personnalisée.',
     'sdk-node': 'Utilisez le package npm officiel `openai`.',
-    'sdk-go': 'En Go, appelez l’API HTTP directement ou via un SDK compatible OpenAI.',
+    'sdk-go':
+      'En Go, appelez l’API HTTP directement ou via un SDK compatible OpenAI.',
     'sdk-curl': 'curl est idéal pour le débogage et les tests de fumée CI.',
-    'integration-cursor': 'Cursor peut utiliser NovaPuraAI comme fournisseur compatible OpenAI.',
-    'integration-nextchat': 'NextChat prend en charge les endpoints OpenAI personnalisés.',
-    'integration-openwebui': 'Open WebUI peut cibler des backends compatibles OpenAI.',
-    'integration-dify': 'Dify peut appeler NovaPuraAI via un fournisseur de modèles compatible OpenAI.',
-    'integration-langchain': 'LangChain et LlamaIndex supportent une base URL OpenAI personnalisée.',
+    'integration-cursor':
+      'Cursor peut utiliser NovaPuraAI comme fournisseur compatible OpenAI.',
+    'integration-nextchat':
+      'NextChat prend en charge les endpoints OpenAI personnalisés.',
+    'integration-openwebui':
+      'Open WebUI peut cibler des backends compatibles OpenAI.',
+    'integration-dify':
+      'Dify peut appeler NovaPuraAI via un fournisseur de modèles compatible OpenAI.',
+    'integration-langchain':
+      'LangChain et LlamaIndex supportent une base URL OpenAI personnalisée.',
     faq: 'Questions fréquentes lors de l’intégration de NovaPuraAI.',
   },
   ru: {
-    authentication: 'Каждый relay-запрос должен передавать API-ключ NovaPuraAI. Ключи создаются в консоли и проверяются middleware аутентификации шлюза.',
-    'first-request': 'Эта страница проводит через первый успешный вызов и показывает, как читать ответ.',
-    'base-url': 'NovaPuraAI — единый API-шлюз. Клиенты обращаются к вашему публичному домену; шлюз маршрутизирует запросы к upstream-провайдерам.',
-    routing: 'При запросе имени модели NovaPuraAI выбирает upstream-канал, доступный вашей группе, с учётом здоровья каналов и правил администратора.',
-    billing: 'Использование учитывается по запросам. Шлюз оценивает стоимость, при необходимости предварительно списывает квоту и затем делает окончательный расчёт.',
-    'rate-limits': 'Лимиты частоты защищают платформу и провайдеров. Они могут действовать на уровне IP, пользователя или токена.',
-    'api-chat': '`POST /v1/chat/completions` — основной OpenAI-совместимый chat endpoint.',
-    'api-messages': '`POST /v1/messages` принимает payload в стиле Anthropic Messages для моделей Claude на шлюзе.',
-    'api-gemini': 'Gemini-совместимый трафик доступен по путям `/v1beta`, если администратор включил соответствующие каналы.',
-    'api-embeddings': '`POST /v1/embeddings` создаёт векторные представления для поиска, RAG и кластеризации.',
-    'api-media': 'NovaPuraAI проксирует медиа-эндпоинты (изображения, аудио, rerank), когда соответствующие каналы включены.',
-    'api-models': '`GET /v1/models` возвращает модели, доступные аутентифицированному ключу.',
-    'api-errors': 'Ошибки возвращаются как JSON с HTTP-кодом. Текст может быть локализован или приходить от upstream.',
-    'sdk-python': 'Используйте официальный пакет Python `openai` с пользовательским base_url.',
+    authentication:
+      'Каждый relay-запрос должен передавать API-ключ NovaPuraAI. Ключи создаются в консоли и проверяются middleware аутентификации шлюза.',
+    'first-request':
+      'Эта страница проводит через первый успешный вызов и показывает, как читать ответ.',
+    'base-url':
+      'NovaPuraAI — единый API-шлюз. Клиенты обращаются к вашему публичному домену; шлюз маршрутизирует запросы к upstream-провайдерам.',
+    routing:
+      'При запросе имени модели NovaPuraAI выбирает upstream-канал, доступный вашей группе, с учётом здоровья каналов и правил администратора.',
+    billing:
+      'Использование учитывается по запросам. Шлюз оценивает стоимость, при необходимости предварительно списывает квоту и затем делает окончательный расчёт.',
+    'rate-limits':
+      'Лимиты частоты защищают платформу и провайдеров. Они могут действовать на уровне IP, пользователя или токена.',
+    'api-chat':
+      '`POST /v1/chat/completions` — основной OpenAI-совместимый chat endpoint.',
+    'api-messages':
+      '`POST /v1/messages` принимает payload в стиле Anthropic Messages для моделей Claude на шлюзе.',
+    'api-gemini':
+      'Gemini-совместимый трафик доступен по путям `/v1beta`, если администратор включил соответствующие каналы.',
+    'api-embeddings':
+      '`POST /v1/embeddings` создаёт векторные представления для поиска, RAG и кластеризации.',
+    'api-media':
+      'NovaPuraAI проксирует медиа-эндпоинты (изображения, аудио, rerank), когда соответствующие каналы включены.',
+    'api-models':
+      '`GET /v1/models` возвращает модели, доступные аутентифицированному ключу.',
+    'api-errors':
+      'Ошибки возвращаются как JSON с HTTP-кодом. Текст может быть локализован или приходить от upstream.',
+    'sdk-python':
+      'Используйте официальный пакет Python `openai` с пользовательским base_url.',
     'sdk-node': 'Используйте официальный npm-пакет `openai`.',
-    'sdk-go': 'В Go можно вызывать HTTP API напрямую или через OpenAI-совместимый SDK.',
+    'sdk-go':
+      'В Go можно вызывать HTTP API напрямую или через OpenAI-совместимый SDK.',
     'sdk-curl': 'curl удобен для отладки и CI smoke-тестов.',
-    'integration-cursor': 'Cursor может использовать NovaPuraAI как OpenAI-совместимого провайдера.',
-    'integration-nextchat': 'NextChat поддерживает пользовательские OpenAI endpoints.',
-    'integration-openwebui': 'Open WebUI может подключаться к OpenAI-совместимым backend.',
-    'integration-dify': 'Dify вызывает NovaPuraAI через OpenAI-совместимого провайдера моделей.',
-    'integration-langchain': 'LangChain и LlamaIndex поддерживают пользовательский OpenAI base URL.',
+    'integration-cursor':
+      'Cursor может использовать NovaPuraAI как OpenAI-совместимого провайдера.',
+    'integration-nextchat':
+      'NextChat поддерживает пользовательские OpenAI endpoints.',
+    'integration-openwebui':
+      'Open WebUI может подключаться к OpenAI-совместимым backend.',
+    'integration-dify':
+      'Dify вызывает NovaPuraAI через OpenAI-совместимого провайдера моделей.',
+    'integration-langchain':
+      'LangChain и LlamaIndex поддерживают пользовательский OpenAI base URL.',
     faq: 'Частые вопросы при подключении к NovaPuraAI.',
   },
   ja: {
-    authentication: 'すべての中継リクエストには NovaPuraAI の API キーが必要です。キーはコンソールで管理され、ゲートウェイのトークン認証で検証されます。',
-    'first-request': '最初の成功リクエストの手順と、レスポンスの読み方を説明します。',
-    'base-url': 'NovaPuraAI は統合 API ゲートウェイです。クライアントは公開オリジンを指し、上流プロバイダーへのルーティングはゲートウェイが行います。',
-    routing: 'クライアントがモデル名を要求すると、NovaPuraAI はグループ権限・チャネル健全性・管理ルールに基づき、提供可能な上流チャネルを選択します。',
-    billing: '利用量はリクエスト単位で計測されます。ゲートウェイは費用を見積もり、必要に応じて事前控除し、上流応答後に精算します。',
-    'rate-limits': 'レート制限はプラットフォームと上流を保護します。IP / ユーザー / トークン単位など、設定により適用範囲が異なります。',
-    'api-chat': '`POST /v1/chat/completions` は主要な OpenAI 互換チャットエンドポイントです。',
-    'api-messages': '`POST /v1/messages` は、ゲートウェイ上の Claude 互換モデル向けに Anthropic Messages 形式を受け付けます。',
-    'api-gemini': '管理者が Gemini チャネルを有効にしている場合、`/v1beta` 配下の Google 形式パスで利用できます。',
-    'api-embeddings': '`POST /v1/embeddings` は検索・RAG・クラスタリング向けのベクトルを生成します。',
-    'api-media': '対応チャネルが有効なとき、画像・音声・リランクなどのメディア API をプロキシします。',
-    'api-models': '`GET /v1/models` は認証済みキーで利用可能なモデル一覧を返します。',
-    'api-errors': 'エラーは HTTP ステータス付きの JSON で返されます。メッセージはプラットフォームまたは上流由来です。',
-    'sdk-python': '公式 Python パッケージ `openai` をカスタム base_url で利用します。',
+    authentication:
+      'すべての中継リクエストには NovaPuraAI の API キーが必要です。キーはコンソールで管理され、ゲートウェイのトークン認証で検証されます。',
+    'first-request':
+      '最初の成功リクエストの手順と、レスポンスの読み方を説明します。',
+    'base-url':
+      'NovaPuraAI は統合 API ゲートウェイです。クライアントは公開オリジンを指し、上流プロバイダーへのルーティングはゲートウェイが行います。',
+    routing:
+      'クライアントがモデル名を要求すると、NovaPuraAI はグループ権限・チャネル健全性・管理ルールに基づき、提供可能な上流チャネルを選択します。',
+    billing:
+      '利用量はリクエスト単位で計測されます。ゲートウェイは費用を見積もり、必要に応じて事前控除し、上流応答後に精算します。',
+    'rate-limits':
+      'レート制限はプラットフォームと上流を保護します。IP / ユーザー / トークン単位など、設定により適用範囲が異なります。',
+    'api-chat':
+      '`POST /v1/chat/completions` は主要な OpenAI 互換チャットエンドポイントです。',
+    'api-messages':
+      '`POST /v1/messages` は、ゲートウェイ上の Claude 互換モデル向けに Anthropic Messages 形式を受け付けます。',
+    'api-gemini':
+      '管理者が Gemini チャネルを有効にしている場合、`/v1beta` 配下の Google 形式パスで利用できます。',
+    'api-embeddings':
+      '`POST /v1/embeddings` は検索・RAG・クラスタリング向けのベクトルを生成します。',
+    'api-media':
+      '対応チャネルが有効なとき、画像・音声・リランクなどのメディア API をプロキシします。',
+    'api-models':
+      '`GET /v1/models` は認証済みキーで利用可能なモデル一覧を返します。',
+    'api-errors':
+      'エラーは HTTP ステータス付きの JSON で返されます。メッセージはプラットフォームまたは上流由来です。',
+    'sdk-python':
+      '公式 Python パッケージ `openai` をカスタム base_url で利用します。',
     'sdk-node': '公式 npm パッケージ `openai` を利用します。',
     'sdk-go': 'Go では HTTP を直接呼ぶか、OpenAI 互換 SDK を使えます。',
     'sdk-curl': 'curl はデバッグと CI スモークテストに適しています。',
-    'integration-cursor': 'Cursor では NovaPuraAI を OpenAI 互換プロバイダーとして設定できます。',
-    'integration-nextchat': 'NextChat はカスタム OpenAI エンドポイントに対応しています。',
-    'integration-openwebui': 'Open WebUI は OpenAI 互換バックエンドに接続できます。',
-    'integration-dify': 'Dify は OpenAI 互換モデルプロバイダー経由で NovaPuraAI を呼び出せます。',
-    'integration-langchain': 'LangChain と LlamaIndex はカスタム OpenAI base URL に対応しています。',
+    'integration-cursor':
+      'Cursor では NovaPuraAI を OpenAI 互換プロバイダーとして設定できます。',
+    'integration-nextchat':
+      'NextChat はカスタム OpenAI エンドポイントに対応しています。',
+    'integration-openwebui':
+      'Open WebUI は OpenAI 互換バックエンドに接続できます。',
+    'integration-dify':
+      'Dify は OpenAI 互換モデルプロバイダー経由で NovaPuraAI を呼び出せます。',
+    'integration-langchain':
+      'LangChain と LlamaIndex はカスタム OpenAI base URL に対応しています。',
     faq: 'NovaPuraAI 接続時によくある質問です。',
   },
   vi: {
-    authentication: 'Mọi yêu cầu relay phải kèm API key NovaPuraAI. Key được quản lý trong console và xác thực bởi middleware của gateway.',
-    'first-request': 'Trang này hướng dẫn lời gọi thành công đầu tiên và cách đọc phản hồi.',
-    'base-url': 'NovaPuraAI là gateway API thống nhất. Client chỉ cần trỏ tới domain công khai; gateway định tuyến tới nhà cung cấp upstream.',
-    routing: 'Khi client yêu cầu một model, NovaPuraAI chọn kênh upstream phù hợp theo nhóm người dùng, tình trạng kênh và quy tắc quản trị.',
-    billing: 'Mức dùng được đo theo từng request. Gateway ước tính chi phí, pre-consume hạn mức khi cần, rồi quyết toán sau phản hồi upstream.',
-    'rate-limits': 'Giới hạn tốc độ bảo vệ nền tảng và upstream. Có thể áp dụng theo IP, user hoặc token tùy cấu hình.',
-    'api-chat': '`POST /v1/chat/completions` là endpoint chat tương thích OpenAI chính.',
-    'api-messages': '`POST /v1/messages` nhận payload kiểu Anthropic Messages cho các model Claude trên gateway.',
-    'api-gemini': 'Lưu lượng tương thích Gemini có sẵn dưới `/v1beta` khi quản trị viên bật kênh Gemini.',
-    'api-embeddings': '`POST /v1/embeddings` tạo vector cho tìm kiếm, RAG và phân cụm.',
-    'api-media': 'NovaPuraAI proxy các endpoint media (ảnh, âm thanh, rerank) khi kênh tương ứng được bật.',
-    'api-models': '`GET /v1/models` liệt kê model khả dụng với key đã xác thực.',
-    'api-errors': 'Lỗi trả về dạng JSON kèm mã HTTP. Thông điệp có thể đến từ nền tảng hoặc upstream.',
+    authentication:
+      'Mọi yêu cầu relay phải kèm API key NovaPuraAI. Key được quản lý trong console và xác thực bởi middleware của gateway.',
+    'first-request':
+      'Trang này hướng dẫn lời gọi thành công đầu tiên và cách đọc phản hồi.',
+    'base-url':
+      'NovaPuraAI là gateway API thống nhất. Client chỉ cần trỏ tới domain công khai; gateway định tuyến tới nhà cung cấp upstream.',
+    routing:
+      'Khi client yêu cầu một model, NovaPuraAI chọn kênh upstream phù hợp theo nhóm người dùng, tình trạng kênh và quy tắc quản trị.',
+    billing:
+      'Mức dùng được đo theo từng request. Gateway ước tính chi phí, pre-consume hạn mức khi cần, rồi quyết toán sau phản hồi upstream.',
+    'rate-limits':
+      'Giới hạn tốc độ bảo vệ nền tảng và upstream. Có thể áp dụng theo IP, user hoặc token tùy cấu hình.',
+    'api-chat':
+      '`POST /v1/chat/completions` là endpoint chat tương thích OpenAI chính.',
+    'api-messages':
+      '`POST /v1/messages` nhận payload kiểu Anthropic Messages cho các model Claude trên gateway.',
+    'api-gemini':
+      'Lưu lượng tương thích Gemini có sẵn dưới `/v1beta` khi quản trị viên bật kênh Gemini.',
+    'api-embeddings':
+      '`POST /v1/embeddings` tạo vector cho tìm kiếm, RAG và phân cụm.',
+    'api-media':
+      'NovaPuraAI proxy các endpoint media (ảnh, âm thanh, rerank) khi kênh tương ứng được bật.',
+    'api-models':
+      '`GET /v1/models` liệt kê model khả dụng với key đã xác thực.',
+    'api-errors':
+      'Lỗi trả về dạng JSON kèm mã HTTP. Thông điệp có thể đến từ nền tảng hoặc upstream.',
     'sdk-python': 'Dùng gói Python chính thức `openai` với base_url tùy chỉnh.',
     'sdk-node': 'Dùng gói npm chính thức `openai`.',
     'sdk-go': 'Với Go, gọi HTTP trực tiếp hoặc dùng SDK tương thích OpenAI.',
     'sdk-curl': 'curl phù hợp để debug và smoke test CI.',
-    'integration-cursor': 'Cursor có thể dùng NovaPuraAI như nhà cung cấp tương thích OpenAI.',
+    'integration-cursor':
+      'Cursor có thể dùng NovaPuraAI như nhà cung cấp tương thích OpenAI.',
     'integration-nextchat': 'NextChat hỗ trợ endpoint OpenAI tùy chỉnh.',
-    'integration-openwebui': 'Open WebUI có thể kết nối backend tương thích OpenAI.',
-    'integration-dify': 'Dify gọi NovaPuraAI qua nhà cung cấp model tương thích OpenAI.',
-    'integration-langchain': 'LangChain và LlamaIndex hỗ trợ base URL OpenAI tùy chỉnh.',
+    'integration-openwebui':
+      'Open WebUI có thể kết nối backend tương thích OpenAI.',
+    'integration-dify':
+      'Dify gọi NovaPuraAI qua nhà cung cấp model tương thích OpenAI.',
+    'integration-langchain':
+      'LangChain và LlamaIndex hỗ trợ base URL OpenAI tùy chỉnh.',
     faq: 'Các câu hỏi thường gặp khi tích hợp NovaPuraAI.',
   },
 }
@@ -1247,11 +1379,14 @@ const HEADING_MAP = {
     '## Apps': '## 应用',
     '## LangChain (Python)': '## LangChain（Python）',
     '## LlamaIndex': '## LlamaIndex',
-    '## Do I need to deploy a separate API service?': '## 需要单独再部署一个 API 服务吗？',
-    '## What is the difference between docs_link and /docs?': '## docs_link 和 /docs 有什么区别？',
+    '## Do I need to deploy a separate API service?':
+      '## 需要单独再部署一个 API 服务吗？',
+    '## What is the difference between docs_link and /docs?':
+      '## docs_link 和 /docs 有什么区别？',
     '## Why do I get 401?': '## 为什么会 401？',
     '## Why do I get model_not_found?': '## 为什么会 model_not_found？',
-    '## Can I use the same key in production and local dev?': '## 生产与本地开发能共用同一把密钥吗？',
+    '## Can I use the same key in production and local dev?':
+      '## 生产与本地开发能共用同一把密钥吗？',
     '## Does Cloud Run work?': '## 能否部署在 Cloud Run？',
     '## Where is usage shown?': '## 用量在哪里查看？',
     '## Is the API OpenAI compatible?': '## API 是否兼容 OpenAI？',
@@ -1360,7 +1495,10 @@ function localizeFromEn(section, lang) {
       ['需要单独再部署一个 API 服务吗？', '需要另外再部署一個 API 服務嗎？'],
       ['有什么区别？', '有什麼差別？'],
       ['为什么会', '為什麼會'],
-      ['生产与本地开发能共用同一把密钥吗？', '正式環境與本機開發能共用同一把金鑰嗎？'],
+      [
+        '生产与本地开发能共用同一把密钥吗？',
+        '正式環境與本機開發能共用同一把金鑰嗎？',
+      ],
       ['用量在哪里查看？', '用量在哪裡查看？'],
       ['API 是否兼容 OpenAI？', 'API 是否相容 OpenAI？'],
     ]
@@ -1373,9 +1511,7 @@ function localizeFromEn(section, lang) {
       vi: '> Ví dụ mã và đường dẫn API giữ nguyên tiếng Anh (định danh kỹ thuật).',
     }[lang]
     // Keep full English technical body; prepend localized intro + note.
-    body = intro
-      ? `${intro}\n\n${note}\n\n${en}`
-      : `${note}\n\n${en}`
+    body = intro ? `${intro}\n\n${note}\n\n${en}` : `${note}\n\n${en}`
   }
 
   return body

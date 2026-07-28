@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { describe, test } from 'node:test'
 import { resolve } from 'node:path'
+import { describe, test } from 'node:test'
 
 const localeDir = resolve(import.meta.dirname, '../../../i18n/locales')
 const promotionKeys = [

@@ -10,11 +10,11 @@ NextChat（ChatGPT-Next-Web 及相容分支）可透過 OpenAI 相容設定連�
 
 在 NextChat **設定** 中（文案可能因分支/版本而異）：
 
-| 欄位 | 建議值 |
-| --- | --- |
+| 欄位                | 建議值                          |
+| ------------------- | ------------------------------- |
 | Endpoint / API base | `https://www.novapuraai.com/v1` |
-| API key | `sk-xxxxxxxx` |
-| Model | 來自 `GET /v1/models` 的 ID |
+| API key             | `sk-xxxxxxxx`                   |
+| Model               | 來自 `GET /v1/models` 的 ID     |
 
 若介面只儲存來源站並自行附加 `/v1`，則使用不含重複 `/v1` 的 `https://www.novapuraai.com`。不確定時，開啟瀏覽器網路工具，確認最終路徑為 `/v1/chat/completions`。
 
@@ -44,12 +44,12 @@ curl "https://www.novapuraai.com/v1/chat/completions" \
 
 ## 常見問題
 
-| 現象 | 原因 | 處理 |
-| --- | --- | --- |
-| 對話回傳 404 | Base URL 錯誤（缺少或重複了 `/v1`） | 對照網路面板中的最終路徑 |
-| 401 | 未傳入金鑰或金鑰錯誤 | 貼上 NovaPuraAI 金鑰，而非 OpenAI 平台金鑰 |
-| 模型列表為空 | 前端無法呼叫 `/v1/models` | 檢查 CORS/代理與金鑰權限 |
-| 餘額錯誤 | 無額度 | 在 NovaPuraAI 主控台儲值 |
+| 現象         | 原因                                | 處理                                       |
+| ------------ | ----------------------------------- | ------------------------------------------ |
+| 對話回傳 404 | Base URL 錯誤（缺少或重複了 `/v1`） | 對照網路面板中的最終路徑                   |
+| 401          | 未傳入金鑰或金鑰錯誤                | 貼上 NovaPuraAI 金鑰，而非 OpenAI 平台金鑰 |
+| 模型列表為空 | 前端無法呼叫 `/v1/models`           | 檢查 CORS/代理與金鑰權限                   |
+| 餘額錯誤     | 無額度                              | 在 NovaPuraAI 主控台儲值                   |
 
 ## 安全說明
 

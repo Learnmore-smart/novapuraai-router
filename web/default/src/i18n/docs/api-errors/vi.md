@@ -2,14 +2,14 @@ Lỗi được trả về dưới dạng JSON kèm mã trạng thái HTTP. Nội
 
 ## Các mã trạng thái thường gặp
 
-| Mã | Ý nghĩa |
-| --- | --- |
-| 400 | Thân yêu cầu hoặc tham số không hợp lệ |
-| 401 | Thiếu hoặc API key không hợp lệ |
-| 403 | Không được phép (mô hình, module hoặc quyền) |
-| 404 | Route hoặc mô hình không tồn tại |
-| 429 | Bị giới hạn tần suất (rate limit) |
-| 500 / 502 / 503 | Lỗi gateway hoặc upstream |
+| Mã              | Ý nghĩa                                      |
+| --------------- | -------------------------------------------- |
+| 400             | Thân yêu cầu hoặc tham số không hợp lệ       |
+| 401             | Thiếu hoặc API key không hợp lệ              |
+| 403             | Không được phép (mô hình, module hoặc quyền) |
+| 404             | Route hoặc mô hình không tồn tại             |
+| 429             | Bị giới hạn tần suất (rate limit)            |
+| 500 / 502 / 503 | Lỗi gateway hoặc upstream                    |
 
 ## Ví dụ thân lỗi
 

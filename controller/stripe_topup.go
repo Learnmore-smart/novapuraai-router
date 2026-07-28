@@ -14,6 +14,7 @@ import (
 	"github.com/QuantumNous/new-api/setting"
 
 	"github.com/gin-gonic/gin"
+	"github.com/stripe/stripe-go/v85"
 	"github.com/stripe/stripe-go/v85/webhook"
 )
 
@@ -395,6 +396,19 @@ func StripeWebhookV2(c *gin.Context) {
 		return
 	}
 
+	// Route NovaPura v2 subscription events to the dedicated subscription
+	// handler before attempting the topup path. The subscription handler does
+	// its own idempotency tracking via the same stripe_webhook_events table.
+	if IsSubscriptionStripeEvent(event) {
+		if err := ProcessSubscriptionStripeEvent(ctx, event); err != nil {
+			logger.LogWarn(ctx, "stripe webhook v2 subscription process: "+err.Error())
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		c.Status(http.StatusOK)
+		return
+	}
+
 	if err := stripetopup.ProcessVerifiedEvent(ctx, event); err != nil {
 		// If new-order path failed because order missing, try legacy handlers for same event types.
 		logger.LogWarn(ctx, "stripe webhook v2 process: "+err.Error())
@@ -420,6 +434,19 @@ func StripeWebhookV2(c *gin.Context) {
 		}
 		c.Status(http.StatusInternalServerError)
 		return
+	}
+
+	// The topup path handles charge.refunded for topup orders. Subscription
+	// commission clawback is a separate concern: a refund on a subscription
+	// charge (initial purchase or renewal invoice) must reverse the affiliate
+	// commission credited by CompleteSubscriptionOrderV2 / invoice.paid. The
+	// topup path's ReconcileRefund only touches StripeTopupOrder rows, so we
+	// invoke the subscription reversal here. It is a no-op when the charge is
+	// not tied to a subscription commission.
+	if event.Type == stripe.EventTypeChargeRefunded {
+		if err := handleSubscriptionChargeRefunded(ctx, event); err != nil {
+			logger.LogWarn(ctx, "stripe webhook v2 subscription commission revert: "+err.Error())
+		}
 	}
 	c.Status(http.StatusOK)
 }

@@ -28,13 +28,34 @@ describe('FAQ JSON batch import', () => {
 
   it('imports one entry with all localized question and answer pairs', () => {
     const translations = {
-      en: { question: 'Do registrations receive credits?', answer: 'Check the current welcome offer.' },
-      zh: { question: '注册会赠送额度吗？', answer: '请查看当前的新用户活动说明。' },
-      'zh-TW': { question: '註冊會贈送額度嗎？', answer: '請查看目前的新用戶活動說明。' },
-      fr: { question: 'L’inscription donne-t-elle des crédits ?', answer: 'Consultez l’offre de bienvenue actuelle.' },
-      ja: { question: '登録するとクレジットは付与されますか？', answer: '現在の新規登録特典をご確認ください。' },
-      ru: { question: 'Начисляются ли кредиты за регистрацию?', answer: 'Проверьте текущее приветственное предложение.' },
-      vi: { question: 'Đăng ký có được tặng hạn mức không?', answer: 'Hãy xem ưu đãi chào mừng hiện tại.' },
+      en: {
+        question: 'Do registrations receive credits?',
+        answer: 'Check the current welcome offer.',
+      },
+      zh: {
+        question: '注册会赠送额度吗？',
+        answer: '请查看当前的新用户活动说明。',
+      },
+      'zh-TW': {
+        question: '註冊會贈送額度嗎？',
+        answer: '請查看目前的新用戶活動說明。',
+      },
+      fr: {
+        question: 'L’inscription donne-t-elle des crédits ?',
+        answer: 'Consultez l’offre de bienvenue actuelle.',
+      },
+      ja: {
+        question: '登録するとクレジットは付与されますか？',
+        answer: '現在の新規登録特典をご確認ください。',
+      },
+      ru: {
+        question: 'Начисляются ли кредиты за регистрацию?',
+        answer: 'Проверьте текущее приветственное предложение.',
+      },
+      vi: {
+        question: 'Đăng ký có được tặng hạn mức không?',
+        answer: 'Hãy xem ưu đãi chào mừng hiện tại.',
+      },
     }
 
     assert.deepEqual(

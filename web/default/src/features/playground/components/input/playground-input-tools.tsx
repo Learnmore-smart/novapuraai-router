@@ -26,8 +26,8 @@ import {
   getSearchActionNotice,
 } from '../../lib'
 import type { ParameterEnabled, PlaygroundConfig } from '../../types'
-import { PlaygroundParameterPanel } from './playground-parameter-panel'
 import { PlaygroundAutoResendSettings } from './playground-auto-resend-settings'
+import { PlaygroundParameterPanel } from './playground-parameter-panel'
 
 type PlaygroundInputToolsProps = {
   config: PlaygroundConfig

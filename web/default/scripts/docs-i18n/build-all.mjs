@@ -8,13 +8,14 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+
 import { EN } from './en.mjs'
-import { ZH } from './zh.mjs'
-import { ZHTW } from './zh-TW.mjs'
 import { FR } from './fr.mjs'
 import { JA } from './ja.mjs'
 import { RU } from './ru.mjs'
 import { VI } from './vi.mjs'
+import { ZHTW } from './zh-TW.mjs'
+import { ZH } from './zh.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '../../src/i18n/docs')
@@ -65,4 +66,6 @@ for (const section of sections) {
   }
 }
 
-console.log(`Wrote ${written} files for ${sections.length} sections × ${langs.length} langs`)
+console.log(
+  `Wrote ${written} files for ${sections.length} sections × ${langs.length} langs`
+)

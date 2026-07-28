@@ -11,9 +11,9 @@ import {
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { CurrencySwitcher } from '@/components/currency-switcher'
 import { StaggerContainer, StaggerItem } from '@/components/page-transition'
 import { Button } from '@/components/ui/button'
-import { CurrencySwitcher } from '@/components/currency-switcher'
 import { getUserQuotaDates } from '@/features/dashboard/api'
 import { useSummaryCardsConfig } from '@/features/dashboard/hooks/use-dashboard-config'
 import type { QuotaDataItem } from '@/features/dashboard/types'
@@ -251,7 +251,7 @@ export function SummaryCards() {
   })
 
   return (
-    <div className='overflow-hidden rounded-lg border border-border bg-card'>
+    <div className='border-border bg-card overflow-hidden rounded-lg border'>
       <div className='grid xl:grid-cols-[minmax(0,1fr)_21rem]'>
         <div className='flex flex-col gap-2.5 p-3 sm:gap-3 sm:p-5'>
           <div className='flex flex-wrap items-start justify-between gap-3'>
@@ -268,7 +268,7 @@ export function SummaryCards() {
             {items.map((it) => (
               <StaggerItem
                 key={it.key}
-                className='bg-muted/40 rounded-md border border-border px-2 py-1.5 sm:p-3'
+                className='bg-muted/40 border-border rounded-md border px-2 py-1.5 sm:p-3'
               >
                 <StatCard
                   title={it.title}
@@ -286,7 +286,7 @@ export function SummaryCards() {
           </StaggerContainer>
         </div>
 
-        <div className='bg-muted/30 flex flex-col justify-between gap-3 border-t border-border p-3 sm:gap-4 sm:p-5 xl:border-t-0 xl:border-l'>
+        <div className='bg-muted/30 border-border flex flex-col justify-between gap-3 border-t p-3 sm:gap-4 sm:p-5 xl:border-t-0 xl:border-l'>
           <div className='flex flex-col gap-2 sm:gap-3'>
             <div className='flex items-center justify-between'>
               <span className='text-muted-foreground text-xs font-medium'>
@@ -309,7 +309,7 @@ export function SummaryCards() {
             </div>
 
             <div className='grid grid-cols-2 gap-2'>
-              <div className='bg-card rounded-md border border-border px-2.5 py-2.5'>
+              <div className='bg-card border-border rounded-md border px-2.5 py-2.5'>
                 <div className='text-muted-foreground flex items-center gap-1.5 text-[11px] leading-none font-medium'>
                   <WalletCards className='size-3 shrink-0' aria-hidden='true' />
                   <span className='truncate'>{t('Cash balance')}</span>
@@ -318,7 +318,7 @@ export function SummaryCards() {
                   {formatQuota(cashQuota)}
                 </div>
               </div>
-              <div className='bg-card rounded-md border border-border px-2.5 py-2.5'>
+              <div className='bg-card border-border rounded-md border px-2.5 py-2.5'>
                 <div className='text-muted-foreground flex items-center gap-1.5 text-[11px] leading-none font-medium'>
                   <Gift className='size-3 shrink-0' aria-hidden='true' />
                   <span className='truncate'>{t('Promotional balance')}</span>
@@ -330,7 +330,7 @@ export function SummaryCards() {
             </div>
 
             <div className='grid grid-cols-2 gap-2'>
-              <div className='bg-card rounded-md border border-border px-2.5 py-2'>
+              <div className='bg-card border-border rounded-md border px-2.5 py-2'>
                 <div className='text-muted-foreground flex items-center gap-1 text-[11px] leading-none font-medium'>
                   <Flame className='size-3 shrink-0' aria-hidden='true' />
                   <span className='truncate'>{t('Last 24h usage')}</span>
@@ -339,7 +339,7 @@ export function SummaryCards() {
                   {formatQuota(recentUsage)}
                 </div>
               </div>
-              <div className='bg-card rounded-md border border-border px-2.5 py-2'>
+              <div className='bg-card border-border rounded-md border px-2.5 py-2'>
                 <div className='text-muted-foreground flex items-center gap-1 text-[11px] leading-none font-medium'>
                   {runwayDays !== null && runwayDays < 3 ? (
                     <TrendingDown

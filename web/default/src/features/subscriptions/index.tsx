@@ -6,9 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 
 import { SubscriptionsDialogs } from './components/subscriptions-dialogs'
 import { SubscriptionsPrimaryButtons } from './components/subscriptions-primary-buttons'
-import {
-  SubscriptionsProvider,
-} from './components/subscriptions-provider'
+import { SubscriptionsProvider } from './components/subscriptions-provider'
 import { SubscriptionsTable } from './components/subscriptions-table'
 
 function SubscriptionsContent() {

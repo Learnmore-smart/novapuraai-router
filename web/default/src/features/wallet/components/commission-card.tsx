@@ -11,8 +11,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { formatCurrencyFromUSD } from '@/lib/currency'
 import type { CommissionSummary } from '@/features/withdrawals/types'
+import { formatCurrencyFromUSD } from '@/lib/currency'
 
 interface CommissionCardProps {
   summary: CommissionSummary | null

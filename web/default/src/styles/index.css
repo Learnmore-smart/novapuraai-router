@@ -236,7 +236,9 @@ For commercial licensing, please contact support@quantumnous.com
   body {
     @apply bg-background text-foreground has-[div[data-variant='inset']]:bg-sidebar min-h-svh w-full;
     font-family: var(--font-body);
-    font-feature-settings: 'ss01' on, 'cv11' on;
+    font-feature-settings:
+      'ss01' on,
+      'cv11' on;
     letter-spacing: -0.011em;
   }
 

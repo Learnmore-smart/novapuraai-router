@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
@@ -7,6 +7,7 @@ import { useStatus } from '@/hooks/use-status'
 import { useSystemConfig } from '@/hooks/use-system-config'
 import { getSelf } from '@/lib/api'
 
+import { getBillingTopupConfig } from './api'
 import { AffiliateRewardsCard } from './components/affiliate-rewards-card'
 import { CommissionCard } from './components/commission-card'
 import { BillingHistoryDialog } from './components/dialogs/billing-history-dialog'
@@ -22,7 +23,6 @@ import { StripeTopupCard } from './components/stripe-topup-card'
 import { SubscriptionPlansCard } from './components/subscription-plans-card'
 import { WalletStatsCard } from './components/wallet-stats-card'
 import { DEFAULT_DISCOUNT_RATE } from './constants'
-import { getBillingTopupConfig } from './api'
 import {
   useTopupInfo,
   usePayment,
@@ -85,7 +85,8 @@ export function Wallet(props: WalletProps) {
     queryFn: getBillingTopupConfig,
     staleTime: 30_000,
   })
-  const stripeTopupActuallyEnabled = !!billingTopupConfigQuery.data?.data?.config?.enabled
+  const stripeTopupActuallyEnabled =
+    !!billingTopupConfigQuery.data?.data?.config?.enabled
 
   // Mirrors RechargeFormCard's hasAnyTopup. When false, the legacy form is
   // hidden and there is no reason to fire the initial calculatePaymentAmount
@@ -258,10 +259,7 @@ export function Wallet(props: WalletProps) {
   }
 
   // Handle cash commission withdrawal
-  const handleWithdraw = async (
-    amountCents: number,
-    payoutChannel: string
-  ) => {
+  const handleWithdraw = async (amountCents: number, payoutChannel: string) => {
     const success = await withdraw(amountCents, payoutChannel)
     if (success) {
       await fetchUser()

@@ -10,11 +10,11 @@ NextChat (ChatGPT-Next-Web and compatible forks) can talk to NovaPuraAI through 
 
 In NextChat **Settings** (wording may vary by fork/version):
 
-| Field | Recommended value |
-| --- | --- |
+| Field               | Recommended value               |
+| ------------------- | ------------------------------- |
 | Endpoint / API base | `https://www.novapuraai.com/v1` |
-| API key | `sk-xxxxxxxx` |
-| Model | An ID from `GET /v1/models` |
+| API key             | `sk-xxxxxxxx`                   |
+| Model               | An ID from `GET /v1/models`     |
 
 If the UI stores only the origin and always appends `/v1` itself, use `https://www.novapuraai.com` without duplicating `/v1`. When in doubt, open browser network tools and confirm the final path is `/v1/chat/completions`.
 
@@ -44,12 +44,12 @@ curl "https://www.novapuraai.com/v1/chat/completions" \
 
 ## Common issues
 
-| Symptom | Cause | Fix |
-| --- | --- | --- |
-| 404 on chat | Wrong base URL (`/v1` missing or doubled) | Align with network tab path |
-| 401 | Key not passed or wrong | Paste NovaPuraAI key, not OpenAI platform key |
-| Model list empty | Frontend cannot call `/v1/models` | Check CORS/proxy and key permissions |
-| Balance errors | No quota | Top up in NovaPuraAI console |
+| Symptom          | Cause                                     | Fix                                           |
+| ---------------- | ----------------------------------------- | --------------------------------------------- |
+| 404 on chat      | Wrong base URL (`/v1` missing or doubled) | Align with network tab path                   |
+| 401              | Key not passed or wrong                   | Paste NovaPuraAI key, not OpenAI platform key |
+| Model list empty | Frontend cannot call `/v1/models`         | Check CORS/proxy and key permissions          |
+| Balance errors   | No quota                                  | Top up in NovaPuraAI console                  |
 
 ## Security notes
 

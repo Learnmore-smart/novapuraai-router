@@ -5,9 +5,9 @@ import { WorkerSettingsSection } from '../integrations/worker-settings-section'
 import { LogSettingsSection } from '../maintenance/log-settings-section'
 import { PerformanceSection } from '../maintenance/performance-section'
 import { UpdateCheckerSection } from '../maintenance/update-checker-section'
-import { CommissionSettingsSection } from './commission-settings-section'
 import type { OperationsSettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
+import { CommissionSettingsSection } from './commission-settings-section'
 
 const OPERATIONS_SECTIONS = [
   {

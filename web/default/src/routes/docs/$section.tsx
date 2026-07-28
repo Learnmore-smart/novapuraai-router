@@ -1,10 +1,10 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 
+import { DocsPage } from '@/features/docs'
 import {
   DEFAULT_DOC_SECTION,
   isDocSectionId,
 } from '@/features/docs/config/nav-tree'
-import { DocsPage } from '@/features/docs'
 
 export const Route = createFileRoute('/docs/$section')({
   beforeLoad: ({ params }) => {

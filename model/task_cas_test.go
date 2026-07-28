@@ -15,7 +15,11 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	// Use shared-cache in-memory SQLite so a second connection (opened by a
+	// test that temporarily raises SetMaxOpenConns) sees the same data as the
+	// first. With the default SetMaxOpenConns(1) below, behavior is identical
+	// to ":memory:" — only one connection is ever used.
+	db, err := gorm.Open(sqlite.Open("file:memdb?mode=memory&cache=shared"), &gorm.Config{})
 	if err != nil {
 		panic("failed to open test db: " + err.Error())
 	}
@@ -55,6 +59,9 @@ func TestMain(m *testing.M) {
 		&SubscriptionPlan{},
 		&SubscriptionOrder{},
 		&UserSubscription{},
+		&SubscriptionPlanCoveredModel{},
+		&SubscriptionCoupon{},
+		&SubscriptionCouponRedemption{},
 		&UserOAuthBinding{},
 		&PerfMetric{},
 		&SystemInstance{},
@@ -91,6 +98,9 @@ func truncateTables(t *testing.T) {
 		DB.Exec("DELETE FROM subscription_orders")
 		DB.Exec("DELETE FROM subscription_plans")
 		DB.Exec("DELETE FROM user_subscriptions")
+		DB.Exec("DELETE FROM subscription_plan_covered_models")
+		DB.Exec("DELETE FROM subscription_coupons")
+		DB.Exec("DELETE FROM subscription_coupon_redemptions")
 		DB.Exec("DELETE FROM perf_metrics")
 		DB.Exec("DELETE FROM system_instances")
 		DB.Exec("DELETE FROM system_task_locks")

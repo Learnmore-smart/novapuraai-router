@@ -32,9 +32,7 @@ export function TransferDialog({
   transferring,
 }: TransferDialogProps) {
   const { t } = useTranslation()
-  const currencyConfig = useSystemConfigStore(
-    (state) => state.config.currency
-  )
+  const currencyConfig = useSystemConfigStore((state) => state.config.currency)
   const minimumQuota = Math.ceil(
     currencyConfig.quotaPerUnit > 0
       ? currencyConfig.quotaPerUnit

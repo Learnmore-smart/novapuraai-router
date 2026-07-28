@@ -10,7 +10,7 @@ The official developer documentation UI is at **`/docs`** on your deployment (fo
 
 ## What base URL should I use?
 
-- **Origin**: `https://www.novapuraai.com` 
+- **Origin**: `https://www.novapuraai.com`
 - **OpenAI SDK `base_url`**: `https://www.novapuraai.com/v1`
 
 See [Base URL & Endpoints](/docs/base-url).

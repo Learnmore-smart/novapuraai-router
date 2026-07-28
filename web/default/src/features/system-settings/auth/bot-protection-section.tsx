@@ -79,9 +79,7 @@ export function BotProtectionSection({
   const onSubmit = async (data: BotProtectionFormValues) => {
     const updates = Object.entries(data).filter(([key, value]) => {
       if (key === 'TurnstileSecretKey') {
-        return (
-          typeof value === 'string' && hasWriteOnlySecretReplacement(value)
-        )
+        return typeof value === 'string' && hasWriteOnlySecretReplacement(value)
       }
       return value !== defaultValues[key as keyof BotProtectionFormValues]
     })

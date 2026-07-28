@@ -84,7 +84,8 @@ const FAQ_JSON_EXAMPLE = JSON.stringify(
         },
         fr: {
           question: 'L’inscription donne-t-elle des crédits ?',
-          answer: 'Consultez l’offre de bienvenue actuelle après votre inscription.',
+          answer:
+            'Consultez l’offre de bienvenue actuelle après votre inscription.',
         },
         ja: {
           question: '登録するとクレジットは付与されますか？',
@@ -92,7 +93,8 @@ const FAQ_JSON_EXAMPLE = JSON.stringify(
         },
         ru: {
           question: 'Начисляются ли кредиты за регистрацию?',
-          answer: 'После регистрации ознакомьтесь с текущим приветственным предложением.',
+          answer:
+            'После регистрации ознакомьтесь с текущим приветственным предложением.',
         },
         vi: {
           question: 'Đăng ký có được tặng hạn mức không?',
@@ -109,11 +111,13 @@ const FAQ_JSON_EXAMPLE = JSON.stringify(
         },
         zh: {
           question: '充值会赠送额度吗？',
-          answer: '充值赠送额度取决于当前的充值活动，请在钱包页面查看实际比例。',
+          answer:
+            '充值赠送额度取决于当前的充值活动，请在钱包页面查看实际比例。',
         },
         'zh-TW': {
           question: '儲值會贈送額度嗎？',
-          answer: '儲值贈送額度取決於目前的儲值活動，請在錢包頁面查看實際比例。',
+          answer:
+            '儲值贈送額度取決於目前的儲值活動，請在錢包頁面查看實際比例。',
         },
         fr: {
           question: 'Les recharges incluent-elles des crédits bonus ?',
@@ -146,11 +150,13 @@ const FAQ_JSON_EXAMPLE = JSON.stringify(
         },
         zh: {
           question: '如何开始使用 NovaPuraAI？',
-          answer: '注册账号，在控制台创建 API 密钥，然后使用该密钥调用兼容 OpenAI 的 /v1 接口即可。',
+          answer:
+            '注册账号，在控制台创建 API 密钥，然后使用该密钥调用兼容 OpenAI 的 /v1 接口即可。',
         },
         'zh-TW': {
           question: '如何開始使用 NovaPuraAI？',
-          answer: '註冊帳號，在控制台建立 API 金鑰，然後使用該金鑰呼叫相容於 OpenAI 的 /v1 端點即可。',
+          answer:
+            '註冊帳號，在控制台建立 API 金鑰，然後使用該金鑰呼叫相容於 OpenAI 的 /v1 端點即可。',
         },
         fr: {
           question: 'Comment commencer à utiliser NovaPuraAI ?',
@@ -183,11 +189,13 @@ const FAQ_JSON_EXAMPLE = JSON.stringify(
         },
         zh: {
           question: 'API 地址是什么？',
-          answer: 'OpenAI 兼容请求的 Base URL 为 {ORIGIN}/v1，原生 Claude/Gemini 端点请参考文档。',
+          answer:
+            'OpenAI 兼容请求的 Base URL 为 {ORIGIN}/v1，原生 Claude/Gemini 端点请参考文档。',
         },
         'zh-TW': {
           question: 'API 位址是什麼？',
-          answer: 'OpenAI 相容請求的 Base URL 為 {ORIGIN}/v1，原生 Claude/Gemini 端點請參考文件。',
+          answer:
+            'OpenAI 相容請求的 Base URL 為 {ORIGIN}/v1，原生 Claude/Gemini 端點請參考文件。',
         },
         fr: {
           question: 'Quelle est l’adresse de l’API ?',
@@ -220,11 +228,13 @@ const FAQ_JSON_EXAMPLE = JSON.stringify(
         },
         zh: {
           question: '如何创建 API 密钥？',
-          answer: '前往控制台 → API 密钥 / 令牌 → 创建密钥，创建后立即复制 sk-... 机密。',
+          answer:
+            '前往控制台 → API 密钥 / 令牌 → 创建密钥，创建后立即复制 sk-... 机密。',
         },
         'zh-TW': {
           question: '如何建立 API 金鑰？',
-          answer: '前往控制台 → API 金鑰 / 權杖 → 建立金鑰，建立後立即複製 sk-... 機密。',
+          answer:
+            '前往控制台 → API 金鑰 / 權杖 → 建立金鑰，建立後立即複製 sk-... 機密。',
         },
         fr: {
           question: 'Comment créer une clé API ?',
@@ -257,11 +267,13 @@ const FAQ_JSON_EXAMPLE = JSON.stringify(
         },
         zh: {
           question: '支持哪些模型？',
-          answer: '调用 GET /v1/models 可列出你的用户组可用的全部模型；模型目录因部署而异。',
+          answer:
+            '调用 GET /v1/models 可列出你的用户组可用的全部模型；模型目录因部署而异。',
         },
         'zh-TW': {
           question: '支援哪些模型？',
-          answer: '呼叫 GET /v1/models 可列出你的群組可用的全部模型；模型目錄因部署而異。',
+          answer:
+            '呼叫 GET /v1/models 可列出你的群組可用的全部模型；模型目錄因部署而異。',
         },
         fr: {
           question: 'Quels modèles sont pris en charge ?',
@@ -294,14 +306,17 @@ const FAQ_JSON_EXAMPLE = JSON.stringify(
         },
         zh: {
           question: '如何查看用量和消费记录？',
-          answer: '打开控制台 → 用量日志，可查看每次请求的 token、模型、状态和消耗额度。',
+          answer:
+            '打开控制台 → 用量日志，可查看每次请求的 token、模型、状态和消耗额度。',
         },
         'zh-TW': {
           question: '如何查看用量與消費紀錄？',
-          answer: '開啟控制台 → 用量日誌，可查看每次請求的 token、模型、狀態和消耗額度。',
+          answer:
+            '開啟控制台 → 用量日誌，可查看每次請求的 token、模型、狀態和消耗額度。',
         },
         fr: {
-          question: 'Comment consulter mes enregistrements d’utilisation et de dépenses ?',
+          question:
+            'Comment consulter mes enregistrements d’utilisation et de dépenses ?',
           answer:
             'Ouvrez la console → Journaux d’utilisation pour inspecter les tokens, le modèle, le statut et le quota dépensé par requête.',
         },
@@ -368,11 +383,13 @@ const FAQ_JSON_EXAMPLE = JSON.stringify(
         },
         zh: {
           question: '请求为什么会失败？',
-          answer: '常见原因：密钥无效、额度不足、模型未启用、速率限制（429）或上游服务商异常。',
+          answer:
+            '常见原因：密钥无效、额度不足、模型未启用、速率限制（429）或上游服务商异常。',
         },
         'zh-TW': {
           question: '請求為什麼會失敗？',
-          answer: '常見原因：金鑰無效、額度不足、模型未啟用、速率限制（429）或上游服務商異常。',
+          answer:
+            '常見原因：金鑰無效、額度不足、模型未啟用、速率限制（429）或上游服務商異常。',
         },
         fr: {
           question: 'Pourquoi ma requête a échoué ?',
@@ -405,11 +422,13 @@ const FAQ_JSON_EXAMPLE = JSON.stringify(
         },
         zh: {
           question: 'API 密钥泄露后该怎么办？',
-          answer: '立即在控制台禁用或删除该密钥，创建新密钥，并更新所有使用该密钥的客户端。',
+          answer:
+            '立即在控制台禁用或删除该密钥，创建新密钥，并更新所有使用该密钥的客户端。',
         },
         'zh-TW': {
           question: 'API 金鑰外洩後該怎麼辦？',
-          answer: '立即在控制台停用或刪除該金鑰，建立新金鑰，並更新所有使用該金鑰的用戶端。',
+          answer:
+            '立即在控制台停用或刪除該金鑰，建立新金鑰，並更新所有使用該金鑰的用戶端。',
         },
         fr: {
           question: 'Que faire si ma clé API est exposée ?',
@@ -442,11 +461,13 @@ const FAQ_JSON_EXAMPLE = JSON.stringify(
         },
         zh: {
           question: '是否支持 OpenAI SDK？',
-          answer: '支持——将 API 密钥设为 NovaPuraAI 密钥，base_url/baseURL 设为 {ORIGIN}/v1 即可。',
+          answer:
+            '支持——将 API 密钥设为 NovaPuraAI 密钥，base_url/baseURL 设为 {ORIGIN}/v1 即可。',
         },
         'zh-TW': {
           question: '是否支援 OpenAI SDK？',
-          answer: '支援——將 API 金鑰設為 NovaPuraAI 金鑰，base_url/baseURL 設為 {ORIGIN}/v1 即可。',
+          answer:
+            '支援——將 API 金鑰設為 NovaPuraAI 金鑰，base_url/baseURL 設為 {ORIGIN}/v1 即可。',
         },
         fr: {
           question: 'Le SDK OpenAI est-il pris en charge ?',
@@ -516,11 +537,13 @@ const FAQ_JSON_EXAMPLE = JSON.stringify(
         },
         zh: {
           question: '如何联系技术支持？',
-          answer: '请通过部署方控制台或文档页脚中列出的支持渠道联系，并提供时间戳与已脱敏的请求详情。',
+          answer:
+            '请通过部署方控制台或文档页脚中列出的支持渠道联系，并提供时间戳与已脱敏的请求详情。',
         },
         'zh-TW': {
           question: '如何聯繫技術支援？',
-          answer: '請透過部署方控制台或文件頁尾列出的支援管道聯繫，並提供時間戳與已脫敏的請求詳情。',
+          answer:
+            '請透過部署方控制台或文件頁尾列出的支援管道聯繫，並提供時間戳與已脫敏的請求詳情。',
         },
         fr: {
           question: 'Comment contacter le support technique ?',
@@ -866,7 +889,8 @@ export function FAQSection({ enabled, data }: FAQSectionProps) {
               cell: (faq) =>
                 languageFilter === 'all'
                   ? faq.question
-                  : getFAQEntryTranslation(faq, languageFilter)?.question ?? '',
+                  : (getFAQEntryTranslation(faq, languageFilter)?.question ??
+                    ''),
             },
             {
               id: 'answer',
@@ -875,7 +899,7 @@ export function FAQSection({ enabled, data }: FAQSectionProps) {
               cell: (faq) =>
                 languageFilter === 'all'
                   ? faq.answer
-                  : getFAQEntryTranslation(faq, languageFilter)?.answer ?? '',
+                  : (getFAQEntryTranslation(faq, languageFilter)?.answer ?? ''),
             },
             {
               id: 'actions',

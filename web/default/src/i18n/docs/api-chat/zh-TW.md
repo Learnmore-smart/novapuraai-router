@@ -19,14 +19,14 @@ curl https://www.novapuraai.com/v1/chat/completions \
 
 ## 重要欄位
 
-| 欄位 | 說明 |
-| --- | --- |
-| `model` | 必填。必須已為你的帳號啟用 |
-| `messages` | OpenAI 對話訊息陣列 |
-| `stream` | 設為 `true` 啟用 SSE 權杖串流輸出 |
-| `temperature` / `top_p` | 取樣控制 |
-| `max_tokens` / `max_completion_tokens` | 輸出上限（取決於上游供應商） |
-| `tools` / `tool_choice` | 在上游模型支援時用於函式呼叫 |
+| 欄位                                   | 說明                              |
+| -------------------------------------- | --------------------------------- |
+| `model`                                | 必填。必須已為你的帳號啟用        |
+| `messages`                             | OpenAI 對話訊息陣列               |
+| `stream`                               | 設為 `true` 啟用 SSE 權杖串流輸出 |
+| `temperature` / `top_p`                | 取樣控制                          |
+| `max_tokens` / `max_completion_tokens` | 輸出上限（取決於上游供應商）      |
+| `tools` / `tool_choice`                | 在上游模型支援時用於函式呼叫      |
 
 ## 串流輸出
 

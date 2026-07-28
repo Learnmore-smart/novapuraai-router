@@ -2,6 +2,7 @@ import {
   Activity,
   Box,
   CreditCard,
+  Crown,
   FileText,
   FlaskConical,
   HandCoins,
@@ -86,6 +87,11 @@ export function useSidebarData(): SidebarData {
         id: 'personal',
         title: t('Personal'),
         items: [
+          {
+            title: t('Plans'),
+            url: '/plans',
+            icon: Crown,
+          },
           {
             title: t('Wallet'),
             url: '/wallet',

@@ -25,7 +25,10 @@ interface WithdrawalStatusConfig {
   value: WithdrawalStatus
 }
 
-export const WITHDRAWAL_STATUSES: Record<WithdrawalStatus, WithdrawalStatusConfig> = {
+export const WITHDRAWAL_STATUSES: Record<
+  WithdrawalStatus,
+  WithdrawalStatusConfig
+> = {
   pending: {
     labelKey: 'Pending',
     variant: 'warning',
@@ -73,9 +76,7 @@ export const WITHDRAWAL_STATUSES: Record<WithdrawalStatus, WithdrawalStatusConfi
   },
 }
 
-export const getWithdrawalStatusOptions = (
-  t: (key: string) => string
-) => [
+export const getWithdrawalStatusOptions = (t: (key: string) => string) => [
   { label: t('All'), value: '' },
   { label: t('Pending'), value: 'pending' },
   { label: t('Transfer Creating'), value: 'transfer_creating' },
@@ -113,7 +114,9 @@ export function isTerminalStatus(status: WithdrawalStatus): boolean {
   return TERMINAL_STATUSES.has(status)
 }
 
-export function hasNonTerminalItems(items: { status: WithdrawalStatus }[]): boolean {
+export function hasNonTerminalItems(
+  items: { status: WithdrawalStatus }[]
+): boolean {
   return items.some((item) => NON_TERMINAL_STATUSES.has(item.status))
 }
 

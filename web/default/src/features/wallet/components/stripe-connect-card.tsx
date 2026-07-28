@@ -180,9 +180,7 @@ function StateBadge({
     return <Badge variant='outline'>{t('Action required')}</Badge>
   }
   if (state === 'created' || state === 'onboarding') {
-    return (
-      <Badge variant='secondary'>{t('Onboarding in progress')}</Badge>
-    )
+    return <Badge variant='secondary'>{t('Onboarding in progress')}</Badge>
   }
   // Not started
   return <Badge variant='outline'>{t('Not connected')}</Badge>
@@ -200,9 +198,7 @@ function StripeStateDescription({
     case 'enabled':
       return (
         <p className='text-muted-foreground text-xs leading-relaxed'>
-          {t(
-            'Your Stripe account is connected and ready to receive payouts.'
-          )}
+          {t('Your Stripe account is connected and ready to receive payouts.')}
         </p>
       )
     case 'rejected':
@@ -215,9 +211,7 @@ function StripeStateDescription({
       return (
         <div className='space-y-1'>
           <p className='text-warning text-xs leading-relaxed'>
-            {t(
-              'Action required — please complete Stripe onboarding'
-            )}
+            {t('Action required — please complete Stripe onboarding')}
           </p>
           {dueItems.length > 0 && (
             <ul className='text-muted-foreground list-disc pl-4 text-xs'>
@@ -235,9 +229,7 @@ function StripeStateDescription({
       return (
         <p className='text-muted-foreground text-xs leading-relaxed'>
           {t('Onboarding in progress')} —{' '}
-          {t(
-            'Resume to finish linking your Stripe account.'
-          )}
+          {t('Resume to finish linking your Stripe account.')}
         </p>
       )
     default:

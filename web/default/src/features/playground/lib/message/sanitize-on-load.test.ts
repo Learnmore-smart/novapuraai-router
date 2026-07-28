@@ -5,9 +5,7 @@ import { MESSAGE_ROLES, MESSAGE_STATUS } from '../../constants.ts'
 import type { Message } from '../../types'
 import { sanitizeMessagesOnLoad } from './sanitize-on-load.ts'
 
-function makePendingAssistant(
-  overrides: Partial<Message> = {}
-): Message {
+function makePendingAssistant(overrides: Partial<Message> = {}): Message {
   return {
     key: 'msg-1',
     from: MESSAGE_ROLES.ASSISTANT,
@@ -40,9 +38,7 @@ describe('sanitizeMessagesOnLoad', () => {
   })
 
   test('returns messages unchanged when no stuck assistant exists', () => {
-    const messages = [
-      makePendingAssistant({ status: MESSAGE_STATUS.COMPLETE }),
-    ]
+    const messages = [makePendingAssistant({ status: MESSAGE_STATUS.COMPLETE })]
     const result = sanitizeMessagesOnLoad(messages)
     assert.equal(result, messages)
   })

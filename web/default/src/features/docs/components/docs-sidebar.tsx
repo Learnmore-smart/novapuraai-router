@@ -17,9 +17,7 @@ export function DocsSidebar(props: DocsSidebarProps) {
   const { t } = useTranslation()
   const routerState = useRouterState()
   const pathname = routerState.location.pathname
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
-    new Set()
-  )
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
 
   const activeItemId = useMemo(() => {
     const segments = pathname.split('/').filter(Boolean)

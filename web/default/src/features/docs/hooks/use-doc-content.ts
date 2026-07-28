@@ -4,14 +4,11 @@ import { useTranslation } from 'react-i18next'
 // Rsbuild already maps `import './x.md'` to a raw string (rsbuild.config.ts).
 // `import.meta.glob` lets us lazy-load only the (section, lang) the user opens.
 // Note: glob patterns do not expand the `@/` alias — use a relative path.
-const docModules = import.meta.glob<string>(
-  '../../../i18n/docs/*/*.md',
-  {
-    query: '?raw',
-    import: 'default',
-    eager: false,
-  }
-)
+const docModules = import.meta.glob<string>('../../../i18n/docs/*/*.md', {
+  query: '?raw',
+  import: 'default',
+  eager: false,
+})
 
 // Map i18next language code to docs folder name.
 const LANG_FOLDER: Record<string, string> = {

@@ -10,33 +10,33 @@ npm install openai
 ## 用戶端
 
 ```javascript
-import OpenAI from "openai";
+import OpenAI from 'openai'
 
 const client = new OpenAI({
   apiKey: process.env.NOVAPURA_API_KEY,
-  baseURL: "https://www.novapuraai.com/v1",
-});
+  baseURL: 'https://www.novapuraai.com/v1',
+})
 ```
 
 ## 對話
 
 ```javascript
 const completion = await client.chat.completions.create({
-  model: "gpt-4o-mini",
-  messages: [{ role: "user", content: "Hello" }],
-});
-console.log(completion.choices[0].message.content);
+  model: 'gpt-4o-mini',
+  messages: [{ role: 'user', content: 'Hello' }],
+})
+console.log(completion.choices[0].message.content)
 ```
 
 ## 串流輸出
 
 ```javascript
 const stream = await client.chat.completions.create({
-  model: "gpt-4o-mini",
-  messages: [{ role: "user", content: "Stream digits 1-5" }],
+  model: 'gpt-4o-mini',
+  messages: [{ role: 'user', content: 'Stream digits 1-5' }],
   stream: true,
-});
+})
 for await (const chunk of stream) {
-  process.stdout.write(chunk.choices[0]?.delta?.content || "");
+  process.stdout.write(chunk.choices[0]?.delta?.content || '')
 }
 ```

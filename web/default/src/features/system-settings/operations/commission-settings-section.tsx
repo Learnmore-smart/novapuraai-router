@@ -70,8 +70,7 @@ export function CommissionSettingsSection({
       },
     })
 
-  const minWithdrawalUSD =
-    (form.watch('MinWithdrawalCents') as number) / 100
+  const minWithdrawalUSD = (form.watch('MinWithdrawalCents') as number) / 100
 
   return (
     <SettingsSection title={t('Affiliate Commission')}>
@@ -90,9 +89,7 @@ export function CommissionSettingsSection({
               name='AffCommissionRate'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>
-                    {t('Invitee Payment Commission Rate')}
-                  </FormLabel>
+                  <FormLabel>{t('Invitee Payment Commission Rate')}</FormLabel>
                   <FormControl>
                     <Input
                       type='number'
@@ -121,9 +118,7 @@ export function CommissionSettingsSection({
               name='MinWithdrawalCents'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>
-                    {t('Minimum Withdrawal (USD cents)')}
-                  </FormLabel>
+                  <FormLabel>{t('Minimum Withdrawal (USD cents)')}</FormLabel>
                   <FormControl>
                     <Input
                       type='number'

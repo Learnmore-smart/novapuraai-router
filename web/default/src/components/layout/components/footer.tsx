@@ -231,7 +231,8 @@ export function Footer(props: FooterProps) {
     [t]
   )
 
-  const displayColumns = props.columns ?? (isDemoSiteMode ? fallbackColumns : productColumns)
+  const displayColumns =
+    props.columns ?? (isDemoSiteMode ? fallbackColumns : productColumns)
 
   if (footerHtml) {
     return (
@@ -242,7 +243,7 @@ export function Footer(props: FooterProps) {
         )}
       >
         <div className='mx-auto w-full max-w-7xl px-6 py-6'>
-          <div className='flex flex-col items-center justify-between gap-4 border border-border bg-card px-4 py-4 sm:flex-row sm:px-5'>
+          <div className='border-border bg-card flex flex-col items-center justify-between gap-4 border px-4 py-4 sm:flex-row sm:px-5'>
             <div
               className='custom-footer text-muted-foreground min-w-0 text-center text-sm sm:text-left'
               dangerouslySetInnerHTML={{ __html: footerHtml }}
@@ -300,7 +301,7 @@ export function Footer(props: FooterProps) {
           </div>
         </div>
 
-        <div className='mt-14 flex flex-col items-center justify-between gap-x-3 gap-y-2 border-t border-border pt-6 sm:flex-row'>
+        <div className='border-border mt-14 flex flex-col items-center justify-between gap-x-3 gap-y-2 border-t pt-6 sm:flex-row'>
           <div className='text-muted-foreground/50 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs sm:justify-start'>
             <span>
               &copy; {currentYear} {displayName}.{' '}

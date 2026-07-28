@@ -56,6 +56,13 @@ var auditContentTemplates = map[string]string{
 
 	"subscription.plan_reset":      "Reset active subscriptions for plan ${plan_id}",
 	"subscription.user_plan_reset": "Reset active plan ${plan_id} subscriptions for user ${target_user_id}",
+	"subscription.coupon_create":   "Created subscription coupon ${code} (${percent_off}% off, ${duration_months} months, stripe_coupon_id ${stripe_coupon_id})",
+	"subscription.coupon_update":   "Updated subscription coupon (ID: ${coupon_id})",
+	"subscription.coupon_delete":   "Deleted subscription coupon (ID: ${coupon_id}, hard_delete=${hard_delete})",
+
+	"subscription.plan_covered_models_set":   "Replaced covered models for plan ${plan_id} (${model_count} models)",
+	"subscription.plan_covered_model_add":    "Added covered model ${model_id} to plan ${plan_id}",
+	"subscription.plan_covered_model_remove": "Removed covered model ${model_id} from plan ${plan_id}",
 }
 
 // auditContentEN 按 action 模板渲染英文兜底文本；未登记的 action 退回 action 本身。

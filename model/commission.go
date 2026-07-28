@@ -47,6 +47,11 @@ const (
 // processes per transaction, keeping lock holding time bounded.
 const commissionReleaseBatchSize = 100
 
+// ErrCommissionNotFound is returned by RevertCommission when no commission row
+// exists for the given topUpId. Refund handlers treat this as "no commission
+// was credited for this payment" (e.g. the user had no inviter) and ignore it.
+var ErrCommissionNotFound = errors.New("commission record not found")
+
 // clampAffCommissionRate clamps the admin-configured commission rate to [0,1]
 // and rejects NaN/Inf (returns 0). Per AGENTS.md billing-safety: any
 // user-controlled multiplier on a billing path must be bounded.
@@ -212,6 +217,113 @@ func SettleRechargeCommission(tx *gorm.DB, inviteeId int, topUpId string, paidAm
 		CommissionCents: commissionCents,
 		AvailableAt:     availableAt,
 	}, nil
+}
+
+// RevertCommission reverses a previously-settled commission. It marks the
+// commission row as "reverted" and debits the inviter's commission balance
+// (or pending, if not yet matured) by the commission amount. The inviter is
+// looked up from the commission row itself, so callers only need the topUpId.
+//
+// Idempotent: if the commission is already reverted, returns nil without
+// re-debiting. If the commission doesn't exist, returns ErrCommissionNotFound
+// (refund handlers usually treat this as a non-error since not every payment
+// has an associated commission — e.g. the user had no inviter).
+//
+// Billing safety: underflow is guarded on every debit. If the inviter's
+// PendingCommissionCents or CommissionBalanceCents is less than the commission
+// amount (a race or manual data corruption), the value is clamped to 0 and the
+// anomaly is logged via common.SysError. A revert must NEVER produce a negative
+// balance (that would be a credit to the inviter from arithmetic underflow).
+//
+// topUpId is the identifier used when the commission was originally settled:
+// for top-ups it is the top-up TradeNo; for subscription purchases it is the
+// SubscriptionOrder TradeNo; for subscription renewals it is the Stripe
+// invoice ID. Must be called inside a transaction (the caller wraps it in
+// DB.Transaction) so the commission row update and the inviter balance debit
+// commit atomically.
+func RevertCommission(tx *gorm.DB, topUpId string, reason string) error {
+	if tx == nil {
+		return errors.New("tx is nil")
+	}
+	if topUpId == "" {
+		return errors.New("topUpId is empty")
+	}
+
+	var commission Commission
+	if err := lockForUpdate(tx).Where("topup_id = ?", topUpId).First(&commission).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrCommissionNotFound
+		}
+		return err
+	}
+
+	// Idempotent: a reverted commission is a no-op.
+	if commission.Status == CommissionStatusReverted {
+		return nil
+	}
+
+	// Only pending or available commissions can be reverted. Any other status
+	// is a state-machine violation (shouldn't happen given the lifecycle).
+	if commission.Status != CommissionStatusPending && commission.Status != CommissionStatusAvailable {
+		return fmt.Errorf("commission %d cannot be reverted from status %s", commission.ID, commission.Status)
+	}
+
+	var inviter User
+	if err := lockForUpdate(tx).First(&inviter, commission.InviterId).Error; err != nil {
+		return err
+	}
+
+	updates := map[string]any{}
+
+	// Debit the balance that currently holds the commission. Pending → debit
+	// PendingCommissionCents; Available → debit CommissionBalanceCents.
+	switch commission.Status {
+	case CommissionStatusPending:
+		if inviter.PendingCommissionCents < commission.CommissionCents {
+			common.SysError(fmt.Sprintf("commission revert underflow: inviter=%d pending=%d commission=%d topup=%s",
+				inviter.Id, inviter.PendingCommissionCents, commission.CommissionCents, topUpId))
+			inviter.PendingCommissionCents = 0
+		} else {
+			inviter.PendingCommissionCents -= commission.CommissionCents
+		}
+		updates["pending_commission_cents"] = inviter.PendingCommissionCents
+	case CommissionStatusAvailable:
+		if inviter.CommissionBalanceCents < commission.CommissionCents {
+			common.SysError(fmt.Sprintf("commission revert underflow: inviter=%d balance=%d commission=%d topup=%s",
+				inviter.Id, inviter.CommissionBalanceCents, commission.CommissionCents, topUpId))
+			inviter.CommissionBalanceCents = 0
+		} else {
+			inviter.CommissionBalanceCents -= commission.CommissionCents
+		}
+		updates["commission_balance_cents"] = inviter.CommissionBalanceCents
+	}
+
+	// CommissionTotalCents is the lifetime-earned counter; a revert decrements
+	// it (guarded against underflow — a corrupt state must not go negative).
+	if inviter.CommissionTotalCents < commission.CommissionCents {
+		common.SysError(fmt.Sprintf("commission revert total underflow: inviter=%d total=%d commission=%d topup=%s",
+			inviter.Id, inviter.CommissionTotalCents, commission.CommissionCents, topUpId))
+		inviter.CommissionTotalCents = 0
+	} else {
+		inviter.CommissionTotalCents -= commission.CommissionCents
+	}
+	updates["commission_total_cents"] = inviter.CommissionTotalCents
+
+	if err := tx.Model(&User{}).Where("id = ?", inviter.Id).Updates(updates).Error; err != nil {
+		return err
+	}
+
+	now := time.Now().Unix()
+	if err := tx.Model(&Commission{}).Where("id = ?", commission.ID).Updates(map[string]any{
+		"status":        CommissionStatusReverted,
+		"reverted_at":   now,
+		"revert_reason": reason,
+	}).Error; err != nil {
+		return err
+	}
+
+	_ = invalidateUserCache(inviter.Id)
+	return nil
 }
 
 // FormatCommissionCents renders USD cents as "$X.XX" for user-facing logs.

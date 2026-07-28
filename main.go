@@ -126,6 +126,10 @@ func main() {
 	// Subscription quota reset task (daily/weekly/monthly/custom)
 	service.StartSubscriptionQuotaResetTask()
 
+	// Subscription status sync task: reconciles Stripe subscription state
+	// defensively in case a webhook was missed (master node only, ~5 min tick).
+	service.StartSubscriptionSyncTask()
+
 	// Release frozen cash commissions past their CommissionFreezeDays hold.
 	service.StartCommissionMaturityTask()
 

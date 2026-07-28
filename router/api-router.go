@@ -208,6 +208,13 @@ func SetApiRouter(router *gin.Engine) {
 			subscriptionRoute.POST("/stripe/pay", middleware.CriticalRateLimit(), controller.SubscriptionRequestStripePay)
 			subscriptionRoute.POST("/creem/pay", middleware.CriticalRateLimit(), controller.SubscriptionRequestCreemPay)
 			subscriptionRoute.POST("/waffo-pancake/pay", middleware.CriticalRateLimit(), controller.SubscriptionRequestWaffoPancakePay)
+
+			// NovaPura v2 Stripe subscription endpoints (Checkout + Customer Portal).
+			subscriptionRoute.POST("/stripe/checkout", middleware.CriticalRateLimit(), controller.SubscriptionRequestStripeCheckoutV2)
+			subscriptionRoute.POST("/stripe/portal", controller.SubscriptionRequestStripePortal)
+
+			// Public coupon validate endpoint (read-only; reservation happens at checkout).
+			subscriptionRoute.POST("/coupons/validate", controller.ValidateSubscriptionCouponForUser)
 		}
 		subscriptionAdminRoute := apiRouter.Group("/subscription/admin")
 		subscriptionAdminRoute.Use(middleware.AdminAuth())
@@ -219,12 +226,29 @@ func SetApiRouter(router *gin.Engine) {
 			subscriptionAdminRoute.POST("/bind", controller.AdminBindSubscription)
 			subscriptionAdminRoute.POST("/plans/:id/subscriptions/reset", controller.AdminResetPlanSubscriptions)
 
+			// Plan covered-models CRUD (NovaPura Phase 7). The DELETE takes a
+			// :model_id path segment; the other three operate on the whole list.
+			subscriptionAdminRoute.GET("/plans/:id/models", controller.AdminGetPlanCoveredModels)
+			subscriptionAdminRoute.PUT("/plans/:id/models", controller.AdminSetPlanCoveredModels)
+			subscriptionAdminRoute.POST("/plans/:id/models", controller.AdminAddPlanCoveredModel)
+			subscriptionAdminRoute.DELETE("/plans/:id/models/:model_id", controller.AdminRemovePlanCoveredModel)
+
+			// Model-list endpoint for the admin covered-model picker.
+			subscriptionAdminRoute.GET("/models", controller.AdminListModelsForSubscription)
+
 			// User subscription management (admin)
 			subscriptionAdminRoute.GET("/users/:id/subscriptions", controller.AdminListUserSubscriptions)
 			subscriptionAdminRoute.POST("/users/:id/subscriptions", controller.AdminCreateUserSubscription)
 			subscriptionAdminRoute.POST("/users/:id/subscriptions/reset", controller.AdminResetUserSubscriptionsByPlan)
 			subscriptionAdminRoute.POST("/user_subscriptions/:id/invalidate", controller.AdminInvalidateUserSubscription)
 			subscriptionAdminRoute.DELETE("/user_subscriptions/:id", controller.AdminDeleteUserSubscription)
+
+			// Subscription coupon admin CRUD (NovaPura Phase 5).
+			subscriptionAdminRoute.GET("/coupons", controller.AdminListSubscriptionCoupons)
+			subscriptionAdminRoute.POST("/coupons", controller.AdminCreateSubscriptionCoupon)
+			subscriptionAdminRoute.GET("/coupons/:id", controller.AdminGetSubscriptionCoupon)
+			subscriptionAdminRoute.PUT("/coupons/:id", controller.AdminUpdateSubscriptionCoupon)
+			subscriptionAdminRoute.DELETE("/coupons/:id", controller.AdminDeleteSubscriptionCoupon)
 		}
 
 		// Subscription payment callbacks (no auth)

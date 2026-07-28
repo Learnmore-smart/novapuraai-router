@@ -28,12 +28,12 @@ Some OpenAI clients also accept `api_key` in the SDK constructor — that value 
 
 ## Common failures
 
-| Symptom | Likely cause |
-| --- | --- |
-| `401 Unauthorized` | Missing/invalid key, revoked key, or wrong header |
-| `403 Forbidden` | Model not allowed for this key, or module disabled |
-| `429` | Rate limit exceeded |
-| Insufficient quota | Balance too low or key quota exhausted |
+| Symptom            | Likely cause                                       |
+| ------------------ | -------------------------------------------------- |
+| `401 Unauthorized` | Missing/invalid key, revoked key, or wrong header  |
+| `403 Forbidden`    | Model not allowed for this key, or module disabled |
+| `429`              | Rate limit exceeded                                |
+| Insufficient quota | Balance too low or key quota exhausted             |
 
 ## Multi-user setups
 

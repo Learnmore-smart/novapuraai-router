@@ -2,12 +2,12 @@ import { Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Dialog } from '@/components/dialog'
+import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { StatusBadge } from '@/components/status-badge'
-import { formatCurrencyFromUSD } from '@/lib/currency'
 import { WITHDRAWAL_STATUSES } from '@/features/withdrawals/constants'
 import type { WithdrawalRequest } from '@/features/withdrawals/types'
+import { formatCurrencyFromUSD } from '@/lib/currency'
 
 interface WithdrawalHistoryDialogProps {
   open: boolean
@@ -43,10 +43,7 @@ export function WithdrawalHistoryDialog({
       contentHeight='auto'
       bodyClassName='space-y-3'
       footer={
-        <Button
-          variant='outline'
-          onClick={() => onOpenChange(false)}
-        >
+        <Button variant='outline' onClick={() => onOpenChange(false)}>
           {t('Close')}
         </Button>
       }

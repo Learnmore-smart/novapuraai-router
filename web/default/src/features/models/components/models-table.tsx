@@ -95,9 +95,9 @@ export function ModelsTable() {
   // Use search API whenever any filter is active so status/sync are applied server-side
   const shouldSearch = Boolean(
     globalFilter?.trim() ||
-      activeVendorFilter ||
-      statusFilterValue ||
-      syncFilterValue
+    activeVendorFilter ||
+    statusFilterValue ||
+    syncFilterValue
   )
 
   // Fetch models data

@@ -60,6 +60,11 @@ export function useTopNavLinks(): TopNavLink[] {
     links.push({ title: 'Rankings', href: '/rankings', requiresAuth })
   }
 
+  // NovaPura subscription plans — public pricing page. Auth is enforced
+  // inside the page (the PurchaseModal flow requires a session), but the
+  // link itself is shown to everyone so logged-out users can browse plans.
+  links.push({ title: 'Plans', href: '/plans' })
+
   if (modules?.docs !== false) {
     links.push({
       title: 'Docs',

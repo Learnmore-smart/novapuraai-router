@@ -32,7 +32,10 @@ export function Hero(props: HeroProps) {
           to='/pricing'
           className='np-fade-up border-border bg-card/70 text-muted-foreground hover:text-foreground hover:border-primary/30 group inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium backdrop-blur-sm transition-colors'
         >
-          <span className='bg-primary size-1.5 rounded-full' aria-hidden='true' />
+          <span
+            className='bg-primary size-1.5 rounded-full'
+            aria-hidden='true'
+          />
           {t('40+ model providers, one endpoint')}
           <ArrowRight className='size-3 transition-transform group-hover:translate-x-0.5' />
         </Link>
@@ -48,7 +51,7 @@ export function Hero(props: HeroProps) {
         </p>
 
         {!props.isAuthenticated && (
-          <div className='np-fade-up np-fade-up-delay-2 mx-auto mt-5 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary'>
+          <div className='np-fade-up np-fade-up-delay-2 border-primary/30 bg-primary/10 text-primary mx-auto mt-5 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium'>
             <Gift className='size-4' aria-hidden='true' />
             {t('Sign up now to get ¥50 in API credits')}
           </div>

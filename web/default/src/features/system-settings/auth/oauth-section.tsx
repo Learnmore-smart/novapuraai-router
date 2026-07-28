@@ -277,9 +277,7 @@ export function OAuthSection(props: OAuthSectionProps) {
     if (serialized === baselineSerializedRef.current) return
     baselineRef.current = props.defaultValues
     baselineSerializedRef.current = serialized
-    setGitHubSecretConfigured(
-      props.defaultValues.GitHubClientSecretConfigured
-    )
+    setGitHubSecretConfigured(props.defaultValues.GitHubClientSecretConfigured)
     form.reset(buildFormDefaults(props.defaultValues))
   }, [props.defaultValues, form])
 
@@ -329,10 +327,7 @@ export function OAuthSection(props: OAuthSectionProps) {
       }
     }
 
-    const normalized = normalizeFormValues(
-      finalValues,
-      githubSecretConfigured
-    )
+    const normalized = normalizeFormValues(finalValues, githubSecretConfigured)
     const changedKeys = (
       Object.keys(normalized) as Array<keyof FlatOAuthDefaults>
     ).filter(

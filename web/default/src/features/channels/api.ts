@@ -138,7 +138,11 @@ export async function importChannels(payload: {
   message?: string
   data?: ChannelImportResult
 }> {
-  const res = await api.post('/api/channel/import', payload, channelActionConfig())
+  const res = await api.post(
+    '/api/channel/import',
+    payload,
+    channelActionConfig()
+  )
   return res.data
 }
 

@@ -176,11 +176,7 @@ function ProcessWithdrawalDialog({
     <Dialog
       open={state !== null}
       onOpenChange={(open) => !open && onOpenChange(null)}
-      title={
-        isPaid
-          ? t('Mark Withdrawal as Paid')
-          : t('Reject Withdrawal')
-      }
+      title={isPaid ? t('Mark Withdrawal as Paid') : t('Reject Withdrawal')}
       description={
         isPaid
           ? t(
@@ -266,15 +262,13 @@ function ProcessWithdrawalDialog({
                 id='payout-stripe'
                 value={PAYOUT_CHANNEL_STRIPE_CONNECT}
               />
-              <span className='text-sm font-medium'>
-                {t('Stripe Connect')}
-              </span>
+              <span className='text-sm font-medium'>{t('Stripe Connect')}</span>
             </label>
           </RadioGroup>
           <p className='text-muted-foreground text-xs'>
             {payoutChannel === PAYOUT_CHANNEL_STRIPE_CONNECT
               ? t(
-                  'Creates a Stripe Transfer to the user\'s connected account; the user receives the payout via Stripe.'
+                  "Creates a Stripe Transfer to the user's connected account; the user receives the payout via Stripe."
                 )
               : t(
                   'Mark this withdrawal as paid after completing the manual payout outside the system.'
@@ -285,9 +279,7 @@ function ProcessWithdrawalDialog({
 
       {isPaid && payoutChannel === PAYOUT_CHANNEL_MANUAL && (
         <div className='space-y-1.5'>
-          <Label htmlFor='payout-tx-id'>
-            {t('Payout Transaction ID')}
-          </Label>
+          <Label htmlFor='payout-tx-id'>{t('Payout Transaction ID')}</Label>
           <Input
             id='payout-tx-id'
             value={payoutTxId}
@@ -374,7 +366,7 @@ function ReverseTransferDialog({
       onOpenChange={(open) => !open && onOpenChange(null)}
       title={t('Reverse Transfer')}
       description={t(
-        'Are you sure you want to reverse the Stripe Transfer for this withdrawal? The user\'s commission balance will be refunded.'
+        "Are you sure you want to reverse the Stripe Transfer for this withdrawal? The user's commission balance will be refunded."
       )}
       contentClassName='sm:max-w-lg'
       bodyClassName='space-y-4'
@@ -420,7 +412,7 @@ function ReverseTransferDialog({
         {withdrawal.stripe_transfer_id && (
           <div className='flex items-center justify-between text-sm'>
             <span className='text-muted-foreground'>{t('Transfer ID')}</span>
-            <span className='break-all font-mono text-xs'>
+            <span className='font-mono text-xs break-all'>
               {withdrawal.stripe_transfer_id}
             </span>
           </div>
@@ -428,9 +420,7 @@ function ReverseTransferDialog({
       </div>
 
       <div className='space-y-1.5'>
-        <Label htmlFor='reverse-reason'>
-          {t('Reverse transfer reason')}
-        </Label>
+        <Label htmlFor='reverse-reason'>{t('Reverse transfer reason')}</Label>
         <Textarea
           id='reverse-reason'
           value={reason}
@@ -451,7 +441,10 @@ function ReverseTransferDialog({
 
 interface WithdrawalCardProps {
   withdrawal: WithdrawalRequest
-  onProcess: (withdrawal: WithdrawalRequest, action: 'paid' | 'rejected') => void
+  onProcess: (
+    withdrawal: WithdrawalRequest,
+    action: 'paid' | 'rejected'
+  ) => void
   onReverse: (withdrawal: WithdrawalRequest) => void
   processing: boolean
   reversing: boolean
@@ -515,9 +508,7 @@ function WithdrawalCard({
       </div>
 
       {/* Stripe Connect details */}
-      {isStripeConnect && (
-        <StripeConnectDetails withdrawal={withdrawal} />
-      )}
+      {isStripeConnect && <StripeConnectDetails withdrawal={withdrawal} />}
 
       {/* Non-pending legacy / common fields */}
       {withdrawal.status !== 'pending' && (
@@ -547,9 +538,7 @@ function WithdrawalCard({
             </div>
           )}
           <div className='flex gap-2'>
-            <span className='text-muted-foreground'>
-              {t('Reviewed At')}:
-            </span>
+            <span className='text-muted-foreground'>{t('Reviewed At')}:</span>
             <span>{formatTime(withdrawal.reviewed_at)}</span>
           </div>
         </div>
@@ -624,7 +613,7 @@ function StripeConnectDetails({
             <span className='text-muted-foreground shrink-0'>
               {t('Transfer ID')}:
             </span>
-            <span className='break-all font-mono'>
+            <span className='font-mono break-all'>
               {withdrawal.stripe_transfer_id}
             </span>
           </div>
@@ -642,16 +631,14 @@ function StripeConnectDetails({
             <span className='text-muted-foreground shrink-0'>
               {t('Payout ID')}:
             </span>
-            <span className='break-all font-mono'>
+            <span className='font-mono break-all'>
               {withdrawal.stripe_payout_id}
             </span>
           </div>
         )}
         {withdrawal.stripe_payout_status && (
           <div className='flex gap-1.5'>
-            <span className='text-muted-foreground'>
-              {t('Payout Status')}:
-            </span>
+            <span className='text-muted-foreground'>{t('Payout Status')}:</span>
             <span>{withdrawal.stripe_payout_status}</span>
           </div>
         )}
@@ -668,9 +655,7 @@ function StripeConnectDetails({
 
       <div className='flex flex-wrap gap-x-4 gap-y-1'>
         <div className='flex gap-1.5'>
-          <span className='text-muted-foreground'>
-            {t('Last Reconcile')}:
-          </span>
+          <span className='text-muted-foreground'>{t('Last Reconcile')}:</span>
           <span>{formatRelativeTime(withdrawal.last_reconcile_at ?? 0)}</span>
         </div>
         {showReconcileError && (
@@ -682,7 +667,7 @@ function StripeConnectDetails({
               <Tooltip>
                 <TooltipTrigger
                   render={
-                    <span className='text-destructive truncate max-w-[280px] cursor-help underline decoration-dotted underline-offset-2' />
+                    <span className='text-destructive max-w-[280px] cursor-help truncate underline decoration-dotted underline-offset-2' />
                   }
                 >
                   {truncate(reconcileError)}
@@ -890,9 +875,7 @@ export function Withdrawals() {
                   type='button'
                   variant='outline'
                   size='icon-sm'
-                  onClick={() =>
-                    setPage((c) => Math.min(totalPages, c + 1))
-                  }
+                  onClick={() => setPage((c) => Math.min(totalPages, c + 1))}
                   disabled={page >= totalPages || loading}
                   aria-label={t('Next page')}
                 >

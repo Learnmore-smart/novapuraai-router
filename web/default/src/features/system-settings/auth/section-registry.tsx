@@ -36,8 +36,7 @@ const AUTH_SECTIONS = [
           // Secret is write-only: the settings API never returns it, so the
           // form field starts blank and only submits when the admin types one.
           GitHubClientSecret: '',
-          GitHubClientSecretConfigured:
-            settings.GitHubClientSecretConfigured,
+          GitHubClientSecretConfigured: settings.GitHubClientSecretConfigured,
           'discord.enabled': settings['discord.enabled'],
           'discord.client_id': settings['discord.client_id'],
           'discord.client_secret': settings['discord.client_secret'],
@@ -94,8 +93,7 @@ const AUTH_SECTIONS = [
         defaultValues={{
           TurnstileCheckEnabled: settings.TurnstileCheckEnabled,
           TurnstileSiteKey: settings.TurnstileSiteKey,
-          TurnstileSecretKeyConfigured:
-            settings.TurnstileSecretKeyConfigured,
+          TurnstileSecretKeyConfigured: settings.TurnstileSecretKeyConfigured,
           TurnstileAllowedHostnames: settings.TurnstileAllowedHostnames,
         }}
       />

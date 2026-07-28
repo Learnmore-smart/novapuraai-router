@@ -12,6 +12,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/dto"
+	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/relay/channel"
 	"github.com/QuantumNous/new-api/relay/channel/task/taskcommon"
@@ -200,6 +201,21 @@ func RelayTaskSubmit(c *gin.Context, info *relaycommon.RelayInfo) (*TaskSubmitRe
 		quota, clamp := common.QuotaFromFloatChecked(quotaWithRatios)
 		info.PriceData.Quota = quota
 		noteTaskQuotaClamp(info, clamp)
+	}
+
+	// 6.5 订阅覆盖检查：若用户拥有覆盖该模型的活跃订阅，则任务免费（quota=0）
+	//     但仍记录日志。查找结果已缓存；出错时回退到正常计费路径。
+	if info.Billing == nil && !info.PriceData.FreeModel {
+		if covered, sub, plan, covErr := model.UserHasSubscriptionCoveringModel(info.UserId, info.OriginModelName); covErr == nil && covered && sub != nil && plan != nil {
+			info.PriceData.FreeModel = true
+			info.PriceData.Quota = 0
+			info.SubscriptionId = sub.Id
+			info.SubscriptionPlanId = plan.Id
+			info.SubscriptionPlanTitle = plan.Title
+			logger.LogInfo(c, fmt.Sprintf("任务模型 %s 由订阅 #%d (套餐 %s) 覆盖，跳过预扣费", info.OriginModelName, sub.Id, plan.Title))
+		} else if covErr != nil {
+			common.SysError("task subscription coverage lookup failed: " + covErr.Error())
+		}
 	}
 
 	// 7. 预扣费（仅首次 — 重试时 info.Billing 已存在，跳过）

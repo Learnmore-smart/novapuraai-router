@@ -28,12 +28,12 @@ Một số client OpenAI cũng chấp nhận `api_key` trong constructor SDK —
 
 ## Lỗi thường gặp
 
-| Triệu chứng | Nguyên nhân có thể |
-| --- | --- |
+| Triệu chứng        | Nguyên nhân có thể                                       |
+| ------------------ | -------------------------------------------------------- |
 | `401 Unauthorized` | Thiếu/khóa không hợp lệ, khóa bị thu hồi hoặc sai header |
-| `403 Forbidden` | Mô hình không được phép cho khóa này, hoặc module bị tắt |
-| `429` | Vượt rate limit |
-| Không đủ quota | Số dư quá thấp hoặc quota khóa đã hết |
+| `403 Forbidden`    | Mô hình không được phép cho khóa này, hoặc module bị tắt |
+| `429`              | Vượt rate limit                                          |
+| Không đủ quota     | Số dư quá thấp hoặc quota khóa đã hết                    |
 
 ## Thiết lập nhiều người dùng
 

@@ -4,13 +4,13 @@ import { useTranslation } from 'react-i18next'
 import { PlaygroundChat } from './components/chat/playground-chat'
 import { PlaygroundInput } from './components/input/playground-input'
 import { ERROR_MESSAGES, MESSAGE_STATUS } from './constants'
-import { hasPendingAutoResend } from './lib'
 import {
   useChatHandler,
   usePlaygroundConversation,
   usePlaygroundOptions,
   usePlaygroundState,
 } from './hooks'
+import { hasPendingAutoResend } from './lib'
 
 export function Playground() {
   const { t } = useTranslation()

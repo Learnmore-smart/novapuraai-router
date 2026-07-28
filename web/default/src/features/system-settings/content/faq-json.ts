@@ -8,8 +8,7 @@ export const FAQ_TRANSLATION_LANGUAGES = [
   'vi',
 ] as const
 
-export type FAQTranslationLanguage =
-  (typeof FAQ_TRANSLATION_LANGUAGES)[number]
+export type FAQTranslationLanguage = (typeof FAQ_TRANSLATION_LANGUAGES)[number]
 
 export type FAQTranslation = {
   question: string

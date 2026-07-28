@@ -26,7 +26,7 @@ export function HowItWorks() {
   const { t } = useTranslation()
 
   return (
-    <section className='border-y border-border bg-muted/25 px-5 py-20 sm:px-6 md:py-28'>
+    <section className='border-border bg-muted/25 border-y px-5 py-20 sm:px-6 md:py-28'>
       <div className='mx-auto max-w-7xl'>
         <div className='mx-auto max-w-2xl text-center'>
           <p className='np-kicker'>{t('From signup to first response')}</p>
@@ -56,7 +56,9 @@ export function HowItWorks() {
                     0{index + 1}
                   </span>
                 </div>
-                <h3 className='mt-6 text-base font-semibold'>{t(step.title)}</h3>
+                <h3 className='mt-6 text-base font-semibold'>
+                  {t(step.title)}
+                </h3>
                 <p className='text-muted-foreground mt-2 text-sm leading-6'>
                   {t(step.description)}
                 </p>

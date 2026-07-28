@@ -3,8 +3,8 @@ import { api } from '@/lib/api'
 import type {
   FetchUpstreamRatiosRequest,
   LogCleanupTask,
-	RetryTransactionalEmailResponse,
-	SendTransactionalEmailTestResponse,
+  RetryTransactionalEmailResponse,
+  SendTransactionalEmailTestResponse,
   SESCredentialStatusResponse,
   SESCredentialUpdateRequest,
   StripeCredentialEnvironment,

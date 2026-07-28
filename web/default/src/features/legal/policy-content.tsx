@@ -2,12 +2,11 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { PublicLayout } from '@/components/layout'
-import { cn } from '@/lib/utils'
-
 import privacyEn from '@/i18n/policies/privacy/en.json'
 import privacyZh from '@/i18n/policies/privacy/zh.json'
 import termsEn from '@/i18n/policies/terms/en.json'
 import termsZh from '@/i18n/policies/terms/zh.json'
+import { cn } from '@/lib/utils'
 
 type PolicyKind = 'privacy' | 'terms'
 
@@ -48,7 +47,10 @@ function hasLocalizedPolicy(language: string | undefined): boolean {
   return LOCALIZED_POLICY_LANGS.has(resolveLang(language))
 }
 
-function getPolicy(kind: PolicyKind, language: string | undefined): PolicyBundle {
+function getPolicy(
+  kind: PolicyKind,
+  language: string | undefined
+): PolicyBundle {
   const lang = resolveLang(language)
   if (kind === 'privacy') {
     return (PRIVACY_BY_LANG[lang] ?? PRIVACY_BY_LANG.en).privacy
@@ -106,7 +108,9 @@ function PolicyBlock(props: {
   const { text, keyName, inShortLabel, className } = props
   if (keyName === 'title') {
     return (
-      <h2 className={cn('mt-8 text-xl font-semibold tracking-tight', className)}>
+      <h2
+        className={cn('mt-8 text-xl font-semibold tracking-tight', className)}
+      >
         {text}
       </h2>
     )
@@ -123,7 +127,9 @@ function PolicyBlock(props: {
       <p className={cn('text-muted-foreground text-sm italic', className)}>
         {inShortLabel ? (
           <>
-            <span className='font-semibold not-italic'>{inShortLabel}</span>{' '}
+            <span className='font-semibold not-italic'>
+              {inShortLabel}
+            </span>{' '}
           </>
         ) : null}
         {text}
@@ -131,11 +137,7 @@ function PolicyBlock(props: {
     )
   }
   if (keyName.startsWith('q')) {
-    return (
-      <p className={cn('font-semibold', className)}>
-        {text}
-      </p>
-    )
+    return <p className={cn('font-semibold', className)}>{text}</p>
   }
   if (keyName.startsWith('li')) {
     return <li className={cn('ml-5 list-disc', className)}>{text}</li>
@@ -174,7 +176,9 @@ export function PolicyContent({ kind }: PolicyContentProps) {
         <header className='space-y-2 border-b pb-6'>
           <h1 className='text-3xl font-semibold tracking-tight'>{pageTitle}</h1>
           {policy.lastUpdated ? (
-            <p className='text-muted-foreground text-sm'>{policy.lastUpdated}</p>
+            <p className='text-muted-foreground text-sm'>
+              {policy.lastUpdated}
+            </p>
           ) : null}
           {showingEnglishFallback ? (
             <p className='text-muted-foreground bg-muted/50 mt-3 rounded-md px-3 py-2 text-sm'>

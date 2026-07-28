@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { CurrencySwitcher } from '@/components/currency-switcher'
 import { IconBadge, type IconBadgeTone } from '@/components/ui/icon-badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatQuota } from '@/lib/format'
 import { useCurrencyPreferenceVersion } from '@/lib/currency'
+import { formatQuota } from '@/lib/format'
 
 import type { UserWalletData } from '../types'
 
@@ -35,8 +35,7 @@ export function WalletStatsCard(props: WalletStatsCardProps) {
 
   const total = props.user?.quota ?? 0
   const promo = props.user?.promo_quota ?? 0
-  const cash =
-    props.user?.cash_quota ?? Math.max(0, total - promo)
+  const cash = props.user?.cash_quota ?? Math.max(0, total - promo)
 
   const stats: {
     label: string

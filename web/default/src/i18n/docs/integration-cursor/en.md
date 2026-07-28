@@ -12,11 +12,11 @@ Cursor’s UI labels change over releases. Look for **OpenAI API**, **OpenAI Com
 
 Typical values:
 
-| Setting | Value |
-| --- | --- |
-| API key | `sk-xxxxxxxx` (your NovaPuraAI key) |
-| Base URL | `https://www.novapuraai.com/v1` |
-| Model | A model ID from `GET /v1/models` |
+| Setting  | Value                               |
+| -------- | ----------------------------------- |
+| API key  | `sk-xxxxxxxx` (your NovaPuraAI key) |
+| Base URL | `https://www.novapuraai.com/v1`     |
+| Model    | A model ID from `GET /v1/models`    |
 
 If a field asks for the “OpenAI base URL” without `/v1`, try both forms and confirm with a tiny prompt. The working form is almost always **`{ORIGIN}/v1`**.
 
@@ -40,12 +40,12 @@ If this fails, fix key/quota before debugging the IDE.
 
 ## Troubleshooting
 
-| Issue | Fix |
-| --- | --- |
-| Auth errors in Cursor | Re-paste the full key including `sk-` |
+| Issue                         | Fix                                                                  |
+| ----------------------------- | -------------------------------------------------------------------- |
+| Auth errors in Cursor         | Re-paste the full key including `sk-`                                |
 | Network / CORS style failures | Cursor is a desktop client; usually not CORS—check URL typos and VPN |
-| Empty responses | Confirm quota and try the same model via curl |
-| Rate limits | Reduce parallel agent runs; see [Rate Limits](/docs/rate-limits) |
+| Empty responses               | Confirm quota and try the same model via curl                        |
+| Rate limits                   | Reduce parallel agent runs; see [Rate Limits](/docs/rate-limits)     |
 
 ## Security
 

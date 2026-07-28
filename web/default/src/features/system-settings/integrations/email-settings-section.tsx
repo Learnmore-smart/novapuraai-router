@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useQuery } from '@tanstack/react-query'
 import { ChevronDown } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -27,6 +27,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 
+import { getTransactionalEmailHealth } from '../api'
+import {
+  getWriteOnlySecretPlaceholder,
+  hasWriteOnlySecretReplacement,
+} from '../auth/write-only-secret'
 import {
   SettingsForm,
   SettingsSwitchContent,
@@ -36,13 +41,8 @@ import { SettingsPageFormActions } from '../components/settings-page-context'
 import { SettingsSection } from '../components/settings-section'
 import { useResetForm } from '../hooks/use-reset-form'
 import { useUpdateOption } from '../hooks/use-update-option'
-import { getTransactionalEmailHealth } from '../api'
 import { EmailProviderHealthCard } from './email-provider-health-card'
 import { isValidEmailSender } from './email-sender'
-import {
-  getWriteOnlySecretPlaceholder,
-  hasWriteOnlySecretReplacement,
-} from '../auth/write-only-secret'
 
 const createEmailSchema = (t: (key: string) => string) =>
   z.object({

@@ -6,10 +6,7 @@ import {
   completeReasoningTiming,
   startReasoningTiming,
 } from './message-timing-utils'
-import {
-  getCurrentVersion,
-  updateCurrentVersionContent,
-} from './message-utils'
+import { getCurrentVersion, updateCurrentVersionContent } from './message-utils'
 
 export {
   isAssistantMessagePending,

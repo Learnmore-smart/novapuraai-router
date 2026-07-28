@@ -208,6 +208,21 @@ func appendBillingInfo(relayInfo *relaycommon.RelayInfo, other map[string]interf
 		// Wallet quota is not deducted when billed from subscription.
 		other["wallet_quota_deducted"] = 0
 	}
+
+	// Subscription-covered free models: pre-consume was skipped (no BillingSession),
+	// so BillingSource is not "subscription". The request is free (quota=0) because
+	// the user's subscription plan covers this model. Log the covering subscription
+	// context so admins can see which plan made the request free.
+	if relayInfo.PriceData.FreeModel && relayInfo.SubscriptionId != 0 && relayInfo.BillingSource != "subscription" {
+		other["subscription_covered"] = true
+		other["subscription_id"] = relayInfo.SubscriptionId
+		if relayInfo.SubscriptionPlanId != 0 {
+			other["subscription_plan_id"] = relayInfo.SubscriptionPlanId
+		}
+		if relayInfo.SubscriptionPlanTitle != "" {
+			other["subscription_plan_title"] = relayInfo.SubscriptionPlanTitle
+		}
+	}
 }
 
 func appendRequestConversionChain(relayInfo *relaycommon.RelayInfo, other map[string]interface{}) {

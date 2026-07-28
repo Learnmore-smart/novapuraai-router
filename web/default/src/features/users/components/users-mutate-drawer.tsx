@@ -437,7 +437,9 @@ export function UsersMutateDrawer({
                     render={({ field }) => (
                       <FormItem className='flex flex-row items-center justify-between rounded-lg border p-3'>
                         <div className='space-y-0.5'>
-                          <FormLabel>{t('Affiliate Commission Member')}</FormLabel>
+                          <FormLabel>
+                            {t('Affiliate Commission Member')}
+                          </FormLabel>
                           <FormDescription>
                             {t(
                               'When enabled, this user earns 25% cash commission on invitee payments (frozen 14 days before withdrawal). This replaces the fixed ¥100 API quota invite reward.'

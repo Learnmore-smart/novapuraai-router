@@ -52,7 +52,7 @@ export function EmptyState(props: EmptyStateProps) {
       )}
     >
       <EmptyHeader>
-        <EmptyMedia variant='icon' className='rounded-md border border-border'>
+        <EmptyMedia variant='icon' className='border-border rounded-md border'>
           <Icon className='size-5' />
         </EmptyMedia>
         <EmptyTitle className='font-semibold tracking-tight'>

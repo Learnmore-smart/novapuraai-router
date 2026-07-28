@@ -142,9 +142,9 @@ export function Pricing() {
 
   return (
     <PublicLayout showMainContainer={false}>
-      <div className='relative border-b border-border'>
+      <div className='border-border relative border-b'>
         <PageTransition className='relative mx-auto w-full max-w-[1800px] px-3 pt-[calc(var(--app-header-height)+1rem)] pb-8 sm:px-6 sm:pb-10 xl:px-8'>
-          <header className='mb-6 max-w-3xl border-b border-border pt-6 pb-8 sm:mb-10'>
+          <header className='border-border mb-6 max-w-3xl border-b pt-6 pb-8 sm:mb-10'>
             <p className='editorial-kicker'>{t('Pricing')}</p>
             <h1 className='mt-3 text-[clamp(2rem,5vw,3rem)] leading-[1.1] font-semibold tracking-[-0.03em]'>
               {t('Model Square')}

@@ -53,18 +53,18 @@ print(resp.choices[0].message.content)
 ```
 
 ```javascript
-import OpenAI from "openai";
+import OpenAI from 'openai'
 
 const client = new OpenAI({
   apiKey: process.env.NOVAPURA_API_KEY,
-  baseURL: "https://www.novapuraai.com/v1",
-});
+  baseURL: 'https://www.novapuraai.com/v1',
+})
 
 const resp = await client.chat.completions.create({
-  model: "gpt-4o-mini",
-  messages: [{ role: "user", content: "Hello" }],
-});
-console.log(resp.choices[0].message.content);
+  model: 'gpt-4o-mini',
+  messages: [{ role: 'user', content: 'Hello' }],
+})
+console.log(resp.choices[0].message.content)
 ```
 
 ## Next steps

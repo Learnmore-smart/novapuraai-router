@@ -19,14 +19,14 @@ curl https://www.novapuraai.com/v1/chat/completions \
 
 ## 重要字段
 
-| 字段 | 说明 |
-| --- | --- |
-| `model` | 必填。必须已为你的账号启用 |
-| `messages` | OpenAI 对话消息数组 |
-| `stream` | 设为 `true` 启用 SSE 令牌流式输出 |
-| `temperature` / `top_p` | 采样控制 |
-| `max_tokens` / `max_completion_tokens` | 输出上限（取决于上游提供商） |
-| `tools` / `tool_choice` | 在上游模型支持时用于函数调用 |
+| 字段                                   | 说明                              |
+| -------------------------------------- | --------------------------------- |
+| `model`                                | 必填。必须已为你的账号启用        |
+| `messages`                             | OpenAI 对话消息数组               |
+| `stream`                               | 设为 `true` 启用 SSE 令牌流式输出 |
+| `temperature` / `top_p`                | 采样控制                          |
+| `max_tokens` / `max_completion_tokens` | 输出上限（取决于上游提供商）      |
+| `tools` / `tool_choice`                | 在上游模型支持时用于函数调用      |
 
 ## 流式输出
 

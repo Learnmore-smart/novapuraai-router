@@ -13,10 +13,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import {
+  PAYOUT_CHANNEL_MANUAL,
+  PAYOUT_CHANNEL_STRIPE_CONNECT,
+} from '@/features/withdrawals/constants'
 import { formatCurrencyFromUSD } from '@/lib/currency'
 import { cn } from '@/lib/utils'
-
-import { PAYOUT_CHANNEL_MANUAL, PAYOUT_CHANNEL_STRIPE_CONNECT } from '@/features/withdrawals/constants'
 
 interface WithdrawalDialogProps {
   open: boolean
@@ -68,10 +70,7 @@ export function WithdrawalDialog({
     }
   }, [open, minWithdrawalCents, balanceCents])
 
-  const amountCents = useMemo(
-    () => Math.round(amountUSD * 100),
-    [amountUSD]
-  )
+  const amountCents = useMemo(() => Math.round(amountUSD * 100), [amountUSD])
 
   const canSubmit =
     Number.isFinite(amountUSD) &&
@@ -117,10 +116,7 @@ export function WithdrawalDialog({
           >
             {t('Cancel')}
           </Button>
-          <Button
-            onClick={handleConfirm}
-            disabled={submitting || !canSubmit}
-          >
+          <Button onClick={handleConfirm} disabled={submitting || !canSubmit}>
             {submitting && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
             {t('Submit Request')}
           </Button>
@@ -136,9 +132,7 @@ export function WithdrawalDialog({
             {balanceDisplay}
           </div>
           <p className='text-muted-foreground text-xs'>
-            {t(
-              'This is withdrawable cash commission, not API usage quota.'
-            )}
+            {t('This is withdrawable cash commission, not API usage quota.')}
           </p>
         </div>
 

@@ -43,10 +43,7 @@ export function BrandMark({
 }: BrandMarkProps) {
   if (isDefaultBrandLogo(src)) {
     return (
-      <Logo
-        aria-label={alt}
-        className={cn('size-full shrink-0', className)}
-      />
+      <Logo aria-label={alt} className={cn('size-full shrink-0', className)} />
     )
   }
 

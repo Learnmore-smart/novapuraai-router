@@ -140,10 +140,7 @@ export function ShareReviewDialog({
         <div className='space-y-3'>
           {['review-skeleton-1', 'review-skeleton-2', 'review-skeleton-3'].map(
             (skeletonId) => (
-              <div
-                key={skeletonId}
-                className='space-y-3 rounded-lg border p-4'
-              >
+              <div key={skeletonId} className='space-y-3 rounded-lg border p-4'>
                 <Skeleton className='h-5 w-2/3' />
                 <Skeleton className='h-16 w-full' />
                 <Skeleton className='h-9 w-48' />
@@ -207,7 +204,7 @@ export function ShareReviewDialog({
                 </div>
 
                 {submission.note ? (
-                  <p className='bg-muted/40 break-words rounded-md p-2 text-xs'>
+                  <p className='bg-muted/40 rounded-md p-2 text-xs break-words'>
                     {submission.note}
                   </p>
                 ) : null}

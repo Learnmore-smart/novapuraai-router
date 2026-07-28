@@ -15,39 +15,41 @@ import { type RedemptionFormData, type Redemption } from '../types'
 
 export function getRedemptionFormSchema(t: TFunction) {
   const msg = getRedemptionFormErrorMessages(t)
-  return z.object({
-    name: z
-      .string()
-      .min(REDEMPTION_VALIDATION.NAME_MIN_LENGTH, msg.NAME_LENGTH_INVALID)
-      .max(REDEMPTION_VALIDATION.NAME_MAX_LENGTH, msg.NAME_LENGTH_INVALID),
-    currency: z.enum(['usd', 'cny', 'cad'] as const),
-    amount: z
-      .number()
-      .min(REDEMPTION_VALIDATION.AMOUNT_MIN, msg.AMOUNT_INVALID),
-    max_redeems: z
-      .number()
-      .int()
-      .min(REDEMPTION_VALIDATION.MAX_REDEEMS_MIN, msg.MAX_REDEEMS_INVALID)
-      .max(REDEMPTION_VALIDATION.MAX_REDEEMS_MAX, msg.MAX_REDEEMS_INVALID),
-    expired_time: z.date().optional(),
-    count: z
-      .number()
-      .int()
-      .min(REDEMPTION_VALIDATION.COUNT_MIN, msg.COUNT_INVALID)
-      .max(REDEMPTION_VALIDATION.COUNT_MAX, msg.COUNT_INVALID)
-      .optional(),
-    key: z
-      .string()
-      .trim()
-      .optional()
-      .refine(
-        (val) => !val || /^[A-Za-z0-9_-]{3,64}$/.test(val),
-        msg.KEY_INVALID
-      ),
-  }).refine(
-    (data) => !data.key?.trim() || (data.count ?? 1) === 1,
-    { path: ['key'], message: msg.KEY_REQUIRES_SINGLE }
-  )
+  return z
+    .object({
+      name: z
+        .string()
+        .min(REDEMPTION_VALIDATION.NAME_MIN_LENGTH, msg.NAME_LENGTH_INVALID)
+        .max(REDEMPTION_VALIDATION.NAME_MAX_LENGTH, msg.NAME_LENGTH_INVALID),
+      currency: z.enum(['usd', 'cny', 'cad'] as const),
+      amount: z
+        .number()
+        .min(REDEMPTION_VALIDATION.AMOUNT_MIN, msg.AMOUNT_INVALID),
+      max_redeems: z
+        .number()
+        .int()
+        .min(REDEMPTION_VALIDATION.MAX_REDEEMS_MIN, msg.MAX_REDEEMS_INVALID)
+        .max(REDEMPTION_VALIDATION.MAX_REDEEMS_MAX, msg.MAX_REDEEMS_INVALID),
+      expired_time: z.date().optional(),
+      count: z
+        .number()
+        .int()
+        .min(REDEMPTION_VALIDATION.COUNT_MIN, msg.COUNT_INVALID)
+        .max(REDEMPTION_VALIDATION.COUNT_MAX, msg.COUNT_INVALID)
+        .optional(),
+      key: z
+        .string()
+        .trim()
+        .optional()
+        .refine(
+          (val) => !val || /^[A-Za-z0-9_-]{3,64}$/.test(val),
+          msg.KEY_INVALID
+        ),
+    })
+    .refine((data) => !data.key?.trim() || (data.count ?? 1) === 1, {
+      path: ['key'],
+      message: msg.KEY_REQUIRES_SINGLE,
+    })
 }
 
 export type RedemptionFormValues = {

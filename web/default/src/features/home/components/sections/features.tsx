@@ -73,7 +73,7 @@ export function Features(_props: FeaturesProps) {
               return (
                 <article
                   key={feature.title}
-                  className='np-surface group flex flex-col p-7 transition-[border-color,box-shadow] hover:border-primary/25 hover:shadow-[var(--elevation-2)] sm:p-8'
+                  className='np-surface group hover:border-primary/25 flex flex-col p-7 transition-[border-color,box-shadow] hover:shadow-[var(--elevation-2)] sm:p-8'
                 >
                   <span className='bg-muted text-foreground border-border flex size-10 items-center justify-center rounded-md border'>
                     <Icon className='size-5' aria-hidden='true' />

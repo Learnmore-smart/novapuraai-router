@@ -23,8 +23,8 @@ import {
   getTransactionalEmailSESCredentials,
   updateTransactionalEmailSESCredentials,
 } from '../api'
-import { buildSESCredentialUpdate } from './ses-credential-form'
 import { isValidEmailSender } from './email-sender'
+import { buildSESCredentialUpdate } from './ses-credential-form'
 
 const MASK = '••••••••••••'
 
@@ -237,9 +237,7 @@ export function SESCredentialPanel() {
                     spellCheck={false}
                     maxLength={4096}
                     value={secretAccessKey}
-                    onChange={(event) =>
-                      setSecretAccessKey(event.target.value)
-                    }
+                    onChange={(event) => setSecretAccessKey(event.target.value)}
                     placeholder={
                       status?.configured ? MASK : t('Enter secret access key')
                     }

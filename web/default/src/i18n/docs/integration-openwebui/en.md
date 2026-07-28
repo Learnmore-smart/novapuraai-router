@@ -10,10 +10,10 @@ Open WebUI can use NovaPuraAI as an OpenAI-compatible backend. Configure a conne
 
 In Open WebUI admin settings, open the **Connections** / **OpenAI** section (labels vary by version) and add:
 
-| Field | Value |
-| --- | --- |
+| Field        | Value                           |
+| ------------ | ------------------------------- |
 | API Base URL | `https://www.novapuraai.com/v1` |
-| API Key | `sk-xxxxxxxx` |
+| API Key      | `sk-xxxxxxxx`                   |
 
 Save, then refresh models. Open WebUI will call `GET /v1/models` and `POST /v1/chat/completions` against your gateway.
 
@@ -41,12 +41,12 @@ Exact variable names depend on your Open WebUI version—confirm in its document
 
 ## Troubleshooting
 
-| Issue | What to check |
-| --- | --- |
-| “Incorrect API key” | Key prefix, whitespace, disabled token |
-| Empty model dropdown | Base URL must include `/v1`; network must reach the gateway |
+| Issue                      | What to check                                                   |
+| -------------------------- | --------------------------------------------------------------- |
+| “Incorrect API key”        | Key prefix, whitespace, disabled token                          |
+| Empty model dropdown       | Base URL must include `/v1`; network must reach the gateway     |
 | 429 during multi-user load | Rate limits per key/group; create separate keys or raise limits |
-| Slow first token | Upstream latency; try another model |
+| Slow first token           | Upstream latency; try another model                             |
 
 ## Related
 

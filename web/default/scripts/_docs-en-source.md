@@ -1,5 +1,3 @@
-
-
 ===== SECTION: api-chat =====
 
 `POST /v1/chat/completions` is the primary OpenAI-compatible chat endpoint.
@@ -23,14 +21,14 @@ curl https://www.novapuraai.com/v1/chat/completions \
 
 ## Important fields
 
-| Field | Notes |
-| --- | --- |
-| `model` | Required. Must be enabled for your account |
-| `messages` | OpenAI chat messages array |
-| `stream` | `true` for SSE token streaming |
-| `temperature` / `top_p` | Sampling controls |
-| `max_tokens` / `max_completion_tokens` | Output bounds (provider-dependent) |
-| `tools` / `tool_choice` | Function calling when the upstream model supports it |
+| Field                                  | Notes                                                |
+| -------------------------------------- | ---------------------------------------------------- |
+| `model`                                | Required. Must be enabled for your account           |
+| `messages`                             | OpenAI chat messages array                           |
+| `stream`                               | `true` for SSE token streaming                       |
+| `temperature` / `top_p`                | Sampling controls                                    |
+| `max_tokens` / `max_completion_tokens` | Output bounds (provider-dependent)                   |
+| `tools` / `tool_choice`                | Function calling when the upstream model supports it |
 
 ## Streaming
 
@@ -39,7 +37,6 @@ Set `"stream": true`. The response is `text/event-stream` with `data: {...}` chu
 ## Compatibility
 
 Most tools that accept a custom OpenAI base URL work unchanged. Point them at `https://www.novapuraai.com/v1` and use your NovaPuraAI key.
-
 
 ===== SECTION: api-embeddings =====
 
@@ -75,21 +72,20 @@ emb = client.embeddings.create(
 print(len(emb.data[0].embedding))
 ```
 
-
 ===== SECTION: api-errors =====
 
 Errors are returned as JSON with an HTTP status code. Message text may be localized or provider-specific.
 
 ## Common status codes
 
-| Code | Meaning |
-| --- | --- |
-| 400 | Invalid request body or parameters |
-| 401 | Missing or invalid API key |
-| 403 | Not allowed (model, module, or permission) |
-| 404 | Unknown route or model |
-| 429 | Rate limited |
-| 500 / 502 / 503 | Gateway or upstream failure |
+| Code            | Meaning                                    |
+| --------------- | ------------------------------------------ |
+| 400             | Invalid request body or parameters         |
+| 401             | Missing or invalid API key                 |
+| 403             | Not allowed (model, module, or permission) |
+| 404             | Unknown route or model                     |
+| 429             | Rate limited                               |
+| 500 / 502 / 503 | Gateway or upstream failure                |
 
 ## Example error body
 
@@ -111,7 +107,6 @@ Some endpoints use `{ "success": false, "message": "..." }` for console APIs. Re
 2. Retry idempotent GETs; be careful with POST retries.
 3. Compare working curl from the dashboard “First API request” card.
 4. Verify channel health with your administrator if only some models fail.
-
 
 ===== SECTION: api-gemini =====
 
@@ -140,7 +135,6 @@ curl "https://www.novapuraai.com/v1beta/models/gemini-2.0-flash:generateContent"
 ## Auth
 
 Use the same NovaPuraAI `sk-` key. Do not send Google AI Studio keys to NovaPuraAI unless you are an admin configuring upstream channels.
-
 
 ===== SECTION: api-media =====
 
@@ -184,7 +178,6 @@ curl https://www.novapuraai.com/v1/audio/transcriptions \
 
 Media endpoints often bill by image count, seconds, or document count — not only tokens. Check Model Square before bulk jobs.
 
-
 ===== SECTION: api-messages =====
 
 `POST /v1/messages` accepts Anthropic Messages-style payloads for Claude-compatible models configured on the gateway.
@@ -215,7 +208,6 @@ curl https://www.novapuraai.com/v1/messages \
 
 Invalid schema or unsupported fields return `4xx` with a JSON error body. Check that `max_tokens` is present when required by the Messages API.
 
-
 ===== SECTION: api-models =====
 
 `GET /v1/models` lists models available to the authenticated key.
@@ -240,7 +232,6 @@ The payload follows OpenAI’s list object with `data[]` entries containing at l
 ## Caching
 
 Clients may cache the list for a short TTL. Re-fetch after admin changes or on `404 model_not_found` errors.
-
 
 ===== SECTION: authentication =====
 
@@ -274,17 +265,16 @@ Some OpenAI clients also accept `api_key` in the SDK constructor — that value 
 
 ## Common failures
 
-| Symptom | Likely cause |
-| --- | --- |
-| `401 Unauthorized` | Missing/invalid key, revoked key, or wrong header |
-| `403 Forbidden` | Model not allowed for this key, or module disabled |
-| `429` | Rate limit exceeded |
-| Insufficient quota | Balance too low or key quota exhausted |
+| Symptom            | Likely cause                                       |
+| ------------------ | -------------------------------------------------- |
+| `401 Unauthorized` | Missing/invalid key, revoked key, or wrong header  |
+| `403 Forbidden`    | Model not allowed for this key, or module disabled |
+| `429`              | Rate limit exceeded                                |
+| Insufficient quota | Balance too low or key quota exhausted             |
 
 ## Multi-user setups
 
 Administrators can issue keys to end users with independent quotas. Each key is billed against its owner’s balance according to platform settings.
-
 
 ===== SECTION: base-url =====
 
@@ -292,26 +282,26 @@ NovaPuraAI serves a unified gateway. Clients point at your public origin; the ga
 
 ## Recommended base URL
 
-| Client type | Base URL |
-| --- | --- |
-| OpenAI SDK / OpenAI-compatible tools | `https://www.novapuraai.com/v1` |
-| Raw HTTP (path already includes `/v1/...`) | `https://www.novapuraai.com` |
+| Client type                                | Base URL                        |
+| ------------------------------------------ | ------------------------------- |
+| OpenAI SDK / OpenAI-compatible tools       | `https://www.novapuraai.com/v1` |
+| Raw HTTP (path already includes `/v1/...`) | `https://www.novapuraai.com`    |
 
 ## Primary endpoints
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| POST | `/v1/chat/completions` | Chat (OpenAI) |
-| POST | `/v1/completions` | Text completions |
-| POST | `/v1/responses` | OpenAI Responses API |
-| POST | `/v1/messages` | Anthropic Messages |
-| POST | `/v1/embeddings` | Embeddings |
-| POST | `/v1/images/generations` | Image generation |
-| POST | `/v1/audio/transcriptions` | Speech-to-text |
-| POST | `/v1/audio/speech` | Text-to-speech |
-| POST | `/v1/rerank` | Rerank |
-| GET | `/v1/models` | List models |
-| POST | `/v1beta/models/{model}:generateContent` | Gemini-style |
+| Method | Path                                     | Purpose              |
+| ------ | ---------------------------------------- | -------------------- |
+| POST   | `/v1/chat/completions`                   | Chat (OpenAI)        |
+| POST   | `/v1/completions`                        | Text completions     |
+| POST   | `/v1/responses`                          | OpenAI Responses API |
+| POST   | `/v1/messages`                           | Anthropic Messages   |
+| POST   | `/v1/embeddings`                         | Embeddings           |
+| POST   | `/v1/images/generations`                 | Image generation     |
+| POST   | `/v1/audio/transcriptions`               | Speech-to-text       |
+| POST   | `/v1/audio/speech`                       | Text-to-speech       |
+| POST   | `/v1/rerank`                             | Rerank               |
+| GET    | `/v1/models`                             | List models          |
+| POST   | `/v1beta/models/{model}:generateContent` | Gemini-style         |
 
 Midjourney and other task routes may also be available depending on admin configuration.
 
@@ -326,7 +316,6 @@ Authorization: Bearer sk-YOUR_KEY
 ## Health of the gateway
 
 The admin console and public status endpoints report whether the site is ready. For production on Cloud Run, pair the container with Cloud SQL and Redis — do not rely on container-local SQLite.
-
 
 ===== SECTION: billing =====
 
@@ -357,7 +346,6 @@ End users top up from the **Wallet** page when payment gateways are enabled (for
 ## Insufficient quota
 
 If a request is rejected for quota, top up the wallet or ask an admin to increase limits. Creating a new key does not create free balance.
-
 
 ===== SECTION: faq =====
 
@@ -438,7 +426,6 @@ In the console **usage logs** (and dashboard charts when enabled). Include times
 3. Confirm models, quota, and rate limits in the console.
 4. Contact your deployment administrator with redacted request details.
 
-
 ===== SECTION: first-request =====
 
 This page walks through a complete first successful call and how to read the response.
@@ -477,7 +464,7 @@ curl "$NOVAPURA_BASE/v1/chat/completions" \
   "choices": [
     {
       "index": 0,
-      "message": {"role": "assistant", "content": "Hello!"},
+      "message": { "role": "assistant", "content": "Hello!" },
       "finish_reason": "stop"
     }
   ],
@@ -511,7 +498,6 @@ curl "$NOVAPURA_BASE/v1/chat/completions" \
 2. Confirm the base URL includes `/v1` for OpenAI SDKs.
 3. Confirm HTTPS and that Cloud Run / CDN allows long-running streams if you stream.
 
-
 ===== SECTION: integration-cursor =====
 
 Cursor can use NovaPuraAI as an OpenAI-compatible model provider. You point Cursor at your deployment origin’s `/v1` API and authenticate with a NovaPuraAI API key.
@@ -528,11 +514,11 @@ Cursor’s UI labels change over releases. Look for **OpenAI API**, **OpenAI Com
 
 Typical values:
 
-| Setting | Value |
-| --- | --- |
-| API key | `sk-xxxxxxxx` (your NovaPuraAI key) |
-| Base URL | `https://www.novapuraai.com/v1` |
-| Model | A model ID from `GET /v1/models` |
+| Setting  | Value                               |
+| -------- | ----------------------------------- |
+| API key  | `sk-xxxxxxxx` (your NovaPuraAI key) |
+| Base URL | `https://www.novapuraai.com/v1`     |
+| Model    | A model ID from `GET /v1/models`    |
 
 If a field asks for the “OpenAI base URL” without `/v1`, try both forms and confirm with a tiny prompt. The working form is almost always **`{ORIGIN}/v1`**.
 
@@ -556,12 +542,12 @@ If this fails, fix key/quota before debugging the IDE.
 
 ## Troubleshooting
 
-| Issue | Fix |
-| --- | --- |
-| Auth errors in Cursor | Re-paste the full key including `sk-` |
+| Issue                         | Fix                                                                  |
+| ----------------------------- | -------------------------------------------------------------------- |
+| Auth errors in Cursor         | Re-paste the full key including `sk-`                                |
 | Network / CORS style failures | Cursor is a desktop client; usually not CORS—check URL typos and VPN |
-| Empty responses | Confirm quota and try the same model via curl |
-| Rate limits | Reduce parallel agent runs; see [Rate Limits](/docs/rate-limits) |
+| Empty responses               | Confirm quota and try the same model via curl                        |
+| Rate limits                   | Reduce parallel agent runs; see [Rate Limits](/docs/rate-limits)     |
 
 ## Security
 
@@ -573,7 +559,6 @@ If this fails, fix key/quota before debugging the IDE.
 - [Authentication](/docs/authentication)
 - [Models List](/docs/api-models)
 - [Chat Completions](/docs/api-chat)
-
 
 ===== SECTION: integration-dify =====
 
@@ -592,9 +577,9 @@ In Dify **Settings → Model Providers** (or **Model Supplier**):
 1. Choose **OpenAI-API-compatible** (name may vary slightly).
 2. Set credentials:
 
-| Field | Value |
-| --- | --- |
-| API Key | `sk-xxxxxxxx` |
+| Field            | Value                           |
+| ---------------- | ------------------------------- |
+| API Key          | `sk-xxxxxxxx`                   |
 | API endpoint URL | `https://www.novapuraai.com/v1` |
 
 3. Add one or more models with the **exact model name** returned by NovaPuraAI (for example `gpt-4o-mini`).
@@ -619,19 +604,18 @@ Confirm with a direct curl call before debugging Dify graphs.
 
 ## Common failures
 
-| Symptom | Likely cause |
-| --- | --- |
-| Validation failed | Wrong endpoint (missing `/v1`) or key |
-| Model not found | Name mismatch vs `GET /v1/models` |
-| Timeout in long chains | Increase timeouts; reduce sequential LLM hops |
-| Insufficient quota mid-run | Top up balance; cap retries in workflow |
+| Symptom                    | Likely cause                                  |
+| -------------------------- | --------------------------------------------- |
+| Validation failed          | Wrong endpoint (missing `/v1`) or key         |
+| Model not found            | Name mismatch vs `GET /v1/models`             |
+| Timeout in long chains     | Increase timeouts; reduce sequential LLM hops |
+| Insufficient quota mid-run | Top up balance; cap retries in workflow       |
 
 ## Related
 
 - [Billing & Quota](/docs/billing)
 - [Embeddings](/docs/api-embeddings)
 - [Chat Completions](/docs/api-chat)
-
 
 ===== SECTION: integration-langchain =====
 
@@ -686,18 +670,18 @@ npm install @langchain/openai
 ```
 
 ```typescript
-import { ChatOpenAI } from "@langchain/openai";
+import { ChatOpenAI } from '@langchain/openai'
 
 const llm = new ChatOpenAI({
-  model: "gpt-4o-mini",
+  model: 'gpt-4o-mini',
   apiKey: process.env.NOVAPURA_API_KEY,
   configuration: {
     baseURL: `${process.env.NOVAPURA_BASE_URL}/v1`,
   },
-});
+})
 
-const res = await llm.invoke("Hello from NovaPuraAI");
-console.log(res.content);
+const res = await llm.invoke('Hello from NovaPuraAI')
+console.log(res.content)
 ```
 
 ## LlamaIndex (Python)
@@ -741,7 +725,6 @@ Parameter names (`api_base` vs `base_url`) differ slightly across LlamaIndex ver
 - [Embeddings](/docs/api-embeddings)
 - [Billing & Quota](/docs/billing)
 
-
 ===== SECTION: integration-nextchat =====
 
 NextChat (ChatGPT-Next-Web and compatible forks) can talk to NovaPuraAI through OpenAI-compatible settings. You configure the base URL, API key, and default model once, then use the web UI as usual.
@@ -756,11 +739,11 @@ NextChat (ChatGPT-Next-Web and compatible forks) can talk to NovaPuraAI through 
 
 In NextChat **Settings** (wording may vary by fork/version):
 
-| Field | Recommended value |
-| --- | --- |
+| Field               | Recommended value               |
+| ------------------- | ------------------------------- |
 | Endpoint / API base | `https://www.novapuraai.com/v1` |
-| API key | `sk-xxxxxxxx` |
-| Model | An ID from `GET /v1/models` |
+| API key             | `sk-xxxxxxxx`                   |
+| Model               | An ID from `GET /v1/models`     |
 
 If the UI stores only the origin and always appends `/v1` itself, use `https://www.novapuraai.com` without duplicating `/v1`. When in doubt, open browser network tools and confirm the final path is `/v1/chat/completions`.
 
@@ -790,12 +773,12 @@ curl "https://www.novapuraai.com/v1/chat/completions" \
 
 ## Common issues
 
-| Symptom | Cause | Fix |
-| --- | --- | --- |
-| 404 on chat | Wrong base URL (`/v1` missing or doubled) | Align with network tab path |
-| 401 | Key not passed or wrong | Paste NovaPuraAI key, not OpenAI platform key |
-| Model list empty | Frontend cannot call `/v1/models` | Check CORS/proxy and key permissions |
-| Balance errors | No quota | Top up in NovaPuraAI console |
+| Symptom          | Cause                                     | Fix                                           |
+| ---------------- | ----------------------------------------- | --------------------------------------------- |
+| 404 on chat      | Wrong base URL (`/v1` missing or doubled) | Align with network tab path                   |
+| 401              | Key not passed or wrong                   | Paste NovaPuraAI key, not OpenAI platform key |
+| Model list empty | Frontend cannot call `/v1/models`         | Check CORS/proxy and key permissions          |
+| Balance errors   | No quota                                  | Top up in NovaPuraAI console                  |
 
 ## Security notes
 
@@ -807,7 +790,6 @@ curl "https://www.novapuraai.com/v1/chat/completions" \
 - [Base URL & Endpoints](/docs/base-url)
 - [Authentication](/docs/authentication)
 - [FAQ](/docs/faq)
-
 
 ===== SECTION: integration-openwebui =====
 
@@ -823,10 +805,10 @@ Open WebUI can use NovaPuraAI as an OpenAI-compatible backend. Configure a conne
 
 In Open WebUI admin settings, open the **Connections** / **OpenAI** section (labels vary by version) and add:
 
-| Field | Value |
-| --- | --- |
+| Field        | Value                           |
+| ------------ | ------------------------------- |
 | API Base URL | `https://www.novapuraai.com/v1` |
-| API Key | `sk-xxxxxxxx` |
+| API Key      | `sk-xxxxxxxx`                   |
 
 Save, then refresh models. Open WebUI will call `GET /v1/models` and `POST /v1/chat/completions` against your gateway.
 
@@ -854,19 +836,18 @@ Exact variable names depend on your Open WebUI version—confirm in its document
 
 ## Troubleshooting
 
-| Issue | What to check |
-| --- | --- |
-| “Incorrect API key” | Key prefix, whitespace, disabled token |
-| Empty model dropdown | Base URL must include `/v1`; network must reach the gateway |
+| Issue                      | What to check                                                   |
+| -------------------------- | --------------------------------------------------------------- |
+| “Incorrect API key”        | Key prefix, whitespace, disabled token                          |
+| Empty model dropdown       | Base URL must include `/v1`; network must reach the gateway     |
 | 429 during multi-user load | Rate limits per key/group; create separate keys or raise limits |
-| Slow first token | Upstream latency; try another model |
+| Slow first token           | Upstream latency; try another model                             |
 
 ## Related
 
 - [Models & Routing](/docs/routing)
 - [Rate Limits](/docs/rate-limits)
 - [Chat Completions](/docs/api-chat)
-
 
 ===== SECTION: quickstart =====
 
@@ -925,18 +906,18 @@ print(resp.choices[0].message.content)
 ```
 
 ```javascript
-import OpenAI from "openai";
+import OpenAI from 'openai'
 
 const client = new OpenAI({
   apiKey: process.env.NOVAPURA_API_KEY,
-  baseURL: "https://www.novapuraai.com/v1",
-});
+  baseURL: 'https://www.novapuraai.com/v1',
+})
 
 const resp = await client.chat.completions.create({
-  model: "gpt-4o-mini",
-  messages: [{ role: "user", content: "Hello" }],
-});
-console.log(resp.choices[0].message.content);
+  model: 'gpt-4o-mini',
+  messages: [{ role: 'user', content: 'Hello' }],
+})
+console.log(resp.choices[0].message.content)
 ```
 
 ## Next steps
@@ -944,7 +925,6 @@ console.log(resp.choices[0].message.content);
 - [Authentication](/docs/authentication)
 - [Your First Request](/docs/first-request)
 - [Base URL & Endpoints](/docs/base-url)
-
 
 ===== SECTION: rate-limits =====
 
@@ -969,7 +949,6 @@ Long-lived streams hold a connection. Design concurrency limits so you do not op
 ## Admin-side knobs
 
 Administrators can tune global and model-specific rate limits in system settings. Contact your site operator if legitimate traffic is throttled too aggressively.
-
 
 ===== SECTION: routing =====
 
@@ -1002,7 +981,6 @@ Users may belong to groups with different model catalogs and ratios. If a model 
 - Prefer listing models via API at startup if your product needs dynamic discovery.
 - Handle `5xx` and timeouts with client-side retries for idempotent reads; avoid blind retries for non-idempotent side effects.
 
-
 ===== SECTION: sdk-curl =====
 
 curl is ideal for debugging and CI smoke tests.
@@ -1034,7 +1012,6 @@ curl -s ... | jq .
 ## Verbose debugging
 
 Add `-v` to inspect TLS and headers. Redact Authorization when sharing logs.
-
 
 ===== SECTION: sdk-go =====
 
@@ -1069,7 +1046,6 @@ func main() {
 - Set reasonable timeouts for non-stream and longer timeouts for streaming or media.
 - Propagate context cancellation to abort in-flight requests when handlers return.
 
-
 ===== SECTION: sdk-node =====
 
 Use the official `openai` npm package.
@@ -1084,37 +1060,36 @@ npm install openai
 ## Client
 
 ```javascript
-import OpenAI from "openai";
+import OpenAI from 'openai'
 
 const client = new OpenAI({
   apiKey: process.env.NOVAPURA_API_KEY,
-  baseURL: "https://www.novapuraai.com/v1",
-});
+  baseURL: 'https://www.novapuraai.com/v1',
+})
 ```
 
 ## Chat
 
 ```javascript
 const completion = await client.chat.completions.create({
-  model: "gpt-4o-mini",
-  messages: [{ role: "user", content: "Hello" }],
-});
-console.log(completion.choices[0].message.content);
+  model: 'gpt-4o-mini',
+  messages: [{ role: 'user', content: 'Hello' }],
+})
+console.log(completion.choices[0].message.content)
 ```
 
 ## Streaming
 
 ```javascript
 const stream = await client.chat.completions.create({
-  model: "gpt-4o-mini",
-  messages: [{ role: "user", content: "Stream digits 1-5" }],
+  model: 'gpt-4o-mini',
+  messages: [{ role: 'user', content: 'Stream digits 1-5' }],
   stream: true,
-});
+})
 for await (const chunk of stream) {
-  process.stdout.write(chunk.choices[0]?.delta?.content || "");
+  process.stdout.write(chunk.choices[0]?.delta?.content || '')
 }
 ```
-
 
 ===== SECTION: sdk-python =====
 

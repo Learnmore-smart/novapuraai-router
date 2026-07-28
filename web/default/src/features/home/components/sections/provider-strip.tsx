@@ -33,7 +33,7 @@ export function ProviderStrip() {
   ]
 
   return (
-    <section className='border-y border-border px-5 py-10 sm:px-6 md:py-12'>
+    <section className='border-border border-y px-5 py-10 sm:px-6 md:py-12'>
       <div className='mx-auto max-w-7xl'>
         <p className='np-kicker text-center'>
           {t('Route to the providers you already use')}

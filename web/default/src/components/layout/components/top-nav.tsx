@@ -106,35 +106,37 @@ export function TopNav({ className, links, ...props }: TopNavProps) {
         className={cn('hidden items-center gap-0.5 lg:flex', className)}
         {...props}
       >
-        {normalizedLinks.map(({ title, href, isActive, disabled, external }) => {
-          const linkClassName = cn(
-            'rounded-md px-3 py-2 text-[13px] font-medium transition-colors',
-            isActive
-              ? 'bg-muted text-foreground'
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted/60',
-            disabled && 'pointer-events-none opacity-50'
-          )
-          return external ? (
-            <a
-              key={`${title}-${href}`}
-              href={href}
-              target='_blank'
-              rel='noopener noreferrer'
-              className={linkClassName}
-            >
-              {t(title)}
-            </a>
-          ) : (
-            <Link
-              key={`${title}-${href}`}
-              to={href}
-              disabled={disabled}
-              className={linkClassName}
-            >
-              {t(title)}
-            </Link>
-          )
-        })}
+        {normalizedLinks.map(
+          ({ title, href, isActive, disabled, external }) => {
+            const linkClassName = cn(
+              'rounded-md px-3 py-2 text-[13px] font-medium transition-colors',
+              isActive
+                ? 'bg-muted text-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/60',
+              disabled && 'pointer-events-none opacity-50'
+            )
+            return external ? (
+              <a
+                key={`${title}-${href}`}
+                href={href}
+                target='_blank'
+                rel='noopener noreferrer'
+                className={linkClassName}
+              >
+                {t(title)}
+              </a>
+            ) : (
+              <Link
+                key={`${title}-${href}`}
+                to={href}
+                disabled={disabled}
+                className={linkClassName}
+              >
+                {t(title)}
+              </Link>
+            )
+          }
+        )}
       </nav>
     </>
   )

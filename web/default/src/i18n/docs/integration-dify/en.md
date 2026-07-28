@@ -13,9 +13,9 @@ In Dify **Settings → Model Providers** (or **Model Supplier**):
 1. Choose **OpenAI-API-compatible** (name may vary slightly).
 2. Set credentials:
 
-| Field | Value |
-| --- | --- |
-| API Key | `sk-xxxxxxxx` |
+| Field            | Value                           |
+| ---------------- | ------------------------------- |
+| API Key          | `sk-xxxxxxxx`                   |
 | API endpoint URL | `https://www.novapuraai.com/v1` |
 
 3. Add one or more models with the **exact model name** returned by NovaPuraAI (for example `gpt-4o-mini`).
@@ -40,12 +40,12 @@ Confirm with a direct curl call before debugging Dify graphs.
 
 ## Common failures
 
-| Symptom | Likely cause |
-| --- | --- |
-| Validation failed | Wrong endpoint (missing `/v1`) or key |
-| Model not found | Name mismatch vs `GET /v1/models` |
-| Timeout in long chains | Increase timeouts; reduce sequential LLM hops |
-| Insufficient quota mid-run | Top up balance; cap retries in workflow |
+| Symptom                    | Likely cause                                  |
+| -------------------------- | --------------------------------------------- |
+| Validation failed          | Wrong endpoint (missing `/v1`) or key         |
+| Model not found            | Name mismatch vs `GET /v1/models`             |
+| Timeout in long chains     | Increase timeouts; reduce sequential LLM hops |
+| Insufficient quota mid-run | Top up balance; cap retries in workflow       |
 
 ## Related
 

@@ -397,7 +397,9 @@ function formatCurrencyValue(
         minimumFractionDigits: 0,
         maximumFractionDigits: options.compact ? 1 : digits,
       }).format(adjustedValue)
-      return options.showCurrencyCode ? `${numOnly} ${meta.currencyCode}` : numOnly
+      return options.showCurrencyCode
+        ? `${numOnly} ${meta.currencyCode}`
+        : numOnly
     }
 
     const formatted = new Intl.NumberFormat(options.locale, {
@@ -408,7 +410,9 @@ function formatCurrencyValue(
       minimumFractionDigits: 0,
       maximumFractionDigits: options.compact ? 1 : digits,
     }).format(adjustedValue)
-    return options.showCurrencyCode ? `${formatted} ${meta.currencyCode}` : formatted
+    return options.showCurrencyCode
+      ? `${formatted} ${meta.currencyCode}`
+      : formatted
   }
 
   const decimal = new Intl.NumberFormat(options.locale, {

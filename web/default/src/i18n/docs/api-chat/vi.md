@@ -19,14 +19,14 @@ curl https://www.novapuraai.com/v1/chat/completions \
 
 ## Các trường quan trọng
 
-| Trường | Ghi chú |
-| --- | --- |
-| `model` | Bắt buộc. Phải được bật cho tài khoản của bạn |
-| `messages` | Mảng tin nhắn chat theo định dạng OpenAI |
-| `stream` | `true` để streaming token qua SSE |
-| `temperature` / `top_p` | Điều khiển sampling |
-| `max_tokens` / `max_completion_tokens` | Giới hạn đầu ra (phụ thuộc nhà cung cấp) |
-| `tools` / `tool_choice` | Function calling khi mô hình upstream hỗ trợ |
+| Trường                                 | Ghi chú                                       |
+| -------------------------------------- | --------------------------------------------- |
+| `model`                                | Bắt buộc. Phải được bật cho tài khoản của bạn |
+| `messages`                             | Mảng tin nhắn chat theo định dạng OpenAI      |
+| `stream`                               | `true` để streaming token qua SSE             |
+| `temperature` / `top_p`                | Điều khiển sampling                           |
+| `max_tokens` / `max_completion_tokens` | Giới hạn đầu ra (phụ thuộc nhà cung cấp)      |
+| `tools` / `tool_choice`                | Function calling khi mô hình upstream hỗ trợ  |
 
 ## Streaming
 

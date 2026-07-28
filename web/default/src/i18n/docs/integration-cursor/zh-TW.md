@@ -12,11 +12,11 @@ Cursor 的介面文案會隨版本變化。請尋找 **OpenAI API**、**OpenAI C
 
 典型取值：
 
-| 設定項 | 值 |
-| --- | --- |
-| API key | `sk-xxxxxxxx`（你的 NovaPuraAI 金鑰） |
-| Base URL | `https://www.novapuraai.com/v1` |
-| Model | 來自 `GET /v1/models` 的模型 ID |
+| 設定項   | 值                                    |
+| -------- | ------------------------------------- |
+| API key  | `sk-xxxxxxxx`（你的 NovaPuraAI 金鑰） |
+| Base URL | `https://www.novapuraai.com/v1`       |
+| Model    | 來自 `GET /v1/models` 的模型 ID       |
 
 若某欄位要求填寫不含 `/v1` 的 “OpenAI base URL”，可兩種形式都試一次，並用簡短提示確認。可用形式幾乎總是 **`{ORIGIN}/v1`**。
 
@@ -40,12 +40,12 @@ curl "${NOVAPURA_BASE_URL}/v1/models" \
 
 ## 疑難排解
 
-| 問題 | 處理 |
-| --- | --- |
-| Cursor 中驗證錯誤 | 重新貼上完整金鑰，包含 `sk-` |
+| 問題                    | 處理                                                       |
+| ----------------------- | ---------------------------------------------------------- |
+| Cursor 中驗證錯誤       | 重新貼上完整金鑰，包含 `sk-`                               |
 | 網路 / 類似 CORS 的失敗 | Cursor 為桌面用戶端，通常與 CORS 無關——檢查 URL 拼字與 VPN |
-| 空回應 | 確認額度，並用 curl 以相同模型複測 |
-| 速率限制 | 減少並行代理執行；見 [速率限制](/docs/rate-limits) |
+| 空回應                  | 確認額度，並用 curl 以相同模型複測                         |
+| 速率限制                | 減少並行代理執行；見 [速率限制](/docs/rate-limits)         |
 
 ## 安全
 

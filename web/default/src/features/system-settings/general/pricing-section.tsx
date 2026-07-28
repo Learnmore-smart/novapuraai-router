@@ -80,7 +80,10 @@ const createPricingSchema = (t: (key: string) => string) =>
         }
       }
 
-      if (displayType === 'CAD' && data.general_setting.cad_exchange_rate == null) {
+      if (
+        displayType === 'CAD' &&
+        data.general_setting.cad_exchange_rate == null
+      ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['general_setting', 'cad_exchange_rate'],

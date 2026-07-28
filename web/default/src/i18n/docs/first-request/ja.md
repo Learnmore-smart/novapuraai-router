@@ -38,7 +38,7 @@ curl "$NOVAPURA_BASE/v1/chat/completions" \
   "choices": [
     {
       "index": 0,
-      "message": {"role": "assistant", "content": "Hello!"},
+      "message": { "role": "assistant", "content": "Hello!" },
       "finish_reason": "stop"
     }
   ],

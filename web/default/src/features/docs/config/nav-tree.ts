@@ -232,7 +232,9 @@ const DOC_SECTION_IDS: ReadonlySet<string> = new Set(
   DOC_FLAT_ITEMS.map((item) => item.id)
 )
 
-export function isDocSectionId(sectionId: string | undefined): sectionId is string {
+export function isDocSectionId(
+  sectionId: string | undefined
+): sectionId is string {
   return typeof sectionId === 'string' && DOC_SECTION_IDS.has(sectionId)
 }
 
@@ -249,8 +251,6 @@ export function findDocNeighbor(sectionId: string): {
   return {
     prev: index > 0 ? DOC_FLAT_ITEMS[index - 1] : undefined,
     next:
-      index < DOC_FLAT_ITEMS.length - 1
-        ? DOC_FLAT_ITEMS[index + 1]
-        : undefined,
+      index < DOC_FLAT_ITEMS.length - 1 ? DOC_FLAT_ITEMS[index + 1] : undefined,
   }
 }

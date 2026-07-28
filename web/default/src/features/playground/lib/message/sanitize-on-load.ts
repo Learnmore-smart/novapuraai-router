@@ -11,7 +11,7 @@ export function isAssistantMessagePending(message: Message): boolean {
 export function isPendingAssistantMessage(message?: Message): boolean {
   return Boolean(
     message?.from === MESSAGE_ROLES.ASSISTANT &&
-      isAssistantMessagePending(message)
+    isAssistantMessagePending(message)
   )
 }
 

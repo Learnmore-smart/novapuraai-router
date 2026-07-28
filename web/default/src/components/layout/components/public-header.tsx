@@ -407,7 +407,7 @@ export function PublicHeader(props: PublicHeaderProps) {
           className='bg-background fixed inset-0 z-40 md:hidden'
         >
           <div className='flex h-full flex-col justify-between px-6 pt-[calc(var(--app-header-height)+1.5rem)] pb-10'>
-            <nav className='flex flex-col gap-1 border-t border-border pt-4'>
+            <nav className='border-border flex flex-col gap-1 border-t pt-4'>
               {links.map((link) => {
                 const isActive =
                   pathname === link.href ||
@@ -449,7 +449,7 @@ export function PublicHeader(props: PublicHeaderProps) {
             </nav>
 
             {showAuthButtons && (
-              <div className='flex flex-col gap-2 border-t border-border pt-6'>
+              <div className='border-border flex flex-col gap-2 border-t pt-6'>
                 {isAuthenticated ? (
                   <Link
                     to='/dashboard'
@@ -470,7 +470,7 @@ export function PublicHeader(props: PublicHeaderProps) {
                     <Link
                       to='/sign-in'
                       onClick={() => setMobileOpen(false)}
-                      className='border-border text-foreground inline-flex h-11 items-center justify-center rounded-md border text-sm font-medium transition-colors hover:bg-muted'
+                      className='border-border text-foreground hover:bg-muted inline-flex h-11 items-center justify-center rounded-md border text-sm font-medium transition-colors'
                     >
                       {t('Login')}
                     </Link>

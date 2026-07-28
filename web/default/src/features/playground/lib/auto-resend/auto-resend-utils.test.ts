@@ -10,9 +10,7 @@ import {
   resetPendingMessageForRetry,
 } from './auto-resend-utils.ts'
 
-function makeAssistantMessage(
-  overrides: Partial<Message> = {}
-): Message {
+function makeAssistantMessage(overrides: Partial<Message> = {}): Message {
   return {
     key: 'msg-1',
     from: MESSAGE_ROLES.ASSISTANT,
@@ -76,9 +74,7 @@ describe('decideAutoResend', () => {
 
 describe('hasPendingAutoResend', () => {
   test('returns true when last assistant message carries the flag', () => {
-    const messages = [
-      makeAssistantMessage({ pendingAutoResend: true }),
-    ]
+    const messages = [makeAssistantMessage({ pendingAutoResend: true })]
     assert.equal(hasPendingAutoResend(messages), true)
   })
 

@@ -324,6 +324,9 @@ func migrateDB() error {
 		&EmailDelivery{},
 		&EmailProviderCredential{},
 		&StripeCredential{},
+		&SubscriptionPlanCoveredModel{},
+		&SubscriptionCoupon{},
+		&SubscriptionCouponRedemption{},
 	)
 	if err != nil {
 		return err
@@ -476,6 +479,15 @@ func ensureSubscriptionPlanTableSQLite() error {
 ` + "`total_amount`" + ` bigint NOT NULL DEFAULT 0,
 ` + "`quota_reset_period`" + ` varchar(16) DEFAULT 'never',
 ` + "`quota_reset_custom_seconds`" + ` bigint DEFAULT 0,
+` + "`price_amount_cny`" + ` decimal(10,6) NOT NULL DEFAULT 0,
+` + "`price_amount_usd`" + ` decimal(10,6) NOT NULL DEFAULT 0,
+` + "`stripe_price_id_cny`" + ` varchar(128) DEFAULT '',
+` + "`stripe_price_id_usd`" + ` varchar(128) DEFAULT '',
+` + "`stripe_product_id`" + ` varchar(128) DEFAULT '',
+` + "`auto_renew`" + ` numeric DEFAULT 0,
+` + "`prepaid_months`" + ` varchar(64) DEFAULT '1,3,6,12',
+` + "`renewal_price_cny`" + ` decimal(10,6) NOT NULL DEFAULT 0,
+` + "`renewal_price_usd`" + ` decimal(10,6) NOT NULL DEFAULT 0,
 ` + "`created_at`" + ` bigint,
 ` + "`updated_at`" + ` bigint,
 PRIMARY KEY (` + "`id`" + `)
@@ -513,6 +525,15 @@ PRIMARY KEY (` + "`id`" + `)
 		{Name: "total_amount", DDL: "`total_amount` bigint NOT NULL DEFAULT 0"},
 		{Name: "quota_reset_period", DDL: "`quota_reset_period` varchar(16) DEFAULT 'never'"},
 		{Name: "quota_reset_custom_seconds", DDL: "`quota_reset_custom_seconds` bigint DEFAULT 0"},
+		{Name: "price_amount_cny", DDL: "`price_amount_cny` decimal(10,6) NOT NULL DEFAULT 0"},
+		{Name: "price_amount_usd", DDL: "`price_amount_usd` decimal(10,6) NOT NULL DEFAULT 0"},
+		{Name: "stripe_price_id_cny", DDL: "`stripe_price_id_cny` varchar(128) DEFAULT ''"},
+		{Name: "stripe_price_id_usd", DDL: "`stripe_price_id_usd` varchar(128) DEFAULT ''"},
+		{Name: "stripe_product_id", DDL: "`stripe_product_id` varchar(128) DEFAULT ''"},
+		{Name: "auto_renew", DDL: "`auto_renew` numeric DEFAULT 0"},
+		{Name: "prepaid_months", DDL: "`prepaid_months` varchar(64) DEFAULT '1,3,6,12'"},
+		{Name: "renewal_price_cny", DDL: "`renewal_price_cny` decimal(10,6) NOT NULL DEFAULT 0"},
+		{Name: "renewal_price_usd", DDL: "`renewal_price_usd` decimal(10,6) NOT NULL DEFAULT 0"},
 		{Name: "created_at", DDL: "`created_at` bigint"},
 		{Name: "updated_at", DDL: "`updated_at` bigint"},
 	}
