@@ -1,9 +1,6 @@
 package system_setting
 
 import (
-	"net/url"
-	"strings"
-
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/setting/config"
 )
@@ -33,18 +30,8 @@ func init() {
 }
 
 func GetPasskeySettings() *PasskeySettings {
-	if defaultPasskeySettings.RPID == "" && ServerAddress != "" {
-		// 从ServerAddress提取域名作为RPID
-		// ServerAddress可能是 "https://newapi.pro" 这种格式
-		serverAddr := strings.TrimSpace(ServerAddress)
-		if parsed, err := url.Parse(serverAddr); err == nil && parsed.Host != "" {
-			defaultPasskeySettings.RPID = parsed.Host
-		} else {
-			defaultPasskeySettings.RPID = serverAddr
-		}
-	}
-	if defaultPasskeySettings.Origins == "" || defaultPasskeySettings.Origins == "[]" {
-		defaultPasskeySettings.Origins = ServerAddress
-	}
+	// Leave RP ID and origins empty when they are not explicitly configured.
+	// The WebAuthn service derives them from the current request so a stale
+	// development ServerAddress cannot leak into a production deployment.
 	return &defaultPasskeySettings
 }
