@@ -33,6 +33,17 @@ export async function getUserQuotaDates(
   return res.data
 }
 
+export async function getUserSuccessfulRequestStatus(): Promise<{
+  success: boolean
+  data?: { has_successful_request?: boolean }
+}> {
+  const res = await api.get<{
+    success: boolean
+    data?: { has_successful_request?: boolean }
+  }>('/api/user/self/success')
+  return res.data
+}
+
 // ----------------------------------------------------------------------------
 // System Monitoring
 // ----------------------------------------------------------------------------

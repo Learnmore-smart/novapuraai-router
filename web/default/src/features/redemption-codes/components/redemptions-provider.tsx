@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 
 import useDialogState from '@/hooks/use-dialog'
 
-import { type Redemption, type RedemptionsDialogType } from '../types'
+import type { Redemption, RedemptionsDialogType } from '../types'
 
 type RedemptionsContextType = {
   open: RedemptionsDialogType | null

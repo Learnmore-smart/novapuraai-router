@@ -135,6 +135,14 @@ function describeGroup(
     .join(' && ')
 }
 
+function getTierKey(tier: ParsedTier): string {
+  return JSON.stringify(tier)
+}
+
+function getRuleGroupKey(group: RequestRuleGroup): string {
+  return JSON.stringify(group)
+}
+
 export function DynamicPricingBreakdown({
   billingExpr,
   matchedTierLabel,
@@ -242,7 +250,7 @@ export function DynamicPricingBreakdown({
             {t('Tiered price table')}
           </div>
           <div className='space-y-1.5 sm:hidden'>
-            {tiers.map((tier, i) => {
+            {tiers.map((tier) => {
               const condSummary = formatConditionSummary(tier.conditions, t)
               const isMatched =
                 matchedTierLabel != null &&
@@ -250,7 +258,7 @@ export function DynamicPricingBreakdown({
                 tier.label === matchedTierLabel
               return (
                 <div
-                  key={`tier-mobile-${i}`}
+                  key={`tier-mobile-${getTierKey(tier)}`}
                   className={cn(
                     'rounded-md border p-2',
                     isMatched && 'border-emerald-500/40 bg-emerald-500/10'
@@ -314,7 +322,7 @@ export function DynamicPricingBreakdown({
             }
             headerRowClassName='hover:bg-transparent'
             data={tiers}
-            getRowKey={(_tier, index) => `tier-${index}`}
+            getRowKey={(tier) => `tier-${getTierKey(tier)}`}
             getRowClassName={(tier) => {
               const isMatched =
                 normalizedMatchedTierLabel !== '' &&
@@ -407,9 +415,9 @@ export function DynamicPricingBreakdown({
             {t('Conditional multipliers')}
           </div>
           <ul className='space-y-1.5'>
-            {ruleGroups.map((group, gi) => (
+            {ruleGroups.map((group) => (
               <li
-                key={`group-${gi}`}
+                key={`group-${getRuleGroupKey(group)}`}
                 className='bg-muted/50 flex items-center justify-between gap-3 rounded-md px-3 py-2'
               >
                 <span

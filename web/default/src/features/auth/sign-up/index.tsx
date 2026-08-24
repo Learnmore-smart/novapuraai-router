@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
 import { useStatus } from '@/hooks/use-status'
+import { formatPublicCurrency, getRegisterPromo } from '@/lib/public-status'
 
 import { AuthLayout } from '../auth-layout'
 import { TermsFooter } from '../components/terms-footer'
@@ -10,6 +11,7 @@ import { SignUpForm } from './components/sign-up-form'
 export function SignUp() {
   const { t } = useTranslation()
   const { status } = useStatus()
+  const registerPromo = getRegisterPromo(status)
 
   return (
     <AuthLayout>
@@ -23,6 +25,17 @@ export function SignUp() {
               'Open a prepaid workspace, generate an API key, and start routing models through one compatible endpoint.'
             )}
           </p>
+          {registerPromo && (
+            <p className='text-muted-foreground text-sm leading-6'>
+              {t('New accounts receive {{amount}} in API credits.', {
+                amount:
+                  formatPublicCurrency(
+                    registerPromo.amount,
+                    registerPromo.currency
+                  ) || '—',
+              })}
+            </p>
+          )}
           <p className='text-muted-foreground text-sm'>
             {t('Already have an account?')}{' '}
             <Link

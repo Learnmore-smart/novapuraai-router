@@ -1,6 +1,7 @@
 import { ChevronRight, Copy } from 'lucide-react'
 import { memo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from '@tanstack/react-router'
 
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { getLobeIcon } from '@/lib/lobe-icon'
@@ -12,6 +13,7 @@ import {
   getDynamicPricingSummary,
 } from '../lib/dynamic-price'
 import { parseTags } from '../lib/filters'
+import { getModelProfilePath } from '../lib/model-profile'
 import { isTokenBasedModel } from '../lib/model-helpers'
 import {
   formatPrice,
@@ -25,7 +27,7 @@ import { ModelPerfBadge, type ModelPerfBadgeData } from './model-perf-badge'
 
 export interface ModelCardProps {
   model: PricingModel
-  onClick: () => void
+  onClick?: () => void
   priceRate?: number
   usdExchangeRate?: number
   tokenUnit?: TokenUnit
@@ -246,7 +248,12 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
           </div>
           <div className='min-w-0'>
             <h3 className='text-foreground truncate font-mono text-[15px] leading-tight font-bold'>
-              {props.model.model_name}
+              <Link
+                className='rounded-sm underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+                to={getModelProfilePath(props.model.model_name || '')}
+              >
+                {props.model.model_name}
+              </Link>
             </h3>
             <div className='mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm sm:mt-1 sm:gap-x-3'>
               {priceSummary}
@@ -255,21 +262,24 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
         </div>
 
         <div className='flex shrink-0 items-center gap-1.5'>
-          <button
-            type='button'
-            onClick={props.onClick}
-            className='text-muted-foreground hover:text-foreground hover:bg-muted inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors sm:px-2.5 sm:py-1.5'
-          >
-            {t('Details')}
-            <ChevronRight className='size-3.5' />
-          </button>
+          {props.onClick && (
+            <button
+              type='button'
+              onClick={props.onClick}
+              className='text-muted-foreground hover:text-foreground hover:bg-muted inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:px-2.5 sm:py-1.5'
+            >
+              {t('Details')}
+              <ChevronRight className='size-3.5' aria-hidden='true' />
+            </button>
+          )}
           <button
             type='button'
             onClick={handleCopy}
-            className='text-muted-foreground hover:text-foreground hover:bg-muted rounded-md border p-1.5 transition-colors'
+            aria-label={t('Copy')}
+            className='text-muted-foreground hover:text-foreground hover:bg-muted rounded-md border p-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
             title={t('Copy')}
           >
-            <Copy className='size-3.5' />
+            <Copy className='size-3.5' aria-hidden='true' />
           </button>
         </div>
       </div>

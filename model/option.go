@@ -213,12 +213,43 @@ func InitOptionMap() {
 	}
 
 	common.OptionMapRWMutex.Unlock()
-	loadOptionsFromDatabase()
+	if err := loadOptionsFromDatabase(); err != nil {
+		common.FatalLog("failed to load model pricing options safely: " + err.Error())
+	}
 	common.ApplyEnvManagedSecrets()
 }
 
-func loadOptionsFromDatabase() {
-	options, _ := AllOption()
+func loadOptionsFromDatabase() error {
+	var options []*Option
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		if err := lockForUpdate(tx).Find(&options).Error; err != nil {
+			return err
+		}
+		for _, option := range options {
+			repaired, changed, err := ratio_setting.RepairModelPricingOptionValue(option.Key, option.Value)
+			if err != nil {
+				return fmt.Errorf("repair persisted model pricing option %s: %w", option.Key, err)
+			}
+			if !changed {
+				continue
+			}
+			result := tx.Model(&Option{}).
+				Where("key = ? AND value = ?", option.Key, option.Value).
+				Update("value", repaired)
+			if result.Error != nil {
+				return result.Error
+			}
+			if result.RowsAffected != 1 {
+				return fmt.Errorf("pricing option %s changed concurrently; retry after administrator review", option.Key)
+			}
+			option.Value = repaired
+		}
+		return repairCanonicalDeepSeekModelMetadata(tx)
+	})
+	if err != nil {
+		return err
+	}
+
 	for _, option := range options {
 		// Strictly environment-managed secrets must never be hydrated from the
 		// options table. Turnstile is intentionally excluded so the Dashboard
@@ -228,7 +259,7 @@ func loadOptionsFromDatabase() {
 		}
 		err := updateOptionMap(option.Key, option.Value)
 		if err != nil {
-			common.SysLog("failed to update option map: " + err.Error())
+			return fmt.Errorf("update option map %s: %w", option.Key, err)
 		}
 	}
 	for _, environment := range []string{StripeEnvironmentTest, StripeEnvironmentProduction} {
@@ -243,13 +274,17 @@ func loadOptionsFromDatabase() {
 		}
 		setting.SetStripeCredentialProfile(environment, credentials.SecretKey, credentials.PublishableKey, credentials.WebhookSecret)
 	}
+	return nil
 }
 
 func SyncOptions(frequency int) {
 	for {
 		time.Sleep(time.Duration(frequency) * time.Second)
 		common.SysLog("syncing options from database")
-		loadOptionsFromDatabase()
+		if err := loadOptionsFromDatabase(); err != nil {
+			common.SysError("failed to synchronize options safely: " + err.Error())
+			continue
+		}
 		common.ApplyEnvManagedSecrets()
 	}
 }
@@ -262,6 +297,10 @@ func UpdateOption(key string, value string) error {
 		if err := setting.ValidateBillingCurrencyConfigJSON(value); err != nil {
 			return err
 		}
+	}
+	current := currentOptionValues()
+	if err := ratio_setting.ValidateModelPricingOptionChanges(map[string]string{key: value}, current); err != nil {
+		return err
 	}
 	// Save to database first
 	option := Option{
@@ -312,6 +351,9 @@ func UpdateOptionsBulk(values map[string]string) error {
 			return err
 		}
 	}
+	if err := ratio_setting.ValidateModelPricingOptionChanges(values, currentOptionValues()); err != nil {
+		return err
+	}
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		for k, v := range values {
 			option := Option{Key: k}
@@ -336,7 +378,20 @@ func UpdateOptionsBulk(values map[string]string) error {
 	return nil
 }
 
+func currentOptionValues() map[string]string {
+	common.OptionMapRWMutex.RLock()
+	defer common.OptionMapRWMutex.RUnlock()
+	values := make(map[string]string, len(common.OptionMap))
+	for key, value := range common.OptionMap {
+		values[key] = value
+	}
+	return values
+}
+
 func updateOptionMap(key string, value string) (err error) {
+	if err := ratio_setting.ValidateModelPricingOptionValue(key, value); err != nil {
+		return err
+	}
 	common.OptionMapRWMutex.Lock()
 	defer common.OptionMapRWMutex.Unlock()
 	if key == "BillingCurrencyConfig" {
@@ -735,6 +790,9 @@ func updateOptionMap(key string, value string) (err error) {
 		// WaffoPayMethods is read directly from OptionMap via setting.GetWaffoPayMethods().
 		// The value is already stored in OptionMap at the top of this function (line: common.OptionMap[key] = value).
 		// No additional in-memory variable to update.
+	}
+	if err == nil && ratio_setting.IsModelPricingOptionKey(key) {
+		InvalidatePricingCache()
 	}
 	return err
 }

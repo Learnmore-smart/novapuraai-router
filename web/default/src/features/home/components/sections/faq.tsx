@@ -12,19 +12,26 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useFAQ } from '@/features/dashboard/hooks/use-status-data'
 import type { FAQItem } from '@/features/dashboard/types'
 import { toFAQTranslationLanguage } from '@/features/system-settings/content/faq-json'
+import { formatPublicCurrency, getRegisterPromo } from '@/lib/public-status'
+import { useStatus } from '@/hooks/use-status'
+
+import { dedupeFAQItems } from '../../lib/home-content'
 
 export function FAQ() {
   const { t, i18n } = useTranslation()
   const { items, loading } = useFAQ()
+  const { status } = useStatus()
+  const registerPromo = getRegisterPromo(status)
   const faqLanguage = toFAQTranslationLanguage(i18n.language)
+  const uniqueItems = dedupeFAQItems(items)
 
-  if (!loading && items.length === 0) return null
+  if (!loading && uniqueItems.length === 0) return null
 
   return (
-    <section className='border-border/70 bg-card/45 border-y px-5 py-20 sm:px-6 md:py-28'>
-      <div className='mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(16rem,0.65fr)_minmax(0,1.35fr)] lg:gap-16'>
+    <section className='np-aperture-faq px-5 sm:px-6'>
+      <div className='np-aperture-container grid gap-10 lg:grid-cols-[minmax(16rem,0.65fr)_minmax(0,1.35fr)] lg:gap-16'>
         <div className='lg:sticky lg:top-24 lg:self-start'>
-          <span className='border-border bg-background text-primary inline-flex size-10 items-center justify-center rounded-lg border shadow-sm'>
+          <span className='np-aperture-faq-icon'>
             <HelpCircle className='size-5' aria-hidden='true' />
           </span>
           <p className='np-kicker mt-5'>{t('FAQ')}</p>
@@ -36,9 +43,20 @@ export function FAQ() {
               'Everything you need to know before creating a key, choosing a model, or adding credits.'
             )}
           </p>
+          {registerPromo && (
+            <p className='text-muted-foreground mt-4 max-w-md text-sm leading-7'>
+              {t('New accounts receive {{amount}} in API credits.', {
+                amount:
+                  formatPublicCurrency(
+                    registerPromo.amount,
+                    registerPromo.currency
+                  ) || '—',
+              })}
+            </p>
+          )}
         </div>
 
-        <div className='np-surface overflow-hidden'>
+        <div className='np-aperture-faq-panel overflow-hidden'>
           {loading ? (
             <div className='space-y-3 p-5 sm:p-6' aria-label={t('Loading FAQ')}>
               {[0, 1, 2].map((item) => (
@@ -47,7 +65,7 @@ export function FAQ() {
             </div>
           ) : (
             <Accordion className='w-full px-5 sm:px-6'>
-              {items.map((item: FAQItem, index: number) => {
+              {uniqueItems.map((item: FAQItem, index: number) => {
                 const key = item.id ?? `faq-${index}`
                 const translation = item.translations?.[faqLanguage]
                 const question = translation?.question ?? item.question

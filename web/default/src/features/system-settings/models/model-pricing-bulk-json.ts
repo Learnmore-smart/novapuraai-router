@@ -1,5 +1,10 @@
 import { safeJsonParse } from '../utils/json-parser'
 import { GLOBAL_MODEL_DISCOUNT_KEY } from './model-global-discount'
+import {
+  getEffectiveCompletionRatio,
+  hasPositiveTokenOutput,
+  isInvalidModelName,
+} from './model-pricing-core'
 import { formatPricingNumber } from './pricing-format'
 
 /**
@@ -113,9 +118,9 @@ export function exportPricingJson(
     } else if (ratioMap[name] !== undefined) {
       const input = ratioMap[name] * 2
       entry.input = round(input)
-      if (completionMap[name] !== undefined) {
-        entry.output = round(completionMap[name] * input)
-      }
+      entry.output = round(
+        getEffectiveCompletionRatio(name, completionMap[name]) * input
+      )
       if (cacheMap[name] !== undefined) {
         entry.cache_read = round(cacheMap[name] * input)
       }
@@ -189,6 +194,10 @@ export function applyPricingJson(
   const entries = Object.entries(parsed as Record<string, unknown>)
 
   for (const [name, rawEntry] of entries) {
+    if (isInvalidModelName(name)) {
+      errors.push(`${name}: invalid model name; trailing quote is not allowed`)
+      continue
+    }
     if (name.trim() === '') {
       errors.push('Empty model name')
       continue
@@ -229,6 +238,14 @@ export function applyPricingJson(
     }
     if (!hasPerRequest && hasLanes && !hasInput) {
       errors.push(`${name}: token prices require "input"`)
+    }
+    if (!hasPerRequest && hasInput && (entry.input as number) <= 0) {
+      errors.push(`${name}: positive input price is required for token pricing`)
+    }
+    if (!hasPerRequest && hasInput && !hasPositiveTokenOutput(entry.output)) {
+      errors.push(
+        `${name}: positive output price is required for token pricing`
+      )
     }
     if (
       entry.audio_output !== undefined &&

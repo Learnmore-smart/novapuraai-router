@@ -70,17 +70,56 @@ var (
 )
 
 func GetPricing() []Pricing {
+	updatePricingLock.Lock()
+	defer updatePricingLock.Unlock()
 	if time.Since(lastGetPricingTime) > time.Minute*1 || len(pricingMap) == 0 {
-		updatePricingLock.Lock()
-		defer updatePricingLock.Unlock()
-		// Double check after acquiring the lock
-		if time.Since(lastGetPricingTime) > time.Minute*1 || len(pricingMap) == 0 {
-			modelSupportEndpointsLock.Lock()
-			defer modelSupportEndpointsLock.Unlock()
-			updatePricing()
+		modelSupportEndpointsLock.Lock()
+		updatePricing()
+		modelSupportEndpointsLock.Unlock()
+	}
+	result := make([]Pricing, len(pricingMap))
+	for i, item := range pricingMap {
+		result[i] = item
+		result[i].EnableGroup = append([]string(nil), item.EnableGroup...)
+		result[i].SupportedEndpointTypes = append([]constant.EndpointType(nil), item.SupportedEndpointTypes...)
+		if item.CacheRatio != nil {
+			value := *item.CacheRatio
+			result[i].CacheRatio = &value
+		}
+		if item.CreateCacheRatio != nil {
+			value := *item.CreateCacheRatio
+			result[i].CreateCacheRatio = &value
+		}
+		if item.ImageRatio != nil {
+			value := *item.ImageRatio
+			result[i].ImageRatio = &value
+		}
+		if item.AudioRatio != nil {
+			value := *item.AudioRatio
+			result[i].AudioRatio = &value
+		}
+		if item.AudioCompletionRatio != nil {
+			value := *item.AudioCompletionRatio
+			result[i].AudioCompletionRatio = &value
+		}
+		if item.Discount != nil {
+			value := *item.Discount
+			result[i].Discount = &value
+		}
+		if item.BillingInputPerMillion != nil {
+			value := *item.BillingInputPerMillion
+			result[i].BillingInputPerMillion = &value
+		}
+		if item.BillingOutputPerMillion != nil {
+			value := *item.BillingOutputPerMillion
+			result[i].BillingOutputPerMillion = &value
+		}
+		if item.BillingPerRequest != nil {
+			value := *item.BillingPerRequest
+			result[i].BillingPerRequest = &value
 		}
 	}
-	return pricingMap
+	return result
 }
 
 func InvalidatePricingCache() {
@@ -94,11 +133,10 @@ func InvalidatePricingCache() {
 
 // GetVendors 返回当前定价接口使用到的供应商信息
 func GetVendors() []PricingVendor {
-	if time.Since(lastGetPricingTime) > time.Minute*1 || len(pricingMap) == 0 {
-		// 保证先刷新一次
-		GetPricing()
-	}
-	return vendorsList
+	GetPricing()
+	updatePricingLock.Lock()
+	defer updatePricingLock.Unlock()
+	return append([]PricingVendor(nil), vendorsList...)
 }
 
 func GetModelSupportEndpointTypes(model string) []constant.EndpointType {
@@ -190,6 +228,15 @@ func updatePricing() {
 		common.SysLog(fmt.Sprintf("GetAllEnableAbilityWithChannels error: %v", err))
 		return
 	}
+	validEnableAbilities := make([]AbilityWithChannel, 0, len(enableAbilities))
+	for _, ability := range enableAbilities {
+		if common.IsInvalidModelName(ability.Model) {
+			common.SysLog(fmt.Sprintf("skip invalid model name in pricing cache: %q", ability.Model))
+			continue
+		}
+		validEnableAbilities = append(validEnableAbilities, ability)
+	}
+	enableAbilities = validEnableAbilities
 	// 预加载模型元数据与供应商一次，避免循环查询
 	var allMeta []Model
 	_ = DB.Find(&allMeta).Error

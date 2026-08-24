@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { CreditCard, Sparkles } from 'lucide-react'
+import { CreditCard } from 'lucide-react'
 import { type ReactNode, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -60,14 +60,8 @@ function unavailableMessage(
   switch (offer.unavailable_reason) {
     case 'currency_unavailable':
       return translate('This currency is currently unavailable.')
-    case 'campaign_unavailable':
-      return translate('The promotion is not active right now.')
-    case 'limit_reached':
-      return translate('Your promotional redemption limit has been reached.')
-    case 'budget_reached':
-      return translate('The promotional budget has been fully allocated.')
     default:
-      return translate('This tier is currently unavailable.')
+      return translate('This top-up amount is currently unavailable.')
   }
 }
 
@@ -163,13 +157,12 @@ export function StripeTopupCard() {
     if (customQuote) {
       selectionSummary = (
         <>
-          {t('Pay')} {customQuote.payment_display} · {t('Bonus')} +
-          {customQuote.bonus_display} · {t('Receive')}{' '}
+          {t('Pay')} {customQuote.payment_display} · {t('Receive')}{' '}
           <strong>{customQuote.total_display}</strong>
         </>
       )
     } else if (customAmountValid) {
-      selectionSummary = t('Calculating bonus')
+      selectionSummary = t('Calculating top-up')
     } else {
       selectionSummary = t('Please enter a valid number')
     }
@@ -186,9 +179,9 @@ export function StripeTopupCard() {
     <Card>
       <CardHeader className='border-b'>
         <CardTitle className='flex flex-wrap items-center gap-2'>
-          <Sparkles aria-hidden='true' />
-          {t('Launch API credit boost')}
-          <Badge variant='secondary'>{t('Every eligible top-up')}</Badge>
+          <CreditCard aria-hidden='true' />
+          {t('Add API credits')}
+          <Badge variant='secondary'>{t('1:1 credit')}</Badge>
           {topup.config.sandbox ? (
             <Badge variant='outline'>{t('Sandbox')}</Badge>
           ) : null}
@@ -250,11 +243,7 @@ export function StripeTopupCard() {
           <FieldSet>
             <FieldLegend>{t('Choose your top-up')}</FieldLegend>
             <FieldDescription>
-              {topup.config.repeatable
-                ? t(
-                    'The matching bonus applies on every eligible successful top-up while the campaign is active.'
-                  )
-                : t('Campaign redemption limits currently apply.')}
+              {t('Top-ups are credited 1:1 with the amount paid.')}
             </FieldDescription>
             <RadioGroup
               value={
@@ -283,16 +272,10 @@ export function StripeTopupCard() {
                       />
                     </div>
                     <div className='mt-2 flex flex-col gap-1 font-mono tabular-nums'>
-                      <span className='text-muted-foreground text-xs'>
-                        {t('Bonus')} +{offer.bonus_display}
-                      </span>
                       <span className='text-lg font-semibold'>
-                        {offer.total_display} {t('total')}
+                        {t('Receive')} {offer.total_display}
                       </span>
                     </div>
-                    {offer.recommended ? (
-                      <Badge variant='secondary'>{t('Recommended')}</Badge>
-                    ) : null}
                     {!offer.available ? (
                       <FieldDescription>
                         {unavailableMessage(offer, t)}
@@ -335,9 +318,7 @@ export function StripeTopupCard() {
         </Field>
 
         <p className='text-muted-foreground text-xs leading-relaxed'>
-          {t(
-            'Promotional credits cannot be withdrawn or transferred. Future campaign rules may change, but completed payments and issued credits are not changed retroactively.'
-          )}
+          {t('Top-ups do not include bonus credits.')}
         </p>
       </CardContent>
 

@@ -348,6 +348,9 @@ func updateChannelUpstreamModelSettings(channel *model.Channel, settings dto.Cha
 		"settings": channel.OtherSettings,
 	}
 	if updateModels {
+		if err := model.ValidateChannelModelNames(channel.Models); err != nil {
+			return err
+		}
 		updates["models"] = channel.Models
 	}
 	return model.DB.Model(&model.Channel{}).Where("id = ?", channel.Id).Updates(updates).Error

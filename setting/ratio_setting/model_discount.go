@@ -54,8 +54,12 @@ func ModelDiscount2JSONString() string {
 }
 
 func UpdateModelDiscountByJSONString(jsonStr string) error {
+	normalized, err := normalizeModelPricingOptionValue("ModelDiscount", jsonStr)
+	if err != nil {
+		return err
+	}
 	var parsed map[string]float64
-	if err := common.Unmarshal([]byte(jsonStr), &parsed); err != nil {
+	if err := common.Unmarshal([]byte(normalized), &parsed); err != nil {
 		return err
 	}
 	for name, rate := range parsed {
@@ -63,7 +67,7 @@ func UpdateModelDiscountByJSONString(jsonStr string) error {
 			return fmt.Errorf("model discount for %q must be within (0, 1], got %v", name, rate)
 		}
 	}
-	return types.LoadFromJsonStringWithCallback(modelDiscountMap, jsonStr, InvalidateExposedDataCache)
+	return types.LoadFromJsonStringWithCallback(modelDiscountMap, normalized, InvalidateExposedDataCache)
 }
 
 func GetModelDiscountCopy() map[string]float64 {

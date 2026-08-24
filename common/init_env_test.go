@@ -1,11 +1,34 @@
 package common
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestLookupEnvDistinguishesUnsetAndBlank(t *testing.T) {
+	const key = "CODEX_LOOKUP_ENV_TEST"
+	original, wasSet := os.LookupEnv(key)
+	t.Cleanup(func() {
+		if wasSet {
+			_ = os.Setenv(key, original)
+			return
+		}
+		_ = os.Unsetenv(key)
+	})
+
+	_ = os.Unsetenv(key)
+	value, found := LookupEnv(key)
+	require.False(t, found)
+	assert.Equal(t, "", value)
+
+	t.Setenv(key, "")
+	value, found = LookupEnv(key)
+	require.True(t, found)
+	assert.Equal(t, "", value)
+}
 
 func TestResolveListeningPort(t *testing.T) {
 	tests := []struct {

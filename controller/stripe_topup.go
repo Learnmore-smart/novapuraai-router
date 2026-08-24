@@ -10,6 +10,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/service/stripesubscription"
 	"github.com/QuantumNous/new-api/service/stripetopup"
 	"github.com/QuantumNous/new-api/setting"
 
@@ -376,7 +377,13 @@ func AdminRetryTopupCredit(c *gin.Context) {
 // Also falls back to legacy fulfillOrder for old TopUp trade_no.
 func StripeWebhookV2(c *gin.Context) {
 	ctx := c.Request.Context()
-	if !isStripeWebhookEnabled() {
+	topupEnabled := isStripeWebhookEnabled()
+	recurringEnabled, recurringConfigErr := stripesubscription.IsWebhookEnabledWithError()
+	if recurringConfigErr != nil && !topupEnabled {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if !topupEnabled && !recurringEnabled {
 		c.AbortWithStatus(http.StatusForbidden)
 		return
 	}
@@ -392,6 +399,32 @@ func StripeWebhookV2(c *gin.Context) {
 	if err != nil {
 		logger.LogWarn(ctx, "stripe webhook v2 sig fail: "+err.Error())
 		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	ctx = stripesubscription.WithVerifiedWebhookContext(ctx)
+
+	// Recurring events must be classified before the legacy top-up processor
+	// claims the shared event ledger. A valid recurring marker is never allowed
+	// to fall through to a one-time payment handler.
+	if stripesubscription.IsRecurringEvent(event) {
+		if recurringConfigErr != nil {
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		if !recurringEnabled {
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
+		if err := stripesubscription.HandleRecurringEvent(ctx, event); err != nil {
+			logger.LogWarn(ctx, "stripe recurring webhook process: "+err.Error())
+			if errors.Is(err, stripesubscription.ErrRecurringPaymentMismatch) {
+				c.Status(http.StatusBadRequest)
+				return
+			}
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		c.Status(http.StatusOK)
 		return
 	}
 

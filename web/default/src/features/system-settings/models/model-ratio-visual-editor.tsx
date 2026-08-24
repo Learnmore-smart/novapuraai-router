@@ -33,7 +33,11 @@ import { combineBillingExpr } from '@/features/pricing/lib/billing-expr'
 import { useMediaQuery } from '@/hooks'
 
 import { safeJsonParse } from '../utils/json-parser'
-import type { PricingMode } from './model-pricing-core'
+import {
+  hasRequiredTokenOutput,
+  isInvalidModelName,
+  type PricingMode,
+} from './model-pricing-core'
 import {
   ModelPricingEditorPanel,
   type ModelPricingEditorPanelHandle,
@@ -496,6 +500,18 @@ const ModelRatioVisualEditorComponent = forwardRef<
 
   const persistPricingData = useCallback(
     (data: ModelRatioData, targetNames: string[] = [data.name]) => {
+      if (
+        isInvalidModelName(data.name) ||
+        targetNames.some((name) => isInvalidModelName(name))
+      ) {
+        toast.error(t('Invalid model mapping format'))
+        return false
+      }
+      if (!hasRequiredTokenOutput(data)) {
+        toast.error(t('Amount must be greater than 0'))
+        return false
+      }
+
       const priceMap = safeJsonParse<Record<string, number>>(modelPrice, {
         fallback: {},
         silent: true,
@@ -634,6 +650,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
         'billing_setting.billing_expr',
         JSON.stringify(billingExprMap, null, 2)
       )
+      return true
     },
     [
       modelPrice,
@@ -647,6 +664,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
       modelDiscount,
       billingMode,
       billingExpr,
+      t,
       onChange,
     ]
   )
@@ -676,9 +694,13 @@ const ModelRatioVisualEditorComponent = forwardRef<
 
     // Persist to the source model too, so targets never carry pricing the
     // source itself would lose if the editor draft were abandoned.
-    persistPricingData(sourceData, [
-      ...new Set([sourceData.name, ...targetNames]),
-    ])
+    if (
+      !persistPricingData(sourceData, [
+        ...new Set([sourceData.name, ...targetNames]),
+      ])
+    ) {
+      return
+    }
     table.resetRowSelection()
     toast.success(
       t('Applied {{name}} pricing to {{count}} models', {
@@ -695,7 +717,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
         if (!editorOpen || !editorPanelRef.current) return true
         const data = await editorPanelRef.current.commitDraft()
         if (!data) return false
-        persistPricingData(data)
+        if (!persistPricingData(data)) return false
         setEditData(data)
         return true
       },

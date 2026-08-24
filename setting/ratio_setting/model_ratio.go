@@ -239,6 +239,7 @@ var defaultModelRatio = map[string]float64{
 	"command-r-plus":         1.5,
 	"command-r-08-2024":      0.075,
 	"command-r-plus-08-2024": 1.25,
+	"deepseek-v4-flash-0731": 0.11,
 	"deepseek-chat":          0.27 / 2,
 	"deepseek-coder":         0.27 / 2,
 	"deepseek-reasoner":      0.55 / 2, // 0.55 / 1k tokens
@@ -331,12 +332,13 @@ var modelRatioMap = types.NewRWMap[string, float64]()
 var completionRatioMap = types.NewRWMap[string, float64]()
 
 var defaultCompletionRatio = map[string]float64{
-	"gpt-4-gizmo-*":  2,
-	"gpt-4o-gizmo-*": 3,
-	"gpt-4-all":      2,
-	"gpt-image-1":    8,
-	"grok-4.5":       3, // $6 out / $2 in
-	"grok-4":         3,
+	"gpt-4-gizmo-*":          2,
+	"gpt-4o-gizmo-*":         3,
+	"gpt-4-all":              2,
+	"gpt-image-1":            8,
+	"deepseek-v4-flash-0731": 3,
+	"grok-4.5":               3, // $6 out / $2 in
+	"grok-4":                 3,
 }
 
 // InitRatioSettings initializes all model related settings maps
@@ -360,7 +362,11 @@ func ModelPrice2JSONString() string {
 }
 
 func UpdateModelPriceByJSONString(jsonStr string) error {
-	return types.LoadFromJsonStringWithCallback(modelPriceMap, jsonStr, InvalidateExposedDataCache)
+	normalized, err := normalizeModelPricingOptionValue("ModelPrice", jsonStr)
+	if err != nil {
+		return err
+	}
+	return types.LoadFromJsonStringWithCallback(modelPriceMap, normalized, InvalidateExposedDataCache)
 }
 
 // GetModelPrice 返回模型的价格，如果模型不存在则返回-1，false
@@ -389,7 +395,11 @@ func GetModelPrice(name string, printErr bool) (float64, bool) {
 }
 
 func UpdateModelRatioByJSONString(jsonStr string) error {
-	return types.LoadFromJsonStringWithCallback(modelRatioMap, jsonStr, InvalidateExposedDataCache)
+	normalized, err := normalizeModelPricingOptionValue("ModelRatio", jsonStr)
+	if err != nil {
+		return err
+	}
+	return types.LoadFromJsonStringWithCallback(modelRatioMap, normalized, InvalidateExposedDataCache)
 }
 
 // 处理带有思考预算的模型名称，方便统一定价
@@ -437,7 +447,11 @@ func CompletionRatio2JSONString() string {
 }
 
 func UpdateCompletionRatioByJSONString(jsonStr string) error {
-	return types.LoadFromJsonStringWithCallback(completionRatioMap, jsonStr, InvalidateExposedDataCache)
+	normalized, err := normalizeModelPricingOptionValue("CompletionRatio", jsonStr)
+	if err != nil {
+		return err
+	}
+	return types.LoadFromJsonStringWithCallback(completionRatioMap, normalized, InvalidateExposedDataCache)
 }
 
 func GetCompletionRatio(name string) float64 {
@@ -675,7 +689,11 @@ func ImageRatio2JSONString() string {
 }
 
 func UpdateImageRatioByJSONString(jsonStr string) error {
-	return types.LoadFromJsonString(imageRatioMap, jsonStr)
+	normalized, err := normalizeModelPricingOptionValue("ImageRatio", jsonStr)
+	if err != nil {
+		return err
+	}
+	return types.LoadFromJsonString(imageRatioMap, normalized)
 }
 
 func GetImageRatio(name string) (float64, bool) {
@@ -691,7 +709,11 @@ func AudioRatio2JSONString() string {
 }
 
 func UpdateAudioRatioByJSONString(jsonStr string) error {
-	return types.LoadFromJsonStringWithCallback(audioRatioMap, jsonStr, InvalidateExposedDataCache)
+	normalized, err := normalizeModelPricingOptionValue("AudioRatio", jsonStr)
+	if err != nil {
+		return err
+	}
+	return types.LoadFromJsonStringWithCallback(audioRatioMap, normalized, InvalidateExposedDataCache)
 }
 
 func AudioCompletionRatio2JSONString() string {
@@ -699,7 +721,11 @@ func AudioCompletionRatio2JSONString() string {
 }
 
 func UpdateAudioCompletionRatioByJSONString(jsonStr string) error {
-	return types.LoadFromJsonStringWithCallback(audioCompletionRatioMap, jsonStr, InvalidateExposedDataCache)
+	normalized, err := normalizeModelPricingOptionValue("AudioCompletionRatio", jsonStr)
+	if err != nil {
+		return err
+	}
+	return types.LoadFromJsonStringWithCallback(audioCompletionRatioMap, normalized, InvalidateExposedDataCache)
 }
 
 func GetModelRatioCopy() map[string]float64 {

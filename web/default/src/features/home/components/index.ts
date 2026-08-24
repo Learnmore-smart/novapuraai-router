@@ -1,3 +1,5 @@
+export { NApertureHome } from './n-aperture-home'
+export { NAperture } from './n-aperture'
 export { CTA } from './sections/cta'
 export { FAQ } from './sections/faq'
 export { Features } from './sections/features'

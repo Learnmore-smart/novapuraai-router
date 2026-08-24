@@ -27,8 +27,8 @@ import {
 const route = getRouteApi('/_authenticated/models/$section')
 
 const SECTION_META: Record<ModelsSectionId, { titleKey: string }> = {
-  metadata: {
-    titleKey: 'Metadata',
+  catalog: {
+    titleKey: 'Model Catalog',
   },
   deployments: {
     titleKey: 'Deployments',
@@ -63,14 +63,14 @@ function ModelsContent() {
     [navigate]
   )
 
-  const meta = SECTION_META[activeSection] ?? SECTION_META.metadata
+  const meta = SECTION_META[activeSection] ?? SECTION_META.catalog
 
   return (
     <>
       <SectionPageLayout fixedContent>
         <SectionPageLayout.Title>{t(meta.titleKey)}</SectionPageLayout.Title>
         <SectionPageLayout.Actions>
-          {activeSection === 'metadata' ? (
+          {activeSection === 'catalog' ? (
             <ModelsPrimaryButtons />
           ) : (
             <Button onClick={() => setCreateDeploymentOpen(true)} size='sm'>
@@ -91,7 +91,7 @@ function ModelsContent() {
               </TabsList>
             </Tabs>
             <div className='min-h-0 flex-1'>
-              {activeSection === 'metadata' ? (
+              {activeSection === 'catalog' ? (
                 <ModelsTable />
               ) : (
                 <DeploymentsSection />

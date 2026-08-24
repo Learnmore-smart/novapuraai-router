@@ -37,8 +37,12 @@ func SubscriptionRequestCreemPay(c *gin.Context) {
 		return
 	}
 
-	plan, err := model.GetSubscriptionPlanById(req.PlanId)
+	plan, err := model.GetSubscriptionPlanByIdNoCache(req.PlanId)
 	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if err := model.ValidatePurchasableSubscriptionPlan(plan, model.PaymentProviderCreem); err != nil {
 		common.ApiError(c, err)
 		return
 	}

@@ -1,9 +1,9 @@
 export function normalizeModelList(models: unknown[] = []): string[] {
-  return Array.from(
-    new Set(
+  return [
+    ...new Set(
       (models || []).map((model) => String(model || '').trim()).filter(Boolean)
-    )
-  )
+    ),
+  ]
 }
 
 export function parseUpstreamUpdateMeta(settings: unknown): {

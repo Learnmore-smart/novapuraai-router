@@ -5,8 +5,8 @@ import { createSectionRegistry } from '@/features/system-settings/utils/section-
  */
 const MODELS_SECTIONS = [
   {
-    id: 'metadata',
-    titleKey: 'Metadata',
+    id: 'catalog',
+    titleKey: 'Model Catalog',
     build: () => null, // Content is rendered directly in the page component
   },
   {
@@ -24,7 +24,7 @@ const modelsRegistry = createSectionRegistry<
   []
 >({
   sections: MODELS_SECTIONS,
-  defaultSection: 'metadata',
+  defaultSection: 'catalog',
   basePath: '/models',
   urlStyle: 'path',
 })

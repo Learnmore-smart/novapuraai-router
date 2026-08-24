@@ -125,6 +125,15 @@ For commercial licensing, please contact support@quantumnous.com
     'JetBrains Mono', 'SF Mono', 'Cascadia Code', 'Fira Code', ui-monospace,
     monospace;
 
+  /* N Aperture: the public canvas stays quiet; signal colors are consumed
+   * only by the clipped routing mark and its aperture. */
+  --np-aperture-canvas: #f7f7f5;
+  --np-aperture-ink: #111318;
+  --np-aperture-coral: #ff4a2a;
+  --np-aperture-solar: #ffc53d;
+  --np-aperture-violet: #6d55ff;
+  --np-aperture-green: #18a66a;
+
   /* Surfaces — warm off-white with a faint orange tint, echoing the
    * logo's warm neutrals (hue ~45–70). */
   --background: oklch(0.985 0.003 255);

@@ -97,7 +97,11 @@ describe('bulk pricing JSON', () => {
       )
     )
 
-    assert.deepEqual(exported.configured, { input: 3, discount: 0.9 })
+    assert.deepEqual(exported.configured, {
+      input: 3,
+      output: 3,
+      discount: 0.9,
+    })
     assert.equal(exported['unset-model'], null)
     assert.equal(exported['*'], undefined)
   })
@@ -106,6 +110,7 @@ describe('bulk pricing JSON', () => {
     const json = exportPricingJson({
       ...emptyMaps,
       modelRatio: '{"no-discount":1.5}',
+      completionRatio: '{"no-discount":3}',
       modelDiscount: '{"no-discount":0}',
     })
     const exported = JSON.parse(json)
@@ -203,12 +208,77 @@ describe('bulk pricing JSON', () => {
     }
   })
 
+  test('requires a positive output price for token entries', () => {
+    const result = applyPricingJson(emptyMaps, '{"token-model":{"input":3}}')
+    assert.equal(result.ok, false)
+    assert.match(result.errors.join('\n'), /positive.*output/i)
+  })
+
+  test('rejects non-positive token input even when output is positive', () => {
+    const result = applyPricingJson(
+      emptyMaps,
+      JSON.stringify({ 'zero-input-model': { input: 0, output: 5 } })
+    )
+
+    assert.equal(result.ok, false)
+    assert.match(result.errors.join('\n'), /positive.*input/i)
+  })
+
+  test('keeps per-request pricing exempt from the token output requirement', () => {
+    const result = applyPricingJson(
+      emptyMaps,
+      JSON.stringify({ 'fixed-model': { per_request: 0 } })
+    )
+    assert.ok(result.ok)
+    assert.equal(JSON.parse(result.updates.ModelPrice)['fixed-model'], 0)
+  })
+
+  test('keeps DeepSeek 0.11 ratio and 3 completion ratio through Unified JSON', () => {
+    const exported = JSON.parse(
+      exportPricingJson({
+        ...emptyMaps,
+        modelRatio: '{"deepseek-v4-flash-0731":0.11}',
+        completionRatio: '{"deepseek-v4-flash-0731":3}',
+      })
+    )
+    assert.deepEqual(exported['deepseek-v4-flash-0731'], {
+      input: 0.22,
+      output: 0.66,
+    })
+
+    const applied = applyPricingJson(emptyMaps, JSON.stringify(exported))
+    assert.ok(applied.ok)
+    assert.equal(
+      JSON.parse(applied.updates.ModelRatio)['deepseek-v4-flash-0731'],
+      0.11
+    )
+    assert.equal(
+      JSON.parse(applied.updates.CompletionRatio)['deepseek-v4-flash-0731'],
+      3
+    )
+  })
+
+  test('rejects invalid model names before any pricing update is produced', () => {
+    const result = applyPricingJson(
+      emptyMaps,
+      JSON.stringify({
+        valid: { input: 1, output: 2 },
+        'invalid-model"': { input: 1, output: 2 },
+      })
+    )
+    assert.equal(result.ok, false)
+    assert.match(result.errors.join('\n'), /invalid.*model.*quote/i)
+  })
+
   test('models omitted from the document stay untouched', () => {
     const maps: BulkPricingMaps = {
       ...emptyMaps,
       modelRatio: '{"kept":2}',
     }
-    const result = applyPricingJson(maps, '{"new-model": {"input": 1}}')
+    const result = applyPricingJson(
+      maps,
+      '{"new-model": {"input": 1, "output": 3}}'
+    )
     assert.ok(result.ok)
     const ratio = JSON.parse(result.updates.ModelRatio)
     assert.equal(ratio.kept, 2)
@@ -226,7 +296,10 @@ describe('bulk pricing JSON', () => {
     assert.deepEqual(result.skippedTiered, ['expr-model'])
     assert.deepEqual(JSON.parse(result.updates.ModelDiscount), {})
     // Providing real prices converts the model off expression billing.
-    const converted = applyPricingJson(maps, '{"expr-model": {"input": 3}}')
+    const converted = applyPricingJson(
+      maps,
+      '{"expr-model": {"input": 3, "output": 9}}'
+    )
     assert.ok(converted.ok)
     assert.deepEqual(
       JSON.parse(converted.updates['billing_setting.billing_mode']),

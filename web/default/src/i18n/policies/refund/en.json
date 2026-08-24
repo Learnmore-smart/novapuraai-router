@@ -1,0 +1,110 @@
+{
+  "refund": {
+    "title": "REFUND POLICY",
+    "lastUpdated": "Last updated July 15, 2026",
+    "intro": {
+      "p1": "This Refund Policy describes how refunds work for NovaPuraAI (\"we,\" \"us,\" or \"our\") on {websiteUrl} (the \"Site\") and any related prepaid API gateway services (the \"Services\").",
+      "p2": "We operate on a prepaid model: you top up a wallet balance and we deduct quota per request at the price then in effect. Your wallet may contain two ledger types — cash balance (paid funds) and promotional / gift balance (bonus, referral, campaign, or administrator grants). They are accounted separately and consumed in a defined order.",
+      "p3": "If you have any questions about this policy, contact us at support@novapuraai.com with your account email, order ID or transaction reference, and a short description of the issue.",
+      "p4": "This page is the product default. If you self-host NovaPuraAI / New API, replace this text with your own legal terms before public launch where the default does not match your jurisdiction or business model."
+    },
+    "toc": {
+      "title": "TABLE OF CONTENTS",
+      "s1": "OVERVIEW & PRINCIPLES",
+      "s2": "WALLET STRUCTURE: CASH VS PROMOTIONAL CREDIT",
+      "s3": "NON-REFUNDABLE USAGE",
+      "s4": "ELIGIBLE REFUNDS",
+      "s5": "HOW TO REQUEST A REFUND",
+      "s6": "PROCESSING METHOD & TIMELINE",
+      "s7": "SUBSCRIPTIONS & RECURRING CHARGES",
+      "s8": "CHARGEBACKS & REVERSALS",
+      "s9": "MISUSE, ABUSE, AND DENIAL",
+      "s10": "CHANGES & CONTACT"
+    },
+    "sections": {
+      "s1": {
+        "title": "1. OVERVIEW & PRINCIPLES",
+        "p1": "Refund eligibility is determined at the order and wallet-ledger level. A successful payment that has already been credited to your wallet and partially or fully consumed by successful API usage is not refundable, except where required by applicable law.",
+        "p2": "We assess each request against three questions: (a) was there a charge, (b) was the corresponding wallet credit delivered, and (c) was that credit already consumed by successful requests? If (a) is true but (b) failed, a refund or re-credit is owed. If (a) and (b) succeeded and (c) has occurred, no refund is owed.",
+        "p3": "All amounts are handled in integer minor units by the payment processor (for example, $19.99 is 1999 cents as a single Stripe Checkout line item with quantity 1). What you see as \"quota\" in the dashboard is the converted internal balance after the processor confirms settlement."
+      },
+      "s2": {
+        "title": "2. WALLET STRUCTURE: CASH VS PROMOTIONAL CREDIT",
+        "p1": "Cash balance represents real money you paid (card, Stripe Checkout, or administrator top-up marked as cash). Promotional / gift balance represents non-cash grants: sign-up bonuses, referral rewards, campaign credits, and any manual grant explicitly marked as promotional.",
+        "p2": "Key differences:",
+        "li1": "Cash balance is withdrawable and, where eligible, refundable. Promotional balance is non-withdrawable, non-transferable, and non-refundable unless applicable law requires otherwise.",
+        "li2": "Promotional balance may carry an expiry date. Expired promotional balance is not refundable and not convertible to cash. Cash balance does not expire.",
+        "li3": "When a request is billed, promotional balance is consumed before cash where applicable, unless the deployment has configured a different split. Refunds restore the same ledger that was charged: a cash deduction is refunded to cash, a promotional deduction is refunded to promotional balance when the session is still eligible for a refund.",
+        "p3": "You can view the split at any time in Dashboard → Wallet / Billing. If your deployment shows a single aggregated number, it is the sum of both ledgers."
+      },
+      "s3": {
+        "title": "3. NON-REFUNDABLE USAGE",
+        "p1": "The following are non-refundable:",
+        "li1": "Tokens and resource units already delivered by a successful model response (including 200 OK with usable content), even if the output was not useful to you. Model quality, prompt design, and downstream application logic are outside our billing guarantee — the metered unit is delivery, not satisfaction.",
+        "li2": "Consumed promotional balance, including expired lots.",
+        "li3": "Fees already passed to upstream providers or payment processors for successful deliveries.",
+        "li4": "Account, token, or channel configuration errors attributable to your integration (wrong model name, invalid parameters, exceeded context window) where the upstream correctly billed the request.",
+        "p2": "If an upstream provider returned an error and we did not bill the request — or we billed and then reversed it via an automatic refund of the session — no further refund is needed. Check Logs → Usage / Billing Detail for the definitive per-request ledger entry."
+      },
+      "s4": {
+        "title": "4. ELIGIBLE REFUNDS",
+        "p1": "You may request a refund when:",
+        "li1": "Duplicate or erroneous charge — you were charged twice for the same order or charged an amount that does not match the order total. Provide both transaction IDs.",
+        "li2": "Paid but never credited — the processor confirmed payment but your wallet was not credited within 24 hours and automatic reconciliation did not resolve it.",
+        "li3": "Failed order after payment — the checkout or top-up order entered a failed or refund_pending state and did not settle to your wallet. These are typically auto-refunded; if not, we refund on request.",
+        "li4": "Upstream double-billing corrected by us — where we detected a billing anomaly (for example, a task refund from the provider) and the correction has not yet posted.",
+        "li5": "Refund required by applicable consumer law in your jurisdiction, subject to verification.",
+        "p2": "We do not offer refunds for change of mind after a successful top-up has been credited and remains available to use. Instead, keep the balance for future usage — it does not expire if it is cash balance."
+      },
+      "s5": {
+        "title": "5. HOW TO REQUEST A REFUND",
+        "p1": "Email support@novapuraai.com with:",
+        "li1": "Account email or username and, if applicable, organization name.",
+        "li2": "Order ID, Stripe Checkout Session ID / PaymentIntent ID, or transaction hash, plus date and amount (minor units).",
+        "li3": "Reason category from Section 4 and a brief description (2–3 sentences is enough).",
+        "li4": "For duplicate-charge claims, include both charge IDs or a bank statement excerpt with non-sensitive redactions.",
+        "p2": "You can also open a ticket via {websiteUrl}/contact-us if your deployment exposes a contact form. Do not share full card numbers, private keys, or bearer tokens.",
+        "p3": "We may ask for additional verification to prevent account takeover refunds (for example, confirming the payment email or a one-time code)."
+      },
+      "s6": {
+        "title": "6. PROCESSING METHOD & TIMELINE",
+        "p1": "If approved, refunds are returned via the original payment method through the original processor (typically Stripe Refund to the same card or wallet). Where the original method no longer supports a refund, we may offer a wallet re-credit of equivalent cash balance as a fallback with your consent.",
+        "p2": "Timelines:",
+        "li1": "Review: 1–3 business days after we receive a complete request.",
+        "li2": "Processor posting: 5–10 business days to appear on your statement after we issue the refund, depending on your bank.",
+        "li3": "Auto-refunded failed orders: usually within 24 hours, no action needed — check Orders → Status = refunded / refund_pending.",
+        "p3": "Partial refunds are possible when only a portion of the order was affected (for example, one leg of a split payment failed). The refunded amount will match the uncredited portion in minor units, not a rounded estimate.",
+        "p4": "Promotional balance is never paid out as cash, even when the request that consumed it is refunded — it is restored as promotional balance only, and remains subject to its original expiry."
+      },
+      "s7": {
+        "title": "7. SUBSCRIPTIONS & RECURRING CHARGES",
+        "p1": "Where subscriptions are enabled, charges recur at the start of each billing cycle unless you cancel before renewal. Cancel in Dashboard → Subscriptions before the next cycle timestamp.",
+        "p2": "Current cycle already delivered (quota issued or time window consumed) is non-refundable. After cancellation, you retain access until the end of the paid period; no prorated refund is issued unless required by law or stated otherwise at purchase.",
+        "p3": "Free trials, if offered, convert to paid at the end of the trial unless you cancel in advance. Trial quota that was consumed during the trial is non-refundable.",
+        "p4": "If a recurring charge failed but your card was still debited due to a processor delay, Section 4 applies — we will verify and refund the duplicate leg."
+      },
+      "s8": {
+        "title": "8. CHARGEBACKS & REVERSALS",
+        "p1": "If you dispute a charge with your bank before contacting us, the processor may place the related order into manual_review and temporarily restrict top-ups while the case is open.",
+        "p2": "To resolve faster, contact us first — we can often resolve in 1–3 days versus 30–90 days for a formal dispute. If you have already filed a dispute, provide the case ID so we can align the refund leg and avoid double credit.",
+        "p3": "Chargebacks that are decided in your favor will be processed by the processor, not by a separate wallet credit from us. Chargebacks decided in our favor do not create an additional charge beyond the original amount.",
+        "p4": "Abusive chargeback patterns (for example, consuming quota then disputing the same order) may result in account suspension under Section 9."
+      },
+      "s9": {
+        "title": "9. MISUSE, ABUSE, AND DENIAL",
+        "p1": "We may deny a refund request when:",
+        "li1": "The balance was already consumed by successful requests, or the request falls under Section 3.",
+        "li2": "The claim is a duplicate of a refund already issued for the same order or session.",
+        "li3": "The request is tied to terms-of-service violations, fraud, or product abuse (for example, card testing, quota farming, or reselling promotional credits).",
+        "li4": "The request arrives after the payment processor's refund window has closed and no legal requirement to refund exists — in that case we may offer a discretionary wallet credit instead.",
+        "p2": "We log every refund decision with a reason code visible to administrators (Billing → Orders / Logs). Repeated policy-abusive requests may lead to throttling of future discretionary credits."
+      },
+      "s10": {
+        "title": "10. CHANGES & CONTACT",
+        "p1": "We may update this Refund Policy from time to time. The \"Last updated\" date at the top reflects the current version. Your continued use of the Services after a change constitutes acceptance of the updated policy.",
+        "p2": "Contact: support@novapuraai.com — include [Refund] in the subject line for faster routing. If your deployment is self-hosted by a third party, the operator of that deployment is the merchant of record and their refund terms govern.",
+        "p3": "Related documents: Terms and Conditions ({websiteUrl}/user-agreement) and Privacy Policy ({getPrivacyPolicyUrl}). In case of conflict between this Refund Policy and a processor's required disclosure at checkout, the processor disclosure prevails for that transaction."
+      }
+    }
+  }
+}

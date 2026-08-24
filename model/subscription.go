@@ -38,6 +38,16 @@ var (
 	ErrSubscriptionOrderStatusInvalid = errors.New("subscription order status invalid")
 )
 
+// StripeRecurringPurchaseSource is the only settlement source allowed to
+// create an entitlement for a fixed recurring plan. Legacy providers must be
+// rejected before they create an external order or deduct a wallet balance.
+const StripeRecurringPurchaseSource = "stripe_recurring"
+
+// StripeRecurringLifecycleSource is reserved for already-associated Stripe
+// reservation/subscription lifecycle reconciliation. It is not a purchase
+// source and therefore is never accepted by legacy order/payment paths.
+const StripeRecurringLifecycleSource = "stripe_recurring_lifecycle"
+
 const (
 	subscriptionPlanCacheNamespace     = "new-api:subscription_plan:v1"
 	subscriptionPlanInfoCacheNamespace = "new-api:subscription_plan_info:v1"
@@ -146,8 +156,14 @@ func InvalidateSubscriptionPlanCache(planId int) {
 type SubscriptionPlan struct {
 	Id int `json:"id"`
 
-	Title    string `json:"title" gorm:"type:varchar(128);not null"`
-	Subtitle string `json:"subtitle" gorm:"type:varchar(255);default:''"`
+	// Stable local offer code. Empty preserves legacy plan records.
+	Code string `json:"code" gorm:"type:varchar(64)"`
+	// RecurringCode is populated only for Stripe recurring plans. Keeping this
+	// nullable lets legacy rows with empty/duplicate Code values survive while
+	// the unique index structurally guarantees one recurring catalog entry.
+	RecurringCode *string `json:"-" gorm:"type:varchar(64);uniqueIndex:idx_subscription_plans_recurring_code"`
+	Title         string  `json:"title" gorm:"type:varchar(128);not null"`
+	Subtitle      string  `json:"subtitle" gorm:"type:varchar(255);default:''"`
 
 	// Display money amount (follow existing code style: float64 for money)
 	PriceAmount float64 `json:"price_amount" gorm:"type:decimal(10,6);not null;default:0"`
@@ -168,6 +184,22 @@ type SubscriptionPlan struct {
 	StripePriceId         string `json:"stripe_price_id" gorm:"type:varchar(128);default:''"`
 	CreemProductId        string `json:"creem_product_id" gorm:"type:varchar(128);default:''"`
 	WaffoPancakeProductId string `json:"waffo_pancake_product_id" gorm:"type:varchar(128);default:''"`
+
+	// Stripe recurring offer configuration. These fields are intentionally not
+	// database-defaulted: the sandbox offer is feature-disabled until explicitly enabled.
+	StripeSubscriptionEnabled   bool   `json:"stripe_subscription_enabled"`
+	StripeSubscriptionModel     string `json:"stripe_subscription_model" gorm:"type:varchar(128);index"`
+	MaxActiveSubscriptions      int    `json:"max_active_subscriptions" gorm:"type:int"`
+	FounderPurchaseLimit        int    `json:"founder_purchase_limit" gorm:"type:int"`
+	MaxActivePerUser            int    `json:"max_active_per_user" gorm:"type:int"`
+	FounderStripePriceId        string `json:"founder_stripe_price_id" gorm:"type:varchar(128)"`
+	StandardStripePriceId       string `json:"standard_stripe_price_id" gorm:"type:varchar(128)"`
+	FounderAmountMinor          int64  `json:"founder_amount_minor" gorm:"type:bigint"`
+	StandardAmountMinor         int64  `json:"standard_amount_minor" gorm:"type:bigint"`
+	StripeCurrency              string `json:"stripe_currency" gorm:"type:varchar(8)"`
+	StripeProductId             string `json:"stripe_product_id" gorm:"type:varchar(128)"`
+	StripeAccountId             string `json:"stripe_account_id" gorm:"type:varchar(128)"`
+	StripePortalConfigurationId string `json:"stripe_portal_configuration_id" gorm:"type:varchar(128)"`
 
 	// Max purchases per user (0 = unlimited)
 	MaxPurchasePerUser int `json:"max_purchase_per_user" gorm:"type:int;default:0"`
@@ -386,9 +418,40 @@ func GetSubscriptionPlanById(id int) (*SubscriptionPlan, error) {
 	return getSubscriptionPlanByIdTx(nil, id)
 }
 
+// GetSubscriptionPlanByIdNoCache reads the current primary-database row and
+// deliberately bypasses the process/Redis subscription-plan cache. Payment
+// creation paths use it immediately before any external provider call so an
+// administrator change cannot be hidden by a stale cached plan.
+func GetSubscriptionPlanByIdNoCache(id int) (*SubscriptionPlan, error) {
+	if id <= 0 || DB == nil {
+		return nil, errors.New("invalid plan id")
+	}
+	var plan SubscriptionPlan
+	if err := DB.Where("id = ?", id).First(&plan).Error; err != nil {
+		return nil, err
+	}
+	plan.NormalizeDefaults()
+	return &plan, nil
+}
+
+// GetSubscriptionPlanByIdTx reads through the supplied transaction and never
+// uses the process/Redis plan cache. It is the stable transaction-local seam
+// for callers that must observe uncommitted plan state.
+func GetSubscriptionPlanByIdTx(tx *gorm.DB, id int) (*SubscriptionPlan, error) {
+	return getSubscriptionPlanByIdTx(tx, id)
+}
+
 func getSubscriptionPlanByIdTx(tx *gorm.DB, id int) (*SubscriptionPlan, error) {
 	if id <= 0 {
 		return nil, errors.New("invalid plan id")
+	}
+	if tx != nil {
+		var plan SubscriptionPlan
+		if err := tx.Where("id = ?", id).First(&plan).Error; err != nil {
+			return nil, err
+		}
+		plan.NormalizeDefaults()
+		return &plan, nil
 	}
 	key := subscriptionPlanCacheKey(id)
 	if key != "" {
@@ -398,16 +461,71 @@ func getSubscriptionPlanByIdTx(tx *gorm.DB, id int) (*SubscriptionPlan, error) {
 		}
 	}
 	var plan SubscriptionPlan
-	query := DB
-	if tx != nil {
-		query = tx
-	}
-	if err := query.Where("id = ?", id).First(&plan).Error; err != nil {
+	if err := DB.Where("id = ?", id).First(&plan).Error; err != nil {
 		return nil, err
 	}
 	plan.NormalizeDefaults()
 	_ = getSubscriptionPlanCache().SetWithTTL(key, plan, subscriptionPlanCacheTTL())
 	return &plan, nil
+}
+
+// IsStripeRecurringPlan identifies a recurring contract structurally. A
+// nullable non-empty RecurringCode is the durable marker; the two boolean
+// flags are runtime state and cannot be used as the identity of the offer.
+func IsStripeRecurringPlan(plan *SubscriptionPlan) bool {
+	return plan != nil && plan.RecurringCode != nil
+}
+
+const (
+	StripeSubscriptionModelScopeTarget = "target_model"
+	StripeSubscriptionModelScopeAll    = "all"
+)
+
+// SubscriptionPlanModelScope returns the public authorization scope for a
+// plan. The recurring Stripe contract is platform-wide even when an older row
+// still carries its former DeepSeek target-model value.
+func SubscriptionPlanModelScope(plan *SubscriptionPlan) string {
+	if plan == nil || IsStripeRecurringPlan(plan) || strings.TrimSpace(plan.StripeSubscriptionModel) == "" {
+		return StripeSubscriptionModelScopeAll
+	}
+	return StripeSubscriptionModelScopeTarget
+}
+
+// SubscriptionPlanTargetModel returns a target only for legacy scoped plans.
+// Recurring plans intentionally return an empty target because they authorize
+// every current platform model.
+func SubscriptionPlanTargetModel(plan *SubscriptionPlan) string {
+	if plan == nil || SubscriptionPlanModelScope(plan) == StripeSubscriptionModelScopeAll {
+		return ""
+	}
+	return strings.TrimSpace(plan.StripeSubscriptionModel)
+}
+
+// ValidatePurchasableSubscriptionPlan is the shared preflight used by wallet,
+// legacy payment, admin settlement, and Stripe recurring settlement paths.
+// Legacy plans remain unchanged. A recurring plan must use the dedicated
+// source and must satisfy the currently selected fixed runtime contract.
+func ValidatePurchasableSubscriptionPlan(plan *SubscriptionPlan, source string) error {
+	if plan == nil {
+		return fmt.Errorf("%w: plan missing", ErrStripeSubscriptionPlanInvalid)
+	}
+	if !IsStripeRecurringPlan(plan) {
+		if plan.StripeSubscriptionEnabled {
+			return fmt.Errorf("%w: recurring plan code missing", ErrStripeSubscriptionPlanInvalid)
+		}
+		return nil
+	}
+	config, err := StripeSubscriptionConfigForEnvironment(StripeSubscriptionEnvironmentForRuntime())
+	if err != nil {
+		return err
+	}
+	if !config.Enabled {
+		return ErrStripeSubscriptionDisabled
+	}
+	if !strings.EqualFold(strings.TrimSpace(source), StripeRecurringPurchaseSource) {
+		return fmt.Errorf("%w: recurring plan requires %s source", ErrStripeSubscriptionPlanInvalid, StripeRecurringPurchaseSource)
+	}
+	return ValidateStripeSubscriptionPlan(plan, config, true)
 }
 
 func CountUserSubscriptionsByPlan(userId int, planId int) (int64, error) {
@@ -430,8 +548,16 @@ func getUserGroupByIdTx(tx *gorm.DB, userId int) (string, error) {
 	if tx == nil {
 		tx = DB
 	}
+	groupColumn := commonGroupCol
+	if strings.TrimSpace(groupColumn) == "" {
+		if common.UsingMainDatabase(common.DatabaseTypePostgreSQL) {
+			groupColumn = `"group"`
+		} else {
+			groupColumn = "`group`"
+		}
+	}
 	var group string
-	if err := tx.Model(&User{}).Where("id = ?", userId).Select(commonGroupCol).Find(&group).Error; err != nil {
+	if err := tx.Model(&User{}).Where("id = ?", userId).Select(groupColumn).Find(&group).Error; err != nil {
 		return "", err
 	}
 	return group, nil
@@ -482,6 +608,18 @@ func downgradeUserGroupForSubscriptionTx(tx *gorm.DB, sub *UserSubscription, now
 }
 
 func CreateUserSubscriptionFromPlanTx(tx *gorm.DB, userId int, plan *SubscriptionPlan, source string) (*UserSubscription, error) {
+	return createUserSubscriptionFromPlanAtTx(tx, userId, plan, source, 0, true)
+}
+
+// CreateUserSubscriptionFromPlanAtTx is the transaction-safe variant used by
+// webhook settlement. The caller supplies the timestamp so SQLite test
+// transactions with a single connection do not attempt a second connection
+// for GetDBTimestamp while the row lock is held.
+func CreateUserSubscriptionFromPlanAtTx(tx *gorm.DB, userId int, plan *SubscriptionPlan, source string, nowUnix int64) (*UserSubscription, error) {
+	return createUserSubscriptionFromPlanAtTx(tx, userId, plan, source, nowUnix, false)
+}
+
+func createUserSubscriptionFromPlanAtTx(tx *gorm.DB, userId int, plan *SubscriptionPlan, source string, nowUnix int64, useDBTimestamp bool) (*UserSubscription, error) {
 	if tx == nil {
 		return nil, errors.New("tx is nil")
 	}
@@ -490,6 +628,17 @@ func CreateUserSubscriptionFromPlanTx(tx *gorm.DB, userId int, plan *Subscriptio
 	}
 	if userId <= 0 {
 		return nil, errors.New("invalid user id")
+	}
+	if source == StripeRecurringLifecycleSource {
+		config, err := StripeSubscriptionConfigForEnvironment(StripeSubscriptionEnvironmentForRuntime())
+		if err != nil {
+			return nil, err
+		}
+		if err := ValidateStripeSubscriptionPlan(plan, config, false); err != nil {
+			return nil, err
+		}
+	} else if err := ValidatePurchasableSubscriptionPlan(plan, source); err != nil {
+		return nil, err
 	}
 	if plan.MaxPurchasePerUser > 0 {
 		var count int64
@@ -502,7 +651,13 @@ func CreateUserSubscriptionFromPlanTx(tx *gorm.DB, userId int, plan *Subscriptio
 			return nil, errors.New("已达到该套餐购买上限")
 		}
 	}
-	nowUnix := GetDBTimestamp()
+	if nowUnix <= 0 {
+		if useDBTimestamp {
+			nowUnix = GetDBTimestamp()
+		} else {
+			nowUnix = common.GetTimestamp()
+		}
+	}
 	now := time.Unix(nowUnix, 0)
 	endUnix, err := calcPlanEndTime(now, plan)
 	if err != nil {
@@ -587,8 +742,11 @@ func CompleteSubscriptionOrder(tradeNo string, providerPayload string, expectedP
 		if order.Status != common.TopUpStatusPending {
 			return ErrSubscriptionOrderStatusInvalid
 		}
-		plan, err := GetSubscriptionPlanById(order.PlanId)
+		plan, err := getSubscriptionPlanByIdTx(tx, order.PlanId)
 		if err != nil {
+			return err
+		}
+		if err := ValidatePurchasableSubscriptionPlan(plan, "order"); err != nil {
 			return err
 		}
 		if !plan.Enabled {
@@ -698,12 +856,17 @@ func AdminBindSubscription(userId int, planId int, sourceNote string) (string, e
 	if userId <= 0 || planId <= 0 {
 		return "", errors.New("invalid userId or planId")
 	}
-	plan, err := GetSubscriptionPlanById(planId)
-	if err != nil {
-		return "", err
-	}
-	err = DB.Transaction(func(tx *gorm.DB) error {
-		_, err := CreateUserSubscriptionFromPlanTx(tx, userId, plan, "admin")
+	var plan *SubscriptionPlan
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		var err error
+		plan, err = getSubscriptionPlanByIdTx(lockForUpdate(tx), planId)
+		if err != nil {
+			return err
+		}
+		if err := ValidatePurchasableSubscriptionPlan(plan, "admin"); err != nil {
+			return err
+		}
+		_, err = CreateUserSubscriptionFromPlanTx(tx, userId, plan, "admin")
 		return err
 	})
 	if err != nil {
@@ -743,6 +906,9 @@ func PurchaseSubscriptionWithBalance(userId int, planId int) error {
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		plan, err := getSubscriptionPlanByIdTx(tx, planId)
 		if err != nil {
+			return err
+		}
+		if err := ValidatePurchasableSubscriptionPlan(plan, "balance"); err != nil {
 			return err
 		}
 		if !plan.Enabled {
@@ -851,6 +1017,42 @@ func HasActiveUserSubscription(userId int) (bool, error) {
 	return count > 0, nil
 }
 
+func subscriptionPlanAppliesToModel(plan *SubscriptionPlan, modelName string) bool {
+	if plan == nil {
+		return false
+	}
+	if SubscriptionPlanModelScope(plan) == StripeSubscriptionModelScopeAll {
+		return true
+	}
+	return strings.TrimSpace(modelName) == SubscriptionPlanTargetModel(plan)
+}
+
+// HasActiveUserSubscriptionForModel reports whether at least one active
+// subscription may fund the requested model. The fixed recurring plan and
+// unscoped legacy plans apply to every model; scoped legacy plans remain exact.
+func HasActiveUserSubscriptionForModel(userId int, modelName string) (bool, error) {
+	if userId <= 0 {
+		return false, errors.New("invalid userId")
+	}
+	now := common.GetTimestamp()
+	var subs []UserSubscription
+	if err := DB.Select("plan_id").
+		Where("user_id = ? AND status = ? AND end_time > ?", userId, "active", now).
+		Find(&subs).Error; err != nil {
+		return false, err
+	}
+	for _, sub := range subs {
+		plan, err := GetSubscriptionPlanById(sub.PlanId)
+		if err != nil {
+			return false, err
+		}
+		if subscriptionPlanAppliesToModel(plan, modelName) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // UserActiveSubscriptionsAllowWalletOverflow returns whether wallet balance may be used
 // after the user's subscription quota is exhausted. A single active subscription that
 // disallows wallet overflow (allow_wallet_overflow = false) blocks the fallback.
@@ -867,6 +1069,31 @@ func UserActiveSubscriptionsAllowWalletOverflow(userId int) (bool, error) {
 		return false, err
 	}
 	return strictCount == 0, nil
+}
+
+// UserActiveSubscriptionsAllowWalletOverflowForModel applies the overflow
+// policy only to subscriptions that can fund the requested model. A strict
+// DeepSeek-only plan must not block wallet billing for other models.
+func UserActiveSubscriptionsAllowWalletOverflowForModel(userId int, modelName string) (bool, error) {
+	if userId <= 0 {
+		return false, errors.New("invalid userId")
+	}
+	now := common.GetTimestamp()
+	var subs []UserSubscription
+	if err := DB.Where("user_id = ? AND status = ? AND end_time > ?", userId, "active", now).
+		Find(&subs).Error; err != nil {
+		return false, err
+	}
+	for _, sub := range subs {
+		plan, err := GetSubscriptionPlanById(sub.PlanId)
+		if err != nil {
+			return false, err
+		}
+		if subscriptionPlanAppliesToModel(plan, modelName) && !sub.AllowWalletOverflow {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 // GetAllUserSubscriptions returns all subscriptions (active and expired) for a user.
@@ -1298,6 +1525,13 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			if err := tx.Where("id = ?", existing.UserSubscriptionId).First(&sub).Error; err != nil {
 				return err
 			}
+			plan, err := getSubscriptionPlanByIdTx(tx, sub.PlanId)
+			if err != nil {
+				return err
+			}
+			if !subscriptionPlanAppliesToModel(plan, modelName) {
+				return errors.New("no active subscription")
+			}
 			returnValue.UserSubscriptionId = sub.Id
 			returnValue.PreConsumed = existing.PreConsumed
 			returnValue.AmountTotal = sub.AmountTotal
@@ -1316,12 +1550,17 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 		if len(subs) == 0 {
 			return errors.New("no active subscription")
 		}
+		applicableSubscriptionFound := false
 		for _, candidate := range subs {
 			sub := candidate
 			plan, err := getSubscriptionPlanByIdTx(tx, sub.PlanId)
 			if err != nil {
 				return err
 			}
+			if !subscriptionPlanAppliesToModel(plan, modelName) {
+				continue
+			}
+			applicableSubscriptionFound = true
 			if err := maybeResetUserSubscriptionWithPlanTx(tx, &sub, plan, now); err != nil {
 				return err
 			}
@@ -1364,6 +1603,9 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			returnValue.AmountUsedBefore = usedBefore
 			returnValue.AmountUsedAfter = sub.AmountUsed
 			return nil
+		}
+		if !applicableSubscriptionFound {
+			return errors.New("no active subscription")
 		}
 		return fmt.Errorf("subscription quota insufficient, need=%d", amount)
 	})

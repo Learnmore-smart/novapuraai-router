@@ -1,4 +1,5 @@
 import type { ColumnDef } from '@tanstack/react-table'
+import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
 import { BadgeCell, BadgeListCell } from '@/components/data-table'
@@ -442,6 +443,41 @@ export function useModelsColumns(vendors: Vendor[] = []): ColumnDef<Model>[] {
           </div>
         )
       },
+      size: 140,
+    },
+
+    // Pricing links column
+    {
+      id: 'pricing',
+      header: t('Pricing'),
+      cell: ({ row }) => {
+        const modelName = row.original.model_name
+        const linkClassName =
+          'text-primary underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none'
+
+        return (
+          <div className='flex flex-col items-start gap-1 text-xs'>
+            <Link
+              to='/pricing/$modelId'
+              params={{ modelId: modelName }}
+              className={linkClassName}
+              aria-label={`${t('View pricing')}: ${modelName}`}
+            >
+              {t('View pricing')}
+            </Link>
+            <Link
+              to='/system-settings/billing/$section'
+              params={{ section: 'model-pricing' }}
+              className={linkClassName}
+              aria-label={`${t('Edit model pricing')}: ${modelName}`}
+            >
+              {t('Edit model pricing')}
+            </Link>
+          </div>
+        )
+      },
+      enableSorting: false,
+      enableHiding: false,
       size: 140,
     },
 

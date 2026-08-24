@@ -289,9 +289,9 @@ export function parseTiersFromExpr(exprStr: string): ParsedTier[] {
 export function normalizeTierLabel(label: string | undefined): string {
   if (!label) return ''
   return label
-    .replace(/<[=＝]?|≤|＜[=＝]?/g, '<')
-    .replace(/>[=＝]?|≥|＞[=＝]?/g, '>')
-    .replace(/\s+/g, '')
+    .replaceAll(/<[=＝]?|≤|＜[=＝]?/g, '<')
+    .replaceAll(/>[=＝]?|≥|＞[=＝]?/g, '>')
+    .replaceAll(/\s+/g, '')
     .toLowerCase()
 }
 
@@ -408,24 +408,26 @@ function tryParseRequestCondition(expr: string): RequestCondition | null {
   if (m) return { source: 'param', path: m[1], mode: MATCH_EXISTS, value: '' }
 
   m = expr.match(/^has\(header\("([^"]+)"\), ((?:"(?:[^"\\]|\\.)*"))\)$/)
-  if (m)
+  if (m) {
     return {
       source: 'header',
       path: m[1],
       mode: MATCH_CONTAINS,
       value: JSON.parse(m[2]) as string,
     }
+  }
 
   m = expr.match(
     /^param\("([^"]+)"\) != nil && has\(param\("([^"]+)"\), ((?:"(?:[^"\\]|\\.)*"))\)$/
   )
-  if (m && m[1] === m[2])
+  if (m && m[1] === m[2]) {
     return {
       source: 'param',
       path: m[1],
       mode: MATCH_CONTAINS,
       value: JSON.parse(m[3]) as string,
     }
+  }
 
   m = expr.match(
     /^param\("([^"]+)"\) != nil && param\("([^"]+)"\) (>|>=|<|<=) ([\d.eE+-]+)$/
@@ -624,12 +626,12 @@ function isTimeFunc(value: unknown): value is TimeFunc {
 export function normalizeCondition(
   cond: Partial<RequestCondition> | null | undefined
 ): RequestCondition {
-  const source =
-    cond?.source === 'time'
-      ? 'time'
-      : cond?.source === 'header'
-        ? 'header'
-        : 'param'
+  let source: 'time' | 'header' | 'param' = 'param'
+  if (cond?.source === 'time') {
+    source = 'time'
+  } else if (cond?.source === 'header') {
+    source = 'header'
+  }
 
   if (source === 'time') {
     const timeCond = cond as Partial<TimeCondition> | null | undefined

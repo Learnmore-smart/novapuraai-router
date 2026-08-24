@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/common/limiter"
 	"github.com/QuantumNous/new-api/constant"
+	"github.com/QuantumNous/new-api/service/deepseekfairuse"
 	"github.com/QuantumNous/new-api/setting"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
@@ -115,6 +118,7 @@ func redisRateLimitHandler(duration int64, totalMaxCount, successMaxCount int) g
 
 			if !allowed {
 				abortWithOpenAiMessage(c, http.StatusTooManyRequests, fmt.Sprintf("您已达到总请求数限制：%d分钟内最多请求%d次，包括失败次数，请检查您的请求是否正确", setting.ModelRequestRateLimitDurationMinutes, totalMaxCount))
+				return
 			}
 		}
 
@@ -171,6 +175,10 @@ func ModelRequestRateLimit() func(c *gin.Context) {
 			c.Next()
 			return
 		}
+		if shouldBypassDeepSeekFairUseRequestRateLimit(c) {
+			c.Next()
+			return
+		}
 
 		// 计算限流参数
 		duration := int64(setting.ModelRequestRateLimitDurationMinutes * 60)
@@ -197,4 +205,36 @@ func ModelRequestRateLimit() func(c *gin.Context) {
 			memoryRateLimitHandler(duration, totalMaxCount, successMaxCount)(c)
 		}
 	}
+}
+
+func shouldBypassDeepSeekFairUseRequestRateLimit(c *gin.Context) bool {
+	if c == nil || c.Request == nil || c.Request.URL == nil {
+		return false
+	}
+	switch c.Request.URL.Path {
+	case "/v1/chat/completions", "/v1/completions", "/v1/responses", "/v1/responses/compact", "/v1/messages":
+	default:
+		return false
+	}
+	group := common.GetContextKeyString(c, constant.ContextKeyUserGroup)
+	if group != deepseekfairuse.DeepSeekV4FlashDedicatedGroup {
+		return false
+	}
+	if !strings.HasPrefix(c.Request.Header.Get("Content-Type"), "application/json") {
+		return false
+	}
+	modelRequest, _, err := getModelRequest(c)
+	if err != nil || modelRequest == nil {
+		return false
+	}
+	modelName := modelRequest.Model
+	if strings.HasPrefix(c.Request.URL.Path, "/v1/responses/compact") {
+		modelName = strings.TrimSuffix(modelName, ratio_setting.CompactModelSuffix)
+	}
+	return deepseekfairuse.IsEligible(deepseekfairuse.EligibilityInput{
+		DedicatedEntitlement: true,
+		Group:                group,
+		DedicatedGroup:       deepseekfairuse.DeepSeekV4FlashDedicatedGroup,
+		OriginalModelName:    modelName,
+	})
 }

@@ -52,6 +52,12 @@ tiktoken_cache
 .tmp/
 .codex-test-cache/
 .codex-tmp/
+/.codex-gocache/
+/.codex-gocache-final/
+/.tmp-go-cache/
+
+# Local UI review captures (product assets belong under web/default/src/assets)
+/novapura-*.png
 
 # Local-only probes / scratch test workspaces
 .local-tests/

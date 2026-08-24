@@ -94,6 +94,9 @@ func GetStatus(c *gin.Context) {
 		"register_enabled":              common.RegisterEnabled,
 		"password_login_enabled":        common.PasswordLoginEnabled,
 		"password_register_enabled":     common.PasswordRegisterEnabled,
+		"register_promo_enabled":        common.RegisterPromoEnabled,
+		"register_promo_amount":         common.RegisterPromoCNYYuan,
+		"register_promo_currency":       "CNY",
 		"default_use_auto_group":        setting.DefaultUseAutoGroup,
 
 		"usd_exchange_rate": setting.EffectiveUSDCNYRate(operation_setting.USDExchangeRate),

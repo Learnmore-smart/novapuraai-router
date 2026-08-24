@@ -1,112 +1,67 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import {
-  Activity,
-  ArrowRight,
-  BookOpen,
-  Check,
-  ChevronDown,
-  ChevronUp,
-  Circle,
-  Copy,
-  CreditCard,
-  FileText,
-  Gift,
-  KeyRound,
-  ListChecks,
-  RadioTower,
-  ShieldCheck,
-  TerminalSquare,
-  Timer,
-  type LucideIcon,
-} from 'lucide-react'
-import { motion, useReducedMotion } from 'motion/react'
-import { useMemo, useState } from 'react'
+import type { TFunction } from 'i18next'
+import { ArrowRight, Gift } from 'lucide-react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 
 import {
   CardStaggerContainer,
   CardStaggerItem,
 } from '@/components/page-transition'
 import { Button } from '@/components/ui/button'
-import { IconBadge, type IconBadgeTone } from '@/components/ui/icon-badge'
-import { fetchTokenKey, getApiKeys } from '@/features/keys/api'
+import { getApiKeys } from '@/features/keys/api'
 import type { ApiKey } from '@/features/keys/types'
-import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
+import {
+  getSelfSubscriptionFull,
+  getSubscriptionOffer,
+  getStripeSubscriptionSummary,
+} from '@/features/subscriptions/api'
+import {
+  normalizeStripeSubscriptionSummary,
+  normalizeSubscriptionOffer,
+} from '@/features/subscriptions/lib/subscription-offer'
+import type { SelfSubscriptionData } from '@/features/subscriptions/types'
 import { getUserModels } from '@/lib/api'
-import { MOTION_TRANSITION } from '@/lib/motion'
 import { ROLE } from '@/lib/roles'
+import { computeTimeRange } from '@/lib/time'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 
 import {
+  getUserQuotaDates,
+  getUserSuccessfulRequestStatus,
+} from '../../api'
+import {
   useApiInfo,
   useDashboardContentVisibility,
 } from '../../hooks/use-status-data'
+import { hasConfirmedSuccessfulRequest } from '../../lib/dashboard-status'
 import { AnnouncementsPanel } from './announcements-panel'
+import {
+  ApertureCockpit,
+  type ApertureSubscriptionSummary,
+} from './aperture-cockpit'
+import { ApertureOnboarding } from './aperture-onboarding'
 import { ApiInfoPanel } from './api-info-panel'
+import { getBalanceBreakdown } from './balance-utils'
 import { PerformanceHealthPanel } from './performance-health-panel'
 import { SummaryCards } from './summary-cards'
 import { UptimePanel } from './uptime-panel'
 
-const SETUP_GUIDE_VISIBILITY_STORAGE_KEY =
-  'dashboard_overview_setup_guide_expanded'
-
-type DashboardActionPath =
-  | '/keys'
-  | '/wallet'
-  | '/playground'
-  | '/channels'
-  | '/usage-logs'
-  | '/pricing'
-
-interface StartStep {
-  title: string
-  description: string
-  to: DashboardActionPath
-  icon: LucideIcon
-  completed: boolean
-}
-
-interface QuickAction {
-  title: string
-  description: string
-  to: DashboardActionPath
-  icon: LucideIcon
-  adminOnly?: boolean
-}
-
-interface RequestExample {
-  endpoint: string
-  model: string
-  keyName: string
-  keyId?: number
-  displayKey: string
-  ready: boolean
-}
-
-interface HeroSignal {
-  label: string
-  value: string
-  icon: LucideIcon
-  tone: IconBadgeTone
-}
-
-function getSavedSetupGuideExpanded(): boolean | null {
-  if (typeof window === 'undefined') return null
-  const saved = window.localStorage.getItem(SETUP_GUIDE_VISIBILITY_STORAGE_KEY)
-  if (saved === 'expanded') return true
-  if (saved === 'collapsed') return false
-  return null
-}
-
-function saveSetupGuideExpanded(expanded: boolean): void {
-  if (typeof window === 'undefined') return
-  window.localStorage.setItem(
-    SETUP_GUIDE_VISIBILITY_STORAGE_KEY,
-    expanded ? 'expanded' : 'collapsed'
-  )
+interface DashboardSubscriptionSnapshot {
+  active: boolean
+  available?: boolean
+  pending?: boolean
+  tier?: string
+  status?: string
+  model?: string
+  currentPrice?: string
+  currentPeriodEnd?: number | string | null
+  gracePeriodEnd?: number | string | null
+  cancelAtPeriodEnd?: boolean
+  legacyPlanId?: number
+  fairUse?: ApertureSubscriptionSummary['fairUse']
 }
 
 function getCurrentOrigin(): string {
@@ -133,268 +88,104 @@ function getPreferredKey(keys: ApiKey[]): ApiKey | null {
   return keys.find((item) => item.status === 1) ?? keys[0] ?? null
 }
 
-function formatDisplayKey(key?: string): string {
-  if (!key) return 'sk-...'
-  if (key.length <= 14) return key
-  return `${key.slice(0, 7)}...${key.slice(-4)}`
+function getActiveKey(keys: ApiKey[]): ApiKey | null {
+  return keys.find((item) => item.status === 1) ?? null
 }
 
-function buildCurlCommand(args: {
-  endpoint: string
-  apiKey: string
-  model: string
-}): string {
-  return [
-    `curl ${args.endpoint} \\`,
-    '  -H "Content-Type: application/json" \\',
-    `  -H "Authorization: Bearer ${args.apiKey}" \\`,
-    `  -d '{"model":"${args.model}","messages":[{"role":"user","content":"Say hello in one sentence."}]}'`,
-  ].join('\n')
+function isActiveLegacySubscription(record: {
+  subscription?: { status?: string; end_time?: number }
+}): boolean {
+  const subscription = record.subscription
+  if (!subscription || subscription.status !== 'active') return false
+  const endTime = Number(subscription.end_time ?? 0)
+  return endTime <= 0 || endTime > Date.now() / 1000
 }
 
-function SetupGuideBackdrop(_props: { compact?: boolean }) {
-  // Flat editorial surface — no gradient mesh or glass.
-  return null
+function getLegacyActiveSubscription(data?: SelfSubscriptionData) {
+  return (data?.subscriptions ?? []).find(isActiveLegacySubscription)
+    ?.subscription
 }
 
-function StartStepItem(props: {
-  step: StartStep
-  index: number
-  isLast: boolean
-}) {
-  const Icon = props.step.icon
-  const StatusIcon = props.step.completed ? Check : Circle
-
-  return (
-    <li className='relative flex gap-3 pb-2.5 last:pb-0'>
-      {!props.isLast && (
-        <span
-          className='bg-border absolute top-9 bottom-0 left-4 w-px'
-          aria-hidden='true'
-        />
-      )}
-      <span
-        className={cn(
-          'bg-background relative z-10 flex size-8 shrink-0 items-center justify-center rounded-md border',
-          props.step.completed && 'border-success/30 bg-success/10'
-        )}
-      >
-        <StatusIcon
-          className={props.step.completed ? 'text-success size-4' : 'size-4'}
-          aria-hidden='true'
-        />
-      </span>
-
-      <Link
-        to={props.step.to}
-        className='bg-card hover:bg-muted/60 focus-visible:ring-ring border-border flex min-w-0 flex-1 items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left transition-colors outline-none focus-visible:ring-2'
-      >
-        <span className='flex min-w-0 items-start gap-2.5'>
-          <span className='bg-muted border-border mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border'>
-            <Icon className='size-3.5' aria-hidden='true' />
-          </span>
-          <span className='flex min-w-0 flex-col gap-0.5'>
-            <span className='flex items-center gap-2 text-sm font-medium'>
-              <span className='text-muted-foreground font-mono text-xs tabular-nums'>
-                {props.index + 1}.
-              </span>
-              <span className='truncate'>{props.step.title}</span>
-            </span>
-            <span className='text-muted-foreground line-clamp-1 text-xs'>
-              {props.step.description}
-            </span>
-          </span>
-        </span>
-        <ArrowRight
-          className='text-muted-foreground size-4 shrink-0'
-          aria-hidden='true'
-        />
-      </Link>
-    </li>
+async function getDashboardSubscriptionSnapshot(): Promise<DashboardSubscriptionSnapshot | null> {
+  const [offerResult, selfResult, stripeSummaryResult] =
+    await Promise.allSettled([
+      getSubscriptionOffer(),
+      getSelfSubscriptionFull(),
+      getStripeSubscriptionSummary(),
+    ])
+  const offerResponse =
+    offerResult.status === 'fulfilled' && offerResult.value.success
+      ? normalizeSubscriptionOffer(offerResult.value.data)
+      : null
+  const selfData =
+    selfResult.status === 'fulfilled' && selfResult.value.success
+      ? selfResult.value.data
+      : undefined
+  const stripeLifecycle =
+    stripeSummaryResult.status === 'fulfilled' &&
+    stripeSummaryResult.value.success
+      ? normalizeStripeSubscriptionSummary(stripeSummaryResult.value.data)
+      : null
+  const legacyActive = getLegacyActiveSubscription(selfData)
+  const lifecycle =
+    offerResponse?.subscription ??
+    stripeLifecycle ??
+    selfData?.subscription ??
+    selfData?.current_subscription
+  const lifecycleStatus =
+    lifecycle?.stripe_status?.trim() || lifecycle?.status?.trim() || undefined
+  const normalizedStatus = lifecycleStatus?.toLowerCase()
+  const lifecycleActive = Boolean(
+    lifecycle &&
+    normalizedStatus &&
+    ['active', 'trialing', 'past_due', 'grace_period'].includes(
+      normalizedStatus
+    )
   )
-}
 
-function RequestPreview(props: {
-  example: RequestExample
-  signals: HeroSignal[]
-}) {
-  const { t } = useTranslation()
-  const shouldReduceMotion = useReducedMotion()
-  const [isCopying, setIsCopying] = useState(false)
-  const { copyToClipboard } = useCopyToClipboard({ notify: false })
-  const previewCurl = buildCurlCommand({
-    endpoint: props.example.endpoint,
-    apiKey: props.example.displayKey,
-    model: props.example.model,
-  })
-  const previewLines = previewCurl.split('\n')
-  const handleCopyRequest = async () => {
-    if (!props.example.keyId || isCopying) return
+  if (!offerResponse && !selfData && !stripeLifecycle) return null
 
-    setIsCopying(true)
-    try {
-      const result = await fetchTokenKey(props.example.keyId)
-      const key = result.success && result.data?.key ? result.data.key : ''
-      if (!key) {
-        toast.error(result.message || t('Failed to copy to clipboard'))
-        return
-      }
-
-      const realCurl = buildCurlCommand({
-        endpoint: props.example.endpoint,
-        apiKey: `sk-${key}`,
-        model: props.example.model,
-      })
-      const copied = await copyToClipboard(realCurl)
-      if (copied) {
-        toast.success(t('Copied to clipboard'))
-      } else {
-        toast.error(t('Failed to copy to clipboard'))
-      }
-    } finally {
-      setIsCopying(false)
-    }
+  return {
+    active: lifecycleActive || Boolean(legacyActive),
+    available: Boolean(offerResponse?.active || offerResponse?.pending),
+    pending: Boolean(offerResponse?.pending),
+    tier: lifecycle?.price_tier,
+    status: lifecycleStatus || legacyActive?.status,
+    model: lifecycle?.model || offerResponse?.model,
+    currentPrice: offerResponse?.current_price_display,
+    currentPeriodEnd: lifecycle?.current_period_end || legacyActive?.end_time,
+    gracePeriodEnd: lifecycle?.grace_period_end,
+    cancelAtPeriodEnd: lifecycle?.cancel_at_period_end,
+    legacyPlanId: legacyActive?.plan_id,
+    fairUse: offerResponse?.fair_use
+      ? {
+          successRequestsPerWindow:
+            offerResponse.fair_use.success_requests_per_window,
+          totalRequestsPerWindow:
+            offerResponse.fair_use.total_requests_per_window,
+          windowMinutes: offerResponse.fair_use.window_minutes,
+        }
+      : undefined,
   }
-
-  return (
-    <motion.div
-      initial={shouldReduceMotion ? false : { opacity: 0 }}
-      animate={shouldReduceMotion ? undefined : { opacity: 1 }}
-      transition={MOTION_TRANSITION.slow}
-      className='border-border bg-card relative overflow-hidden rounded-lg border p-3'
-    >
-      <div className='border-border flex items-center justify-between gap-3 border-b pb-3'>
-        <div className='flex min-w-0 items-center gap-2'>
-          <IconBadge tone='info'>
-            <TerminalSquare />
-          </IconBadge>
-          <div className='min-w-0'>
-            <div className='truncate text-sm font-medium'>
-              {t('First API request')}
-            </div>
-            <div className='text-muted-foreground truncate text-xs'>
-              {props.example.ready
-                ? props.example.keyName
-                : t('Create an API key to unlock the real request')}
-            </div>
-          </div>
-        </div>
-        {props.example.ready ? (
-          <Button
-            variant='outline'
-            size='sm'
-            className='h-7 gap-1.5 px-2 text-xs'
-            disabled={isCopying}
-            onClick={handleCopyRequest}
-            aria-label={t('Copy ready-to-run curl')}
-          >
-            <Copy data-icon='inline-start' />
-            {isCopying ? t('Loading') : t('Copy')}
-          </Button>
-        ) : (
-          <Button size='sm' variant='outline' render={<Link to='/keys' />}>
-            {t('Create API Key')}
-          </Button>
-        )}
-      </div>
-
-      <div className='bg-muted border-border my-3 rounded-md border p-3 font-mono text-xs'>
-        <div className='mb-2 flex items-center gap-1.5'>
-          <span className='bg-destructive size-2 rounded-full' />
-          <span className='bg-warning size-2 rounded-full' />
-          <span className='bg-success size-2 rounded-full' />
-        </div>
-        <div className='flex flex-col gap-1 overflow-hidden'>
-          {previewLines.map((line) => (
-            <code
-              key={line}
-              className='text-muted-foreground truncate'
-              title={line}
-            >
-              {line}
-            </code>
-          ))}
-        </div>
-      </div>
-
-      <div className='grid gap-2'>
-        {props.signals.map((signal) => {
-          const Icon = signal.icon
-
-          return (
-            <div
-              key={signal.label}
-              className='bg-muted/50 border-border flex items-center justify-between gap-3 rounded-md border px-3 py-2'
-            >
-              <span className='flex min-w-0 items-center gap-2'>
-                <IconBadge tone={signal.tone} size='xs'>
-                  <Icon />
-                </IconBadge>
-                <span className='truncate text-xs font-medium'>
-                  {signal.label}
-                </span>
-              </span>
-              <span className='text-muted-foreground shrink-0 text-xs'>
-                {signal.value}
-              </span>
-            </div>
-          )
-        })}
-      </div>
-
-      <div className='border-border mt-3 border-t pt-3'>
-        <Button
-          variant='link'
-          size='sm'
-          className='h-auto p-0'
-          render={<Link to='/docs' />}
-        >
-          {t('Read the docs')}
-          <ArrowRight data-icon='inline-end' className='size-3.5' />
-        </Button>
-      </div>
-    </motion.div>
-  )
 }
 
-function QuickActionItem(props: { action: QuickAction }) {
-  const Icon = props.action.icon
-
-  return (
-    <Button
-      variant='outline'
-      className='bg-card hover:bg-muted/60 border-border h-auto justify-start rounded-md border px-3 py-3 text-left'
-      render={<Link to={props.action.to} />}
-    >
-      <span className='bg-muted border-border flex size-9 shrink-0 items-center justify-center rounded-md border'>
-        <Icon className='size-4' aria-hidden='true' />
-      </span>
-      <span className='flex min-w-0 flex-1 flex-col gap-0.5'>
-        <span className='truncate text-sm font-medium'>
-          {props.action.title}
-        </span>
-        <span className='text-muted-foreground line-clamp-2 text-xs leading-relaxed'>
-          {props.action.description}
-        </span>
-      </span>
-    </Button>
-  )
+function getSubscriptionPlanLabel(
+  snapshot: DashboardSubscriptionSnapshot,
+  t: TFunction
+): string | undefined {
+  if (snapshot.tier === 'founder') return t('Founder access')
+  if (snapshot.tier === 'standard') return t('Standard access')
+  if (snapshot.legacyPlanId) {
+    return t('Subscription #{{id}}', { id: snapshot.legacyPlanId })
+  }
+  return undefined
 }
 
-function CompactQuickAction(props: { action: QuickAction }) {
-  const Icon = props.action.icon
-
-  return (
-    <Button
-      variant='outline'
-      size='sm'
-      className='bg-background/70 h-8 min-w-24 gap-1.5 px-2.5'
-      render={<Link to={props.action.to} />}
-    >
-      <Icon data-icon='inline-start' />
-      <span>{props.action.title}</span>
-    </Button>
-  )
+function getRecentRequestRange(): {
+  start_timestamp: number
+  end_timestamp: number
+} {
+  return computeTimeRange(1)
 }
 
 export function OverviewDashboard() {
@@ -406,15 +197,7 @@ export function OverviewDashboard() {
     announcements: showAnnouncementsPanel,
     uptimeKuma: showUptimePanel,
   } = useDashboardContentVisibility()
-  const [manualSetupGuideExpanded, setManualSetupGuideExpanded] = useState<
-    boolean | null
-  >(() => getSavedSetupGuideExpanded())
-
-  const requestCount = Number(user?.request_count ?? 0)
-  const remainQuota = Number(user?.quota ?? 0)
-  const usedQuota = Number(user?.used_quota ?? 0)
   const isAdmin = Boolean(user?.role && user.role >= ROLE.ADMIN)
-  const displayName = user?.display_name || user?.username || t('Developer')
 
   const apiKeysQuery = useQuery({
     queryKey: ['dashboard', 'overview', 'api-keys'],
@@ -423,6 +206,7 @@ export function OverviewDashboard() {
       return result.success ? (result.data?.items ?? []) : []
     },
     staleTime: 60 * 1000,
+    retry: false,
   })
 
   const modelsQuery = useQuery({
@@ -432,306 +216,136 @@ export function OverviewDashboard() {
       return result.success ? (result.data ?? []) : []
     },
     staleTime: 5 * 60 * 1000,
+    retry: false,
   })
 
-  const preferredKey = useMemo(
-    () => getPreferredKey(apiKeysQuery.data ?? []),
-    [apiKeysQuery.data]
-  )
+  const successfulRequestQuery = useQuery({
+    queryKey: ['dashboard', 'overview', 'successful-request', user?.id],
+    queryFn: async () => {
+      const result = await getUserSuccessfulRequestStatus()
+      return result.success && result.data?.has_successful_request === true
+    },
+    enabled: Boolean(user?.id),
+    staleTime: 30 * 1000,
+    retry: false,
+  })
 
-  const startSteps = useMemo<StartStep[]>(
-    () => [
-      {
-        title: t('Create API Key'),
-        description: t('Create a key for your app or service'),
-        to: '/keys',
-        icon: KeyRound,
-        completed: Boolean(preferredKey),
-      },
-      {
-        title: t('Add credits'),
-        description: t('Keep enough balance before production traffic'),
-        to: '/wallet',
-        icon: CreditCard,
-        completed: remainQuota > 0 || usedQuota > 0,
-      },
-      {
-        title: t('Send a request'),
-        description: t('Verify routing with Playground or your client'),
-        to: '/playground',
-        icon: TerminalSquare,
-        completed: requestCount > 0,
-      },
+  const recentRequestRange = useMemo(getRecentRequestRange, [])
+  const recentRequestsQuery = useQuery({
+    queryKey: [
+      'dashboard',
+      'overview',
+      'recent-requests',
+      recentRequestRange.start_timestamp,
+      recentRequestRange.end_timestamp,
     ],
-    [preferredKey, remainQuota, requestCount, t, usedQuota]
+    queryFn: async () => {
+      const result = await getUserQuotaDates({
+        ...recentRequestRange,
+        default_time: 'hour',
+      })
+      return result.success ? (result.data ?? []) : []
+    },
+    staleTime: 60 * 1000,
+    retry: false,
+  })
+
+  const subscriptionQuery = useQuery({
+    queryKey: ['dashboard', 'overview', 'subscription', user?.id],
+    queryFn: getDashboardSubscriptionSnapshot,
+    enabled: Boolean(user?.id),
+    staleTime: 60 * 1000,
+    retry: false,
+  })
+
+  const keys = apiKeysQuery.data ?? []
+  const primaryKey = getPreferredKey(keys)
+  const activeKey = getActiveKey(keys)
+  const availableModels = modelsQuery.data ?? []
+  const model =
+    availableModels[0] || 'gpt-4o-mini'
+  const modelAvailable = availableModels.length > 0
+  const confirmedSuccessfulRequest =
+    Boolean(user) && hasConfirmedSuccessfulRequest(successfulRequestQuery.data)
+  const balance = getBalanceBreakdown(
+    user?.quota,
+    user?.cash_quota,
+    user?.promo_quota
   )
-
-  const quickActions = useMemo<QuickAction[]>(
-    () => [
-      {
-        title: t('API Keys'),
-        description: t('Create a key for your app or service'),
-        to: '/keys',
-        icon: KeyRound,
-      },
-      {
-        title: t('Channels'),
-        description: t('Configure upstream providers and routing.'),
-        to: '/channels',
-        icon: RadioTower,
-        adminOnly: true,
-      },
-      {
-        title: t('Usage Logs'),
-        description: t('Inspect requests, errors, and billing details'),
-        to: '/usage-logs',
-        icon: FileText,
-      },
-      {
-        title: t('Pricing'),
-        description: t('Review model rates before scaling traffic'),
-        to: '/pricing',
-        icon: BookOpen,
-      },
-    ],
-    [t]
-  )
-
-  const visibleQuickActions = useMemo(
-    () => quickActions.filter((action) => !action.adminOnly || isAdmin),
-    [isAdmin, quickActions]
-  )
-
-  const heroSignals = useMemo<HeroSignal[]>(
-    () => [
-      {
-        label: t('Route active'),
-        value: apiInfoItems.length > 0 ? t('Online') : t('Current domain'),
-        icon: RadioTower,
-        tone: 'info',
-      },
-      {
-        label: t('Auth configured'),
-        value: preferredKey ? t('Secured') : t('Needs API key'),
-        icon: ShieldCheck,
-        tone: 'success',
-      },
-      {
-        label: t('Model selected'),
-        value: modelsQuery.data?.[0] ?? t('Loading'),
-        icon: Timer,
-        tone: 'chart-4',
-      },
-    ],
-    [apiInfoItems.length, modelsQuery.data, preferredKey, t]
-  )
-
-  const requestExample = useMemo<RequestExample>(() => {
-    const endpoint = normalizeEndpoint(apiInfoItems[0]?.url)
-    const model = modelsQuery.data?.[0] ?? 'gpt-4o-mini'
-    const keyName = preferredKey?.name ?? t('No API key yet')
-    const ready = Boolean(preferredKey?.id && model)
-
+  const endpoint = normalizeEndpoint(apiInfoItems[0]?.url)
+  const subscription = useMemo<ApertureSubscriptionSummary | null>(() => {
+    const snapshot = subscriptionQuery.data
+    if (!snapshot) return null
     return {
-      endpoint,
-      model,
-      keyName,
-      keyId: preferredKey?.id,
-      displayKey: preferredKey
-        ? formatDisplayKey(`sk-${preferredKey.key}`)
-        : 'sk-...',
-      ready,
+      ...snapshot,
+      planLabel: getSubscriptionPlanLabel(snapshot, t),
     }
-  }, [apiInfoItems, modelsQuery.data, preferredKey, t])
-
-  const completedStepCount = startSteps.filter((step) => step.completed).length
-  const setupComplete = completedStepCount === startSteps.length
-  const hasActiveKey = preferredKey?.status === 1
-  const hasAvailableModel = (modelsQuery.data?.length ?? 0) > 0
-  const routeReady = hasActiveKey && remainQuota > 0 && hasAvailableModel
-  let routeReadinessLabel = t('Ready to route')
-  if (!hasActiveKey) {
-    routeReadinessLabel = t('Needs API key')
-  } else if (remainQuota <= 0) {
-    routeReadinessLabel = t('Balance depleted')
-  } else if (!hasAvailableModel) {
-    routeReadinessLabel = t('Setup in progress')
-  }
-  const setupStatusReady = apiKeysQuery.isFetched && Boolean(user)
-  const setupGuideExpanded =
-    manualSetupGuideExpanded ?? (setupStatusReady && !setupComplete)
+  }, [subscriptionQuery.data, t])
+  const displayName = user?.display_name || user?.username || t('Developer')
   const showLeftContentPanels =
     isAdmin || showApiInfoPanel || showAnnouncementsPanel
   const showContentPanels = showLeftContentPanels || showUptimePanel
-
-  const handleSetupGuideToggle = () => {
-    const nextExpanded = !setupGuideExpanded
-    setManualSetupGuideExpanded(nextExpanded)
-    saveSetupGuideExpanded(nextExpanded)
-  }
+  const onboarding = (
+    <ApertureOnboarding
+      user={user}
+      primaryKey={primaryKey}
+      activeKey={activeKey}
+      model={model}
+      modelAvailable={modelAvailable}
+      endpoint={endpoint}
+    />
+  )
+  const liveCockpit = user ? (
+    <ApertureCockpit
+      user={user}
+      primaryKey={primaryKey}
+      activeKey={activeKey}
+      model={model}
+      modelAvailable={modelAvailable}
+      endpoint={endpoint}
+      balance={balance}
+      subscription={subscription}
+      recentRequests={recentRequestsQuery.data ?? []}
+      recentRequestsLoading={recentRequestsQuery.isLoading}
+      successRate={null}
+      isAdmin={isAdmin}
+    />
+  ) : null
+  const apertureExperience = confirmedSuccessfulRequest
+    ? liveCockpit
+    : onboarding
 
   return (
     <div className='flex flex-col gap-5'>
       <div className='flex flex-wrap items-end justify-between gap-4 px-1'>
         <div>
-          <p className='editorial-kicker'>{t('Gateway workspace')}</p>
-          <h2 className='mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-3xl'>
+          <p className='editorial-kicker'>
+            {t('N Aperture')} / {t('Gateway workspace')}
+          </p>
+          <h1 className='mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-3xl'>
             {t('Good to see you, {{name}}', { name: displayName })}
-          </h2>
+          </h1>
           <p className='text-muted-foreground mt-1.5 text-sm'>
-            {t('Balance, readiness, and the next useful action in one place.')}
+            {confirmedSuccessfulRequest
+              ? t(
+                  'Live routing, account health, and your next useful action in one place.'
+                )
+              : t('Set up one route, then keep the live signal close.')}
           </p>
         </div>
         <span className='bg-card border-border inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-semibold'>
-          <Activity
+          <span
             className={cn(
-              'size-3.5',
-              routeReady ? 'text-success' : 'text-primary'
+              'size-1.5 rounded-full',
+              confirmedSuccessfulRequest ? 'bg-success' : 'bg-primary'
             )}
             aria-hidden='true'
           />
-          {routeReadinessLabel}
+          {confirmedSuccessfulRequest ? t('Live cockpit') : t('First route')}
         </span>
       </div>
 
-      {setupGuideExpanded ? (
-        <CardStaggerContainer className='grid items-stretch gap-4 xl:grid-cols-[minmax(0,1fr)_23rem]'>
-          <CardStaggerItem className='border-border bg-card h-full overflow-hidden rounded-lg border'>
-            <div className='relative h-full overflow-hidden p-4 sm:p-6'>
-              <SetupGuideBackdrop />
-              <div className='relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_21rem]'>
-                <div className='flex min-w-0 flex-col gap-5'>
-                  <div className='flex flex-wrap items-start justify-between gap-3'>
-                    <div className='flex max-w-2xl flex-col gap-1'>
-                      <div className='editorial-kicker flex items-center gap-2'>
-                        <ListChecks className='size-3.5' aria-hidden='true' />
-                        {t('Get started')}
-                      </div>
-                      <h3 className='text-xl font-semibold tracking-tight sm:text-2xl'>
-                        {t('Prepare your first routed request')}
-                      </h3>
-                      <p className='text-muted-foreground max-w-xl text-sm leading-relaxed'>
-                        {t(
-                          'Create a key, confirm your balance, and send a request with the endpoint already prepared for you.'
-                        )}
-                      </p>
-                    </div>
-                    <div className='flex flex-wrap items-center gap-2'>
-                      <Button
-                        variant='outline'
-                        size='sm'
-                        onClick={handleSetupGuideToggle}
-                      >
-                        <ChevronUp data-icon='inline-start' />
-                        {t('Hide setup guide')}
-                      </Button>
-                      <Button size='sm' render={<Link to='/keys' />}>
-                        <KeyRound data-icon='inline-start' />
-                        {t('Create API Key')}
-                      </Button>
-                    </div>
-                  </div>
-
-                  <ol className='bg-muted/40 border-border rounded-md border p-2'>
-                    {startSteps.map((step, index) => (
-                      <StartStepItem
-                        key={step.title}
-                        step={step}
-                        index={index}
-                        isLast={index === startSteps.length - 1}
-                      />
-                    ))}
-                  </ol>
-                </div>
-
-                <RequestPreview
-                  example={requestExample}
-                  signals={heroSignals}
-                />
-              </div>
-            </div>
-          </CardStaggerItem>
-
-          <CardStaggerItem className='border-border bg-card h-full rounded-lg border p-4 sm:p-5'>
-            <div className='flex h-full flex-col gap-4'>
-              <div className='flex flex-col gap-1'>
-                <div className='editorial-kicker'>
-                  {t('Recommended actions')}
-                </div>
-                <h3 className='text-lg font-semibold tracking-tight'>
-                  {t('Keep the platform ready')}
-                </h3>
-              </div>
-              <div className='grid gap-2'>
-                {visibleQuickActions.map((action) => (
-                  <QuickActionItem key={action.title} action={action} />
-                ))}
-              </div>
-            </div>
-          </CardStaggerItem>
-        </CardStaggerContainer>
-      ) : (
-        <CardStaggerContainer>
-          <CardStaggerItem className='border-border bg-card overflow-hidden rounded-lg border'>
-            <div className='relative overflow-hidden px-4 py-3 sm:px-5'>
-              <SetupGuideBackdrop compact />
-              <div className='relative flex flex-wrap items-center justify-between gap-3'>
-                <div className='flex min-w-0 items-center gap-3'>
-                  <span className='bg-muted border-border flex size-9 shrink-0 items-center justify-center rounded-md border'>
-                    <Check className='text-success size-4' aria-hidden='true' />
-                  </span>
-                  <div className='min-w-0'>
-                    <div className='flex items-center gap-2'>
-                      <h3 className='truncate text-sm font-semibold'>
-                        {setupComplete
-                          ? t('Setup guide complete')
-                          : t('Setup guide')}
-                      </h3>
-                      <span className='text-muted-foreground bg-background/60 rounded-md border px-2 py-0.5 text-xs'>
-                        {t('Setup progress: {{completed}}/{{total}}', {
-                          completed: completedStepCount,
-                          total: startSteps.length,
-                        })}
-                      </span>
-                    </div>
-                    <p className='text-muted-foreground line-clamp-1 text-xs'>
-                      {setupComplete
-                        ? t(
-                            'Your setup guide is collapsed so usage stays in focus.'
-                          )
-                        : t('Setup guide is collapsed. Expand it anytime.')}
-                    </p>
-                  </div>
-                </div>
-
-                <div className='flex flex-wrap items-center gap-2'>
-                  {visibleQuickActions.map((action) => (
-                    <CompactQuickAction key={action.title} action={action} />
-                  ))}
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    className='h-8'
-                    render={<Link to='/docs' />}
-                  >
-                    <BookOpen data-icon='inline-start' />
-                    {t('Docs')}
-                  </Button>
-                  <Button
-                    variant='outline'
-                    size='sm'
-                    className='bg-background/70 h-8 min-w-28'
-                    onClick={handleSetupGuideToggle}
-                  >
-                    <ChevronDown data-icon='inline-start' />
-                    {t('Show setup guide')}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </CardStaggerItem>
-        </CardStaggerContainer>
-      )}
+      {apertureExperience}
 
       <CardStaggerContainer>
         <CardStaggerItem className='border-border bg-card overflow-hidden rounded-lg border'>
@@ -741,12 +355,12 @@ export function OverviewDashboard() {
                 <Gift className='size-5' aria-hidden='true' />
               </span>
               <div className='min-w-0'>
-                <h3 className='text-sm font-semibold sm:text-base'>
+                <h2 className='text-sm font-semibold sm:text-base'>
                   {t('Refer friends. Earn API credits.')}
-                </h3>
+                </h2>
                 <p className='text-muted-foreground mt-1 max-w-2xl text-xs leading-relaxed sm:text-sm'>
                   {t(
-                    'Invite a friend with your personal link. Once they verify their email, create a token, and make their first billable request, you both receive ¥100 in API credits.'
+                    'Invite a friend with your personal link. Once they verify their email, create a token, and make their first billable request, you both receive ¥50 in API credits.'
                   )}
                 </p>
               </div>

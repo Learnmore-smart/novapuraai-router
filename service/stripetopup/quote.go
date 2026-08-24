@@ -89,11 +89,10 @@ func BuildQuote(userID int, req QuoteRequest) (*QuoteResult, error) {
 
 	now := time.Now().Unix()
 	var tier *model.TopupPromoTier
-	var campaign *model.TopupPromotionCampaign
 	var err error
 	var paymentMinor int64
 	if req.TierID > 0 {
-		tier, campaign, err = model.GetExactTopupPromoTier(req.TierID, currency, now)
+		tier, _, err = model.GetExactTopupPromoTier(req.TierID, currency, now)
 		if err == nil {
 			paymentMinor = tier.PaymentAmountMinor
 		}
@@ -113,17 +112,6 @@ func BuildQuote(userID int, req QuoteRequest) (*QuoteResult, error) {
 		return nil, fmt.Errorf("top-up payment amount is outside configured limits")
 	}
 
-	if req.TierID == 0 {
-		tier, campaign, err = model.FindTopupPromoBand(currency, paymentMinor, now)
-		if err != nil {
-			tier, campaign, err = model.FindExactTopupPromoTier(currency, paymentMinor, now)
-		}
-		if err != nil {
-			tier = nil
-			campaign = nil
-		}
-	}
-
 	fx := setting.FXRatePresentmentPerUSD(currency)
 	paidMicro := setting.PresentmentMinorToMicroUSD(currency, paymentMinor, fx)
 	if paidMicro <= 0 {
@@ -134,72 +122,14 @@ func BuildQuote(userID int, req QuoteRequest) (*QuoteResult, error) {
 		return nil, fmt.Errorf("invalid top-up quota")
 	}
 
-	promoMinor := int64(0)
-	promoMicro := int64(0)
-	promoQuota := 0
-	expiryDays := 0
-	promotionTierID := 0
-	promotionName := ""
-	recommended := false
-	if tier != nil && campaign != nil {
-		if tier.PaymentAmountMinor > 0 {
-			if tier.BonusAmountMinor <= 0 || tier.PaymentAmountMinor > math.MaxInt64-tier.BonusAmountMinor || tier.TotalCreditAmountMinor != tier.PaymentAmountMinor+tier.BonusAmountMinor {
-				return nil, fmt.Errorf("invalid top-up tier totals")
-			}
-			promoMinor = tier.BonusAmountMinor
-		} else {
-			if tier.PercentBonusBps <= 0 || paymentMinor > math.MaxInt64/int64(tier.PercentBonusBps) {
-				return nil, fmt.Errorf("invalid top-up promotion multiplier")
-			}
-			promoMinor = paymentMinor * int64(tier.PercentBonusBps) / 10000
-		}
-		promoMicro = setting.PresentmentMinorToMicroUSD(currency, promoMinor, fx)
-		promoQuota = setting.MicroUSDToQuota(promoMicro)
-		if promoMicro <= 0 || promoQuota <= 0 || paidMicro > math.MaxInt64-promoMicro || paidQuota > common.MaxQuota-promoQuota {
-			return nil, fmt.Errorf("invalid converted promotional credit amount")
-		}
-		if capacityErr := model.CheckTopupPromotionCapacity(userID, tier, campaign, promoMicro); capacityErr != nil {
-			if req.TierID > 0 {
-				return nil, capacityErr
-			}
-			tier = nil
-			campaign = nil
-			promoMinor = 0
-			promoMicro = 0
-			promoQuota = 0
-		} else {
-			expiryDays = tier.PromoExpiryDays
-			if expiryDays == 0 {
-				expiryDays = campaign.DefaultPromoExpiryDays
-			}
-			promotionTierID = tier.Id
-			promotionName = tier.Name
-			recommended = tier.Recommended
-		}
-	}
-
-	if paymentMinor > math.MaxInt64-promoMinor {
-		return nil, fmt.Errorf("invalid top-up total")
-	}
-	totalMinor := paymentMinor + promoMinor
+	totalMinor := paymentMinor
 	snapshotData := map[string]any{
-		"applied":                   tier != nil && campaign != nil,
+		"applied":                   false,
 		"currency":                  currency,
 		"payment_amount_minor":      paymentMinor,
-		"bonus_amount_minor":        promoMinor,
+		"bonus_amount_minor":        int64(0),
 		"total_credit_amount_minor": totalMinor,
 		"fx_presentment_per_usd":    fx,
-	}
-	if tier != nil && campaign != nil {
-		snapshotData["campaign_id"] = campaign.Id
-		snapshotData["campaign_name"] = campaign.Name
-		snapshotData["tier_id"] = tier.Id
-		snapshotData["tier_code"] = tier.Code
-		snapshotData["tier_name"] = tier.Name
-		snapshotData["percent_bonus_bps"] = tier.PercentBonusBps
-		snapshotData["promo_expiry_days"] = expiryDays
-		snapshotData["campaign_per_user_limit"] = campaign.PerUserLimit
-		snapshotData["tier_per_user_limit"] = tier.PerUserLimit
 	}
 	snapshot, err := common.Marshal(snapshotData)
 	if err != nil {
@@ -207,27 +137,26 @@ func BuildQuote(userID int, req QuoteRequest) (*QuoteResult, error) {
 	}
 
 	return &QuoteResult{
-		TierID:                 promotionTierID,
+		TierID:                 0,
 		Currency:               currency,
 		AmountMajor:            int(paymentMinor / 100),
 		AmountMinor:            paymentMinor,
 		PaidCreditAmountMinor:  paymentMinor,
-		PromoCreditAmountMinor: promoMinor,
+		PromoCreditAmountMinor: 0,
 		TotalCreditAmountMinor: totalMinor,
 		FxRateSnapshot:         fx,
 		PaidCreditMicroUSD:     paidMicro,
-		PromoCreditMicroUSD:    promoMicro,
-		TotalCreditMicroUSD:    paidMicro + promoMicro,
+		PromoCreditMicroUSD:    0,
+		TotalCreditMicroUSD:    paidMicro,
 		PaidQuota:              paidQuota,
-		PromoQuota:             promoQuota,
-		TotalQuota:             paidQuota + promoQuota,
+		PromoQuota:             0,
+		TotalQuota:             paidQuota,
 		PromotionSnapshotJSON:  string(snapshot),
-		PromotionTierID:        promotionTierID,
-		PromotionName:          promotionName,
-		PromoExpiryDays:        expiryDays,
-		Recommended:            recommended,
+		PromotionTierID:        0,
+		PromoExpiryDays:        0,
+		Recommended:            false,
 		PaymentDisplay:         FormatMinor(currency, paymentMinor),
-		BonusDisplay:           FormatMinor(currency, promoMinor),
+		BonusDisplay:           FormatMinor(currency, 0),
 		TotalDisplay:           FormatMinor(currency, totalMinor),
 		DisplayLabel:           FormatMinor(currency, paymentMinor),
 	}, nil
@@ -241,14 +170,9 @@ func ListTopupOffers(userID int, currency string) (*TopupOfferCatalog, error) {
 		return nil, fmt.Errorf("unsupported currency")
 	}
 	presets := setting.GetTopupPresets(currency)
-	campaign, campaignErr := model.GetTopupPromotionCampaign()
-	now := time.Now().Unix()
 	catalog := &TopupOfferCatalog{
-		Currency:       currency,
-		Campaign:       campaign,
-		CampaignActive: campaignErr == nil && campaign.ActiveAt(now),
-		Repeatable:     campaignErr == nil && campaign.PerUserLimit == 0,
-		Offers:         make([]TopupOffer, 0, len(presets)),
+		Currency: currency,
+		Offers:   make([]TopupOffer, 0, len(presets)),
 	}
 	for _, amountMajor := range presets {
 		paymentMinor := int64(amountMajor) * 100

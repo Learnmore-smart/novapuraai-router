@@ -52,10 +52,10 @@ type User struct {
 	InviterId           int `json:"inviter_id" gorm:"type:int;column:inviter_id;index"`
 	// InviteRewardPending: invitee not yet qualified for delayed invite rewards.
 	// Set in code on register when DelayedInviteReward; avoid gorm boolean default tags (cross-DB AutoMigrate churn).
-	InviteRewardPending bool                       `json:"invite_reward_pending" gorm:"column:invite_reward_pending"`
+	InviteRewardPending bool `json:"invite_reward_pending" gorm:"column:invite_reward_pending"`
 	// CommissionApproved: admin-approved affiliate plan member. When true, this user
 	// receives 25% (AffCommissionRate) cash commission on invitee paid amounts instead
-	// of the fixed ¥100 invite reward. No gorm default tag (cross-DB AutoMigrate churn;
+	// of the fixed ¥50 invite reward. No gorm default tag (cross-DB AutoMigrate churn;
 	// Go zero value false = not approved).
 	CommissionApproved bool `json:"commission_approved" gorm:"column:commission_approved"`
 	// PendingCommissionCents: frozen cash commission (settled but not yet past the
@@ -67,15 +67,15 @@ type User struct {
 	CommissionBalanceCents int64 `json:"commission_balance_cents" gorm:"type:bigint;default:0;column:commission_balance_cents"`
 	// CommissionTotalCents: lifetime earned commission (frozen + available, excluding
 	// withdrawn). USD cents int64. For display/reconciliation.
-	CommissionTotalCents int64 `json:"commission_total_cents" gorm:"type:bigint;default:0;column:commission_total_cents"`
-	DeletedAt           gorm.DeletedAt             `gorm:"index"`
-	LinuxDOId           string                     `json:"linux_do_id" gorm:"column:linux_do_id;index"`
-	Setting             string                     `json:"setting" gorm:"type:text;column:setting"`
-	Remark              string                     `json:"remark,omitempty" gorm:"type:varchar(255)" validate:"max=255"`
-	StripeCustomer      string                     `json:"stripe_customer" gorm:"type:varchar(64);column:stripe_customer;index"`
-	CreatedAt           int64                      `json:"created_at" gorm:"autoCreateTime;column:created_at"`
-	LastLoginAt         int64                      `json:"last_login_at" gorm:"default:0;column:last_login_at"`
-	AdminPermissions    map[string]map[string]bool `json:"admin_permissions,omitempty" gorm:"-:all"`
+	CommissionTotalCents int64                      `json:"commission_total_cents" gorm:"type:bigint;default:0;column:commission_total_cents"`
+	DeletedAt            gorm.DeletedAt             `gorm:"index"`
+	LinuxDOId            string                     `json:"linux_do_id" gorm:"column:linux_do_id;index"`
+	Setting              string                     `json:"setting" gorm:"type:text;column:setting"`
+	Remark               string                     `json:"remark,omitempty" gorm:"type:varchar(255)" validate:"max=255"`
+	StripeCustomer       string                     `json:"stripe_customer" gorm:"type:varchar(64);column:stripe_customer;index"`
+	CreatedAt            int64                      `json:"created_at" gorm:"autoCreateTime;column:created_at"`
+	LastLoginAt          int64                      `json:"last_login_at" gorm:"default:0;column:last_login_at"`
+	AdminPermissions     map[string]map[string]bool `json:"admin_permissions,omitempty" gorm:"-:all"`
 }
 
 func (user *User) ToBaseUser() *UserBase {
@@ -630,7 +630,7 @@ func (user *User) finishInsert(inviterId int) {
 		// Already applied on Insert as PromoQuota+Quota; log only.
 		RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("新用户注册赠送 %s", logger.LogQuota(common.QuotaForNewUser)))
 	}
-	// NovaPura first-N register promo (¥200) — also attempts if email already set
+	// NovaPura register promo — also attempts if email is already set.
 	if user.Email != "" {
 		if _, _, e := TryGrantRegisterPromo(user.Id); e != nil {
 			common.SysLog("register promo grant failed: " + e.Error())
@@ -689,7 +689,7 @@ func (user *User) InsertWithTx(tx *gorm.DB, inviterId int) error {
 
 // FinalizeOAuthUserCreation performs post-transaction tasks for OAuth user creation.
 // This should be called after the transaction commits successfully.
-// Reuses finishInsert so register promo (¥50) and delayed invite rewards (¥100 each)
+// Reuses finishInsert so register promo (¥20) and delayed invite rewards (¥50 each)
 // match password registration.
 func (user *User) FinalizeOAuthUserCreation(inviterId int) {
 	user.finishInsert(inviterId)

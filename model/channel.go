@@ -371,6 +371,44 @@ func (channel *Channel) GetModels() []string {
 	return strings.Split(strings.Trim(channel.Models, ","), ",")
 }
 
+// ValidateChannelModelNames rejects model identities that cannot safely be
+// persisted as channel capabilities. Ability rows are derived from Models,
+// so accepting one of these names would recreate an invalid capability on the
+// next channel update or ability rebuild.
+func ValidateChannelModelNames(models string) error {
+	for _, rawModel := range strings.Split(models, ",") {
+		modelName := strings.TrimSpace(rawModel)
+		if modelName == "" {
+			continue
+		}
+		if common.IsInvalidModelName(modelName) {
+			return fmt.Errorf("invalid model name %q: trailing quote is not allowed", modelName)
+		}
+	}
+	return nil
+}
+
+func validateChannelModelIdentity(channel *Channel) error {
+	if err := ValidateChannelModelNames(channel.Models); err != nil {
+		return err
+	}
+	if channel.TestModel != nil && common.IsInvalidModelName(*channel.TestModel) {
+		return fmt.Errorf("invalid test model %q: trailing quote is not allowed", strings.TrimSpace(*channel.TestModel))
+	}
+	if channel.ModelMapping != nil && strings.TrimSpace(*channel.ModelMapping) != "" {
+		mapping := make(map[string]string)
+		if err := common.Unmarshal([]byte(*channel.ModelMapping), &mapping); err != nil {
+			return fmt.Errorf("invalid model mapping: %w", err)
+		}
+		for source, target := range mapping {
+			if common.IsInvalidModelName(source) || common.IsInvalidModelName(target) {
+				return fmt.Errorf("invalid model mapping %q -> %q: trailing quote is not allowed", source, target)
+			}
+		}
+	}
+	return nil
+}
+
 func (channel *Channel) GetGroups() []string {
 	if channel.Group == "" {
 		return []string{}
@@ -505,6 +543,11 @@ func BatchInsertChannels(channels []Channel) error {
 	if len(channels) == 0 {
 		return nil
 	}
+	for _, channel := range channels {
+		if err := ValidateChannelModelNames(channel.Models); err != nil {
+			return err
+		}
+	}
 	tx := DB.Begin()
 	if tx.Error != nil {
 		return tx.Error
@@ -592,19 +635,24 @@ func (channel *Channel) GetStatusCodeMapping() string {
 }
 
 func (channel *Channel) Insert() error {
+	if err := validateChannelModelIdentity(channel); err != nil {
+		return err
+	}
 	if err := channel.EncryptKeyForStorage(); err != nil {
 		return err
 	}
-	var err error
-	err = DB.Create(channel).Error
-	if err != nil {
-		return err
-	}
-	err = channel.AddAbilities(nil)
-	return err
+	return DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(channel).Error; err != nil {
+			return err
+		}
+		return channel.AddAbilities(tx)
+	})
 }
 
 func (channel *Channel) Update() error {
+	if err := validateChannelModelIdentity(channel); err != nil {
+		return err
+	}
 	// If this is a multi-key channel, recalculate MultiKeySize based on the current key list to avoid inconsistency after editing keys
 	if channel.ChannelInfo.IsMultiKey {
 		var keyStr string
@@ -653,14 +701,15 @@ func (channel *Channel) Update() error {
 			return err
 		}
 	}
-	var err error
-	err = DB.Model(channel).Updates(channel).Error
-	if err != nil {
-		return err
-	}
-	DB.Model(channel).First(channel, "id = ?", channel.Id)
-	err = channel.UpdateAbilities(nil)
-	return err
+	return DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(channel).Updates(channel).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(channel).First(channel, "id = ?", channel.Id).Error; err != nil {
+			return err
+		}
+		return channel.UpdateAbilities(tx)
+	})
 }
 
 func (channel *Channel) UpdateResponseTime(responseTime int64) {
@@ -891,12 +940,21 @@ func EditChannelByTag(tag string, newTag *string, modelMapping *string, models *
 	updateData := Channel{}
 	shouldReCreateAbilities := false
 	updatedTag := tag
+	if models != nil {
+		if err := ValidateChannelModelNames(*models); err != nil {
+			return err
+		}
+	}
 	// 如果 newTag 不为空且不等于 tag，则更新 tag
 	if newTag != nil && *newTag != tag {
 		updateData.Tag = newTag
 		updatedTag = *newTag
 	}
 	if modelMapping != nil {
+		candidate := &Channel{ModelMapping: modelMapping}
+		if err := validateChannelModelIdentity(candidate); err != nil {
+			return err
+		}
 		updateData.ModelMapping = modelMapping
 	}
 	if models != nil && *models != "" {
@@ -920,27 +978,34 @@ func EditChannelByTag(tag string, newTag *string, modelMapping *string, models *
 		updateData.HeaderOverride = headerOverride
 	}
 
-	err := DB.Model(&Channel{}).Where("tag = ?", tag).Updates(updateData).Error
-	if err != nil {
-		return err
-	}
-	if shouldReCreateAbilities {
-		channels, err := GetChannelsByTag(updatedTag, false, false)
-		if err == nil {
-			for _, channel := range channels {
-				err = channel.UpdateAbilities(nil)
-				if err != nil {
-					common.SysLog(fmt.Sprintf("failed to update abilities: channel_id=%d, tag=%s, error=%v", channel.Id, channel.GetTag(), err))
-				}
-			}
-		}
-	} else {
-		err := UpdateAbilityByTag(tag, newTag, priority, weight)
-		if err != nil {
+	return DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&Channel{}).Where("tag = ?", tag).Updates(updateData).Error; err != nil {
 			return err
 		}
-	}
-	return nil
+		if shouldReCreateAbilities {
+			var channels []*Channel
+			if err := tx.Where("tag = ?", updatedTag).Find(&channels).Error; err != nil {
+				return err
+			}
+			for _, channel := range channels {
+				if err := channel.UpdateAbilities(tx); err != nil {
+					return fmt.Errorf("update abilities for channel %d: %w", channel.Id, err)
+				}
+			}
+			return nil
+		}
+		ability := Ability{}
+		if newTag != nil {
+			ability.Tag = newTag
+		}
+		if priority != nil {
+			ability.Priority = priority
+		}
+		if weight != nil {
+			ability.Weight = *weight
+		}
+		return tx.Model(&Ability{}).Where("tag = ?", tag).Updates(ability).Error
+	})
 }
 
 func UpdateChannelUsedQuota(id int, quota int) {

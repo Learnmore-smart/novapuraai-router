@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 
 import type { NavGroup, NavItem } from '@/components/layout/types'
+import { MODEL_CATALOG_PATH } from '@/features/models/catalog-links'
 import { useStatus } from '@/hooks/use-status'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -92,6 +93,7 @@ const URL_TO_CONFIG_MAP: Record<string, { section: string; module: string }> = {
   '/profile': { section: 'personal', module: 'personal' },
   '/channels': { section: 'admin', module: 'channel' },
   '/models': { section: 'admin', module: 'models' },
+  [MODEL_CATALOG_PATH]: { section: 'admin', module: 'models' },
   '/models/metadata': { section: 'admin', module: 'models' },
   '/models/deployments': { section: 'admin', module: 'models' },
   '/users': { section: 'admin', module: 'user' },

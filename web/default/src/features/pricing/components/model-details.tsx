@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
+import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import {
   ArrowLeft,
   CalendarClock,
@@ -37,6 +37,7 @@ import {
   formatUptimePct,
   getSuccessRateTextClass,
 } from '@/features/performance-metrics/lib/format'
+import { useIsAdmin } from '@/hooks/use-admin'
 import { getLobeIcon } from '@/lib/lobe-icon'
 import { cn } from '@/lib/utils'
 
@@ -507,6 +508,7 @@ function ModelBackendDetailsSection(props: { model: PricingModel }) {
 
 function ModelHeader(props: { model: PricingModel }) {
   const { t } = useTranslation()
+  const isAdmin = useIsAdmin()
   const model = props.model
   const modelIconKey = model.icon || model.vendor_icon
   const modelIcon = modelIconKey ? getLobeIcon(modelIconKey, 20) : null
@@ -539,6 +541,22 @@ function ModelHeader(props: { model: PricingModel }) {
         )}
         <span className='text-muted-foreground/30'>·</span>
         <ModelBillingModeBadge model={model} />
+        {isAdmin && (
+          <Button
+            variant='link'
+            size='sm'
+            className='h-auto gap-1 px-0 py-0 text-xs font-medium'
+            render={
+              <Link
+                to='/models/$section'
+                params={{ section: 'catalog' }}
+                search={{ filter: model.model_name }}
+              />
+            }
+          >
+            {t('Edit model profile')}
+          </Button>
+        )}
       </div>
       {description && (
         <p className='text-muted-foreground mt-2 text-sm leading-relaxed'>

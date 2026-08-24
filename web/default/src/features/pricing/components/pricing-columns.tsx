@@ -1,4 +1,5 @@
 import type { ColumnDef } from '@tanstack/react-table'
+import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -16,6 +17,7 @@ import {
   getDynamicPricingSummary,
 } from '../lib/dynamic-price'
 import { parseTags } from '../lib/filters'
+import { getModelProfilePath } from '../lib/model-profile'
 import { isTokenBasedModel } from '../lib/model-helpers'
 import {
   formatPrice,
@@ -74,9 +76,13 @@ export function usePricingColumns(
                 {initial}
               </span>
             )}
-            <span className='truncate font-mono text-sm font-medium'>
+            <Link
+              className='truncate rounded-sm font-mono text-sm font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+              to={getModelProfilePath(model.model_name || '')}
+              onClick={(event) => event.stopPropagation()}
+            >
               {model.model_name}
-            </span>
+            </Link>
           </div>
         )
       },

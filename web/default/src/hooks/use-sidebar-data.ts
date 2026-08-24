@@ -19,7 +19,8 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { type SidebarData } from '@/components/layout/types'
+import type { SidebarData } from '@/components/layout/types'
+import { MODEL_CATALOG_PATH } from '@/features/models/catalog-links'
 import { ROLE } from '@/lib/roles'
 
 /**
@@ -108,8 +109,8 @@ export function useSidebarData(): SidebarData {
             icon: Radio,
           },
           {
-            title: t('Models'),
-            url: '/models/metadata',
+            title: t('Model Catalog'),
+            url: MODEL_CATALOG_PATH,
             icon: Box,
           },
           {

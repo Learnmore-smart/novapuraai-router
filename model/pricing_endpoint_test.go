@@ -190,6 +190,34 @@ func TestPricingNativeChannelEndpointTypesUnchanged(t *testing.T) {
 	assert.Equal(t, []constant.EndpointType{constant.EndpointTypeAnthropic, constant.EndpointTypeOpenAI}, byModel["claude-3-5-sonnet"])
 }
 
+func TestPricingSkipsMalformedModelIdentity(t *testing.T) {
+	resetPricingEndpointTestTables(t)
+
+	insertPricingEndpointChannel(t, 204, constant.ChannelTypeOpenAI, dto.ChannelOtherSettings{})
+	insertPricingEndpointAbility(t, 204, common.CanonicalDeepSeekV4Flash0731+`"`)
+
+	byModel := pricingEndpointTypesByModel(t)
+
+	assert.NotContains(t, byModel, common.CanonicalDeepSeekV4Flash0731+`"`)
+}
+
+func TestGetPricingReturnsDefensiveCopies(t *testing.T) {
+	resetPricingEndpointTestTables(t)
+	insertPricingEndpointChannel(t, 205, constant.ChannelTypeOpenAI, dto.ChannelOtherSettings{})
+	insertPricingEndpointAbility(t, 205, common.CanonicalDeepSeekV4Flash0731)
+
+	first := GetPricing()
+	require.Len(t, first, 1)
+	first[0].BillingCurrency = "cny"
+	input := 1.23
+	first[0].BillingInputPerMillion = &input
+
+	second := GetPricing()
+	require.Len(t, second, 1)
+	assert.Empty(t, second[0].BillingCurrency)
+	assert.Nil(t, second[0].BillingInputPerMillion)
+}
+
 func TestInitChannelCacheInvalidatesPricingCache(t *testing.T) {
 	resetPricingEndpointTestTables(t)
 

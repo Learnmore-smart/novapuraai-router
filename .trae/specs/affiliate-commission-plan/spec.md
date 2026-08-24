@@ -4,12 +4,12 @@
 
 明确区分两类邀请奖励：
 
-1. **普通用户**（未获批）：邀请奖励是 **¥100 API 额度**（promo），只能站内消费，
+1. **普通用户**（未获批）：邀请奖励是 **¥50 API 额度**（promo），只能站内消费，
    **不能提现**。行为与现状一致。
-2. **获批分佣用户**（后台批准）：不拿固定 ¥100 额度，改拿被邀请用户**实际付款金额**
+2. **获批分佣用户**（后台批准）：不拿固定 ¥50 额度，改拿被邀请用户**实际付款金额**
    的 **25% 现金佣金**，**可以提现**。持续、无上限、不追溯历史。
 
-两种奖励**互斥**：获批后不再走 ¥100 额度路径，改走现金佣金路径。
+两种奖励**互斥**：获批后不再走 ¥50 额度路径，改走现金佣金路径。
 
 > 佣金**不进 `AffQuota`**（那只能转 API 余额消费，不能提现）。需单独建立「可提现佣金
 > 余额 + 冻结余额 + 佣金流水 + 提现申请 + 管理员审核」五套结构。
@@ -28,9 +28,9 @@
 ### 邀请关系与固定奖励
 - `model/user.go` User：`AffCode`、`InviterId`、`AffCount`、`RewardedInviteCount`、
   `AffQuota`、`AffHistoryQuota`、`InviteRewardPending`。
-- `common/constants.go`：`DelayedInviteReward=true`、`InviteRewardCNYYuan=100.0`、
+- `common/constants.go`：`DelayedInviteReward=true`、`InviteRewardCNYYuan=50.0`、
   `MaxValidInvites=10`。
-- `model/campaign.go:TrySettleDelayedInviteReward`：被邀请人达资格后给双方各发 ¥100
+- `model/campaign.go:TrySettleDelayedInviteReward`：被邀请人达资格后给双方各发 ¥50
   promo，邀请人受 `MaxValidInvites` 上限。
 - `model/user.go:inviteUser`：非延迟路径按 `QuotaForInviter` 发放到 `AffQuota`。
 
@@ -211,13 +211,13 @@ func ReleaseMaturedCommissions() (released int, err error)
 > 易支付 webhook 不在单一事务里：`IncreaseUserQuota` 成功后，包 `model.DB.Transaction`
 > 调 `SettleRechargeCommission`（状态已翻 Success + 幂等检查保证不双发）。
 
-### 互斥：分佣用户不发 ¥100 额度邀请奖励
+### 互斥：分佣用户不发 ¥50 额度邀请奖励
 
 - `model/campaign.go:TrySettleDelayedInviteReward`：`lockForUpdate(inviter)` 后读
   `inviter.CommissionApproved`；为 true 时：
   - 仍清被邀请人 `invite_reward_pending`；
-  - 仍给**被邀请人**发 ¥100 promo（被邀请人作为普通新用户保留奖励）；
-  - **跳过邀请人侧 ¥100 发放**与 `RewardedInviteCount++`，仅 `AffCount++`。
+  - 仍给**被邀请人**发 ¥50 promo（被邀请人作为普通新用户保留奖励）；
+  - **跳过邀请人侧 ¥50 发放**与 `RewardedInviteCount++`，仅 `AffCount++`。
 - `model/user.go:inviteUser`（即时路径）：获批 inviter 仅 `AffCount++`，不发 `QuotaForInviter`。
 
 ### 提现链路
@@ -256,7 +256,7 @@ func ReleaseMaturedCommissions() (released int, err error)
 - 复用 `UpdateUser` + `EditWithTx`，`updates` 白名单加 `commission_approved`。
 - 前端编辑抽屉加 Switch「分佣计划成员」，描述：
   > 获批后，该用户邀请的人充值时，其可获 25% 现金佣金（冻结 14 天后可提现，替代固定
-  > ¥100 API 额度）。
+  > ¥50 API 额度）。
 - `GetSelf` 透出 `commission_approved`/`pending_commission_cents`/
   `commission_balance_cents`/`commission_total_cents`。
 
@@ -298,8 +298,8 @@ func ReleaseMaturedCommissions() (released int, err error)
 - 不追溯历史充值补发佣金（仅结算邀请人获批之后的充值）。
 - 不做被邀请人退款自动回收佣金（MVP 接受 14 天冻结期覆盖退款窗口的风险；
   `Commission.Status="reverted"` 字段已预留供后期接入）。
-- 不做被邀请人侧互斥（被邀请人仍拿 ¥100 promo）。
-- 不改 `MaxValidInvites` 上限语义（仅作用于 ¥100 额度路径）。
+- 不做被邀请人侧互斥（被邀请人仍拿 ¥50 promo）。
+- 不改 `MaxValidInvites` 上限语义（仅作用于 ¥50 额度路径）。
 - 不改 `web/classic` 旧前端（仅 `web/default`）。
 - 佣金以 USD 美分记账，提现展示金额按申请时汇率折算 CNY；实际打款币种由管理员人工处理。
 

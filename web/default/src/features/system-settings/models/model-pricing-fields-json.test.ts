@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 
 import type { BulkPricingMaps } from './model-pricing-bulk-json.ts'
+import { createInitialLaneState } from './model-pricing-core.ts'
 import {
   applyPricingFieldsJson,
   exportPricingFieldsJson,
@@ -81,5 +82,73 @@ describe('model pricing field JSON', () => {
 
     assert.equal(result.ok, false)
     assert.match(result.errors.join('\n'), /configured.*outside/i)
+  })
+
+  test('requires a positive completion ratio for token pricing rows', () => {
+    const result = applyPricingFieldsJson(maps, {
+      ...emptyDrafts,
+      ModelRatio: '{"token-model":1.5}',
+      CompletionRatio: '{}',
+    })
+
+    assert.equal(result.ok, false)
+    assert.match(result.errors.join('\n'), /positive completion output/i)
+  })
+
+  test('rejects an orphan non-positive completion ratio entry', () => {
+    const result = applyPricingFieldsJson(maps, {
+      ...emptyDrafts,
+      CompletionRatio: '{"orphan-token":0}',
+    })
+
+    assert.equal(result.ok, false)
+    assert.match(result.errors.join('\n'), /orphan-token.*completion/i)
+  })
+
+  test('exports an effective default completion ratio for token rows without one', () => {
+    const mapsWithoutStoredOutput: BulkPricingMaps = {
+      ...maps,
+      modelPrice: '{}',
+      modelRatio: '{"fallback-token":1.5}',
+      completionRatio: '{}',
+    }
+    const drafts = exportPricingFieldsJson(mapsWithoutStoredOutput)
+
+    assert.deepEqual(JSON.parse(drafts.CompletionRatio), {
+      'fallback-token': 1,
+    })
+    assert.ok(
+      applyPricingFieldsJson(mapsWithoutStoredOutput, drafts).ok,
+      'the generated Field JSON must be importable'
+    )
+  })
+
+  test('keeps DeepSeek 0.11 ratio and 3 completion ratio in Field JSON', () => {
+    const result = applyPricingFieldsJson(maps, {
+      ...emptyDrafts,
+      ModelRatio: '{"deepseek-v4-flash-0731":0.11}',
+      CompletionRatio: '{"deepseek-v4-flash-0731":3}',
+    })
+
+    assert.ok(result.ok)
+    const laneState = createInitialLaneState({
+      name: 'deepseek-v4-flash-0731',
+      ratio: JSON.parse(result.updates.ModelRatio)['deepseek-v4-flash-0731'],
+      completionRatio: JSON.parse(result.updates.CompletionRatio)[
+        'deepseek-v4-flash-0731'
+      ],
+    })
+    assert.equal(laneState.promptPrice, '0.22')
+    assert.equal(laneState.prices.completion, '0.66')
+  })
+
+  test('rejects invalid model names before producing field updates', () => {
+    const result = applyPricingFieldsJson(maps, {
+      ...emptyDrafts,
+      ModelRatio: '{"invalid-model\\\"":1}',
+    })
+
+    assert.equal(result.ok, false)
+    assert.match(result.errors.join('\n'), /invalid.*model.*quote/i)
   })
 })

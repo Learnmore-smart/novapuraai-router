@@ -105,6 +105,448 @@ For commercial licensing, please contact support@quantumnous.com
     border-radius: calc(var(--radius) * 1.15);
   }
 
+  /* N Aperture public canvas. Keep the page's exterior to Canvas + Ink; the
+     four signal tokens are clipped by the SVG mark in home/components. */
+  .np-aperture-page {
+    --np-aperture-line: color-mix(
+      in srgb,
+      var(--np-aperture-ink) 14%,
+      transparent
+    );
+    background: var(--np-aperture-canvas);
+    color: var(--np-aperture-ink);
+    font-family: var(--font-sans);
+  }
+
+  .dark .np-aperture-page {
+    --np-aperture-canvas: #111318;
+    --np-aperture-ink: #f7f7f5;
+  }
+
+  .np-aperture-page .text-muted-foreground {
+    color: color-mix(in srgb, var(--np-aperture-ink) 62%, transparent);
+  }
+
+  .np-aperture-page .np-kicker {
+    color: color-mix(in srgb, var(--np-aperture-ink) 62%, transparent);
+  }
+
+  .np-aperture-page .border-border {
+    border-color: var(--np-aperture-line);
+  }
+
+  .np-aperture-container {
+    width: min(calc(100% - 3rem), 76rem);
+    margin-inline: auto;
+  }
+
+  .np-aperture-hero {
+    border-bottom: 1px solid var(--np-aperture-line);
+    padding: clamp(7rem, 13vw, 11rem) 0 clamp(4rem, 8vw, 7rem);
+  }
+
+  .np-aperture-hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(22rem, 0.9fr);
+    align-items: center;
+    gap: clamp(2rem, 4vw, 4rem);
+  }
+
+  .np-aperture-overline {
+    margin: 0;
+    color: var(--np-aperture-ink);
+    font-family: var(--novapura-mono);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    line-height: 1.4;
+    text-transform: uppercase;
+  }
+
+  .np-aperture-hero-copy h1 {
+    max-width: 42rem;
+    margin: 1.25rem 0 0;
+    font-size: clamp(3rem, 6.7vw, 6.7rem);
+    font-weight: 700;
+    letter-spacing: -0.075em;
+    line-height: 0.94;
+  }
+
+  .np-aperture-copy {
+    max-width: 39rem;
+    margin: 1.25rem 0 0;
+    color: color-mix(in srgb, var(--np-aperture-ink) 68%, transparent);
+    font-size: 1rem;
+    line-height: 1.75;
+  }
+
+  .np-aperture-hero-description {
+    max-width: 31rem;
+    font-size: clamp(1rem, 1.8vw, 1.2rem);
+  }
+
+  .np-aperture-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.25rem;
+    margin-top: 2rem;
+  }
+
+  .np-aperture-button,
+  .np-aperture-text-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--np-aperture-ink);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    line-height: 1;
+    text-decoration: none;
+  }
+
+  .np-aperture-button {
+    min-height: 2.75rem;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--np-aperture-ink);
+    border-radius: 0.45rem;
+    background: var(--np-aperture-ink);
+    color: var(--np-aperture-canvas);
+  }
+
+  .np-aperture-button:hover,
+  .np-aperture-text-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.25rem;
+  }
+
+  .np-aperture-button:focus-visible,
+  .np-aperture-text-link:focus-visible {
+    outline: 2px solid var(--np-aperture-ink);
+    outline-offset: 4px;
+  }
+
+  .np-aperture-button svg,
+  .np-aperture-text-link svg {
+    width: 0.9rem;
+    height: 0.9rem;
+    flex: none;
+  }
+
+  .np-aperture {
+    position: relative;
+    min-width: 0;
+    isolation: isolate;
+  }
+
+  .np-aperture-mark {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    padding: clamp(1.5rem, 5vw, 4.25rem);
+  }
+
+  .np-aperture-routes {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .np-aperture-route-chip {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    max-width: min(12rem, 42%);
+    padding: 0.55rem 0.65rem;
+    overflow: hidden;
+    border: 1px solid var(--np-aperture-line);
+    border-radius: 999px;
+    background: var(--np-aperture-canvas);
+    color: var(--np-aperture-ink);
+    font-family: var(--novapura-mono);
+    font-size: 0.625rem;
+    line-height: 1;
+  }
+
+  .np-aperture-route-chip:nth-child(1) {
+    top: 28%;
+    left: 2%;
+  }
+
+  .np-aperture-route-chip:nth-child(2) {
+    top: 48%;
+    right: 2%;
+  }
+
+  .np-aperture-route-chip:nth-child(3) {
+    bottom: 16%;
+    left: 8%;
+  }
+
+  .np-aperture-route-chip-muted {
+    top: 50%;
+    right: 50%;
+    transform: translate(50%, -50%);
+    color: color-mix(in srgb, var(--np-aperture-ink) 62%, transparent);
+  }
+
+  .np-aperture-route-dot,
+  .np-aperture-ink-dot {
+    display: block;
+    width: 0.375rem;
+    height: 0.375rem;
+    flex: none;
+    border-radius: 50%;
+    background: var(--np-aperture-ink);
+  }
+
+  .np-aperture-route-label {
+    color: color-mix(in srgb, var(--np-aperture-ink) 54%, transparent);
+  }
+
+  .np-aperture-route-line {
+    stroke-dasharray: 0.16 0.84;
+    animation: np-aperture-route 2.4s linear infinite;
+  }
+
+  @keyframes np-aperture-route {
+    from {
+      stroke-dashoffset: 1;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .np-aperture-offer {
+    padding: clamp(2.5rem, 5vw, 4.5rem) 0;
+    border-bottom: 1px solid var(--np-aperture-line);
+  }
+
+  .np-aperture-offer-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.55fr);
+    gap: 3rem;
+  }
+
+  .np-aperture-offer h2,
+  .np-aperture-section-heading h2,
+  .np-aperture-final-cta h2 {
+    max-width: 38rem;
+    margin: 0.75rem 0 0;
+    font-size: clamp(1.75rem, 3.1vw, 3rem);
+    font-weight: 700;
+    letter-spacing: -0.055em;
+    line-height: 1;
+  }
+
+  .np-aperture-offer .np-aperture-copy {
+    max-width: 34rem;
+  }
+
+  .np-aperture-offer-meta {
+    align-self: end;
+    padding-left: 1.5rem;
+    border-left: 1px solid var(--np-aperture-line);
+  }
+
+  .np-aperture-offer-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--novapura-mono);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .np-aperture-offer-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 1.25rem 0 0;
+  }
+
+  .np-aperture-offer-stats dt {
+    color: var(--np-aperture-ink);
+    font-size: 0.6875rem;
+  }
+
+  .np-aperture-offer-stats dd {
+    margin: 0.35rem 0 0;
+    font-family: var(--novapura-mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  .np-aperture-meta-note,
+  .np-aperture-offer-promo {
+    color: color-mix(in srgb, var(--np-aperture-ink) 60%, transparent);
+    font-family: var(--novapura-mono);
+    font-size: 0.6875rem;
+    line-height: 1.6;
+  }
+
+  .np-aperture-meta-note {
+    margin: 1rem 0 0;
+  }
+
+  .np-aperture-offer-meta .np-aperture-text-link {
+    margin-top: 1.25rem;
+  }
+
+  .np-aperture-offer-promo {
+    margin: 2rem 0 0;
+    padding-top: 1rem;
+    border-top: 1px solid var(--np-aperture-line);
+  }
+
+  .np-aperture-evidence {
+    padding: clamp(4rem, 8vw, 8rem) 0;
+  }
+
+  .np-aperture-section-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1.5rem;
+  }
+
+  .np-aperture-section-heading h2 {
+    max-width: 30rem;
+    margin-left: auto;
+  }
+
+  .np-aperture-evidence-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.5rem;
+    margin-top: 3rem;
+  }
+
+  .np-aperture-evidence-item {
+    padding-top: 1rem;
+    border-top: 1px solid var(--np-aperture-ink);
+  }
+
+  .np-aperture-evidence-item svg {
+    width: 1rem;
+    height: 1rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .np-aperture-evidence-item h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+  }
+
+  .np-aperture-evidence-item p {
+    max-width: 20rem;
+    margin: 0.75rem 0 0;
+    color: color-mix(in srgb, var(--np-aperture-ink) 62%, transparent);
+    font-size: 0.875rem;
+    line-height: 1.7;
+  }
+
+  .np-aperture-faq {
+    padding: clamp(4rem, 8vw, 8rem) 0;
+    border-top: 1px solid var(--np-aperture-line);
+    border-bottom: 1px solid var(--np-aperture-line);
+  }
+
+  .np-aperture-faq-icon {
+    display: inline-flex;
+    width: 2.5rem;
+    height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--np-aperture-ink);
+    border-radius: 50%;
+  }
+
+  .np-aperture-faq-panel {
+    border: 1px solid var(--np-aperture-line);
+    background: var(--np-aperture-canvas);
+  }
+
+  .np-aperture-final-cta {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 2rem;
+    padding-top: clamp(4rem, 8vw, 8rem);
+    padding-bottom: clamp(5rem, 10vw, 10rem);
+  }
+
+  .np-aperture-final-cta h2 {
+    max-width: 43rem;
+  }
+
+  @media (max-width: 900px) {
+    .np-aperture-hero-grid,
+    .np-aperture-offer-main {
+      grid-template-columns: 1fr;
+    }
+
+    .np-aperture-hero-copy h1 {
+      max-width: 38rem;
+    }
+
+    .np-aperture-offer-meta {
+      padding-top: 1.5rem;
+      padding-left: 0;
+      border-top: 1px solid var(--np-aperture-line);
+      border-left: 0;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .np-aperture-container {
+      width: min(calc(100% - 2rem), 76rem);
+    }
+
+    .np-aperture-hero {
+      padding-top: 6.5rem;
+    }
+
+    .np-aperture-route-chip {
+      max-width: 48%;
+      padding: 0.45rem 0.5rem;
+      font-size: 0.5625rem;
+    }
+
+    .np-aperture-evidence-grid {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    .np-aperture-evidence-item svg {
+      margin-bottom: 1.5rem;
+    }
+
+    .np-aperture-final-cta {
+      display: block;
+    }
+
+    .np-aperture-final-cta .np-aperture-button {
+      margin-top: 2rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .np-aperture-route-line {
+      animation: none;
+    }
+  }
+
   /* Faint engineering grid behind the hero — credibility, not decoration.
      Masked to fade out toward the edges so it never competes with content. */
   .np-grid {
@@ -236,7 +678,9 @@ For commercial licensing, please contact support@quantumnous.com
   body {
     @apply bg-background text-foreground has-[div[data-variant='inset']]:bg-sidebar min-h-svh w-full;
     font-family: var(--font-body);
-    font-feature-settings: 'ss01' on, 'cv11' on;
+    font-feature-settings:
+      'ss01' on,
+      'cv11' on;
     letter-spacing: -0.011em;
   }
 

@@ -156,6 +156,6 @@ func TestAdminBillingTopupPreviewReturnsLaunchCards(t *testing.T) {
 	require.Len(t, response.Data.Offers, 6)
 	assert.True(t, response.Data.Offers[0].Available)
 	assert.Equal(t, "¥10.00", response.Data.Offers[0].Payment)
-	assert.Equal(t, "¥20.00", response.Data.Offers[0].Bonus)
-	assert.Equal(t, "¥30.00", response.Data.Offers[0].Total)
+	assert.Equal(t, "¥0.00", response.Data.Offers[0].Bonus)
+	assert.Equal(t, "¥10.00", response.Data.Offers[0].Total)
 }

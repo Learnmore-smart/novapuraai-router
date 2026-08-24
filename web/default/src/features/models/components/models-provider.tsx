@@ -78,7 +78,7 @@ export function ModelsProvider({ children }: { children: React.ReactNode }) {
     locale: 'zh',
     source: 'official',
   })
-  const [tabCategory, setTabCategory] = useState<ModelTabCategory>('metadata')
+  const [tabCategory, setTabCategory] = useState<ModelTabCategory>('catalog')
 
   return (
     <ModelsContext.Provider

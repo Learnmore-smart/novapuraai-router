@@ -197,6 +197,9 @@ func filterAbilitiesByRequestPathAndModel(abilities []Ability, requestPath strin
 }
 
 func (channel *Channel) AddAbilities(tx *gorm.DB) error {
+	if err := ValidateChannelModelNames(channel.Models); err != nil {
+		return err
+	}
 	models_ := strings.Split(channel.Models, ",")
 	groups_ := strings.Split(channel.Group, ",")
 	abilitySet := make(map[string]struct{})
@@ -244,6 +247,9 @@ func (channel *Channel) DeleteAbilities() error {
 // UpdateAbilities updates abilities of this channel.
 // Make sure the channel is completed before calling this function.
 func (channel *Channel) UpdateAbilities(tx *gorm.DB) error {
+	if err := ValidateChannelModelNames(channel.Models); err != nil {
+		return err
+	}
 	isNewTx := false
 	// 如果没有传入事务，创建新的事务
 	if tx == nil {

@@ -92,6 +92,25 @@ const (
 	LogTypeLogin   = 7
 )
 
+// HasSuccessfulRequestForUser reports whether this user has a recorded
+// successful consume log. The user predicate is deliberately part of the
+// query so another user's traffic can never open the dashboard cockpit.
+func HasSuccessfulRequestForUser(userID int) (bool, error) {
+	if userID <= 0 {
+		return false, fmt.Errorf("invalid user id")
+	}
+	if LOG_DB == nil {
+		return false, fmt.Errorf("log database is unavailable")
+	}
+
+	var count int64
+	err := LOG_DB.Model(&Log{}).
+		Where("user_id = ? AND type = ?", userID, LogTypeConsume).
+		Limit(1).
+		Count(&count).Error
+	return count > 0, err
+}
+
 func ensureLogRequestId(log *Log) {
 	if log != nil && log.RequestId == "" {
 		log.RequestId = common.NewRequestId()

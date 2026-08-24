@@ -68,6 +68,20 @@ func runSubscriptionQuotaResetOnce() {
 		}
 	}
 	for {
+		n, err := model.ExpireDueStripeSubscriptions(time.Now().Unix(), subscriptionResetBatchSize)
+		if err != nil {
+			logger.LogWarn(ctx, fmt.Sprintf("recurring subscription grace expiry task failed: %v", err))
+			return
+		}
+		if n == 0 {
+			break
+		}
+		totalExpired += int(n)
+		if n < int64(subscriptionResetBatchSize) {
+			break
+		}
+	}
+	for {
 		n, err := model.ResetDueSubscriptions(subscriptionResetBatchSize)
 		if err != nil {
 			logger.LogWarn(ctx, fmt.Sprintf("subscription quota reset task failed: %v", err))

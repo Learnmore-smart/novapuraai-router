@@ -33,6 +33,45 @@ func attachQuotaSaturationToOther(other map[string]interface{}, clamp *common.Qu
 	adminInfo["quota_saturation"] = clamp.AuditMap()
 }
 
+// AppendDeepSeekFairUseAdminInfo keeps fair-use diagnostics in the existing
+// admin-only log envelope. The request-local audit object is populated from
+// HMACs and Redis counters; raw client identifiers never cross this boundary.
+func AppendDeepSeekFairUseAdminInfo(relayInfo *relaycommon.RelayInfo, adminInfo map[string]interface{}) {
+	if relayInfo == nil {
+		return
+	}
+	AppendDeepSeekFairUseAuditInfo(relayInfo.DeepSeekFairUse, adminInfo)
+}
+
+// AppendDeepSeekFairUseAuditInfo is the shared form used by both consume and
+// error logs when only the request-local audit pointer is available.
+func AppendDeepSeekFairUseAuditInfo(audit *relaycommon.DeepSeekFairUseAudit, adminInfo map[string]interface{}) {
+	if audit == nil || adminInfo == nil {
+		return
+	}
+	degradeUntil := int64(0)
+	if !audit.DegradeUntil.IsZero() {
+		degradeUntil = audit.DegradeUntil.Unix()
+	}
+	adminInfo["deepseek_fair_use"] = map[string]interface{}{
+		"account_hmac":          audit.AccountHMAC,
+		"risk_hmac":             audit.RiskHMAC,
+		"risk_ip_hmac":          audit.RiskIPHMAC,
+		"risk_country_hmac":     audit.RiskCountryHMAC,
+		"risk_user_agent_hmac":  audit.RiskUserAgentHMAC,
+		"peak_limit":            audit.PeakLimit,
+		"active":                audit.Active,
+		"concurrent_seconds":    audit.ConcurrentSeconds,
+		"admitted":              audit.Admitted,
+		"successful":            audit.Successful,
+		"effective_concurrency": audit.EffectiveConcurrency,
+		"degraded":              audit.Degraded,
+		"degrade_until":         degradeUntil,
+		"exhaustion_events":     audit.ExhaustionEvents,
+		"risk_marked":           audit.RiskMarked,
+	}
+}
+
 // attachQuotaSaturation records the request's quota clamp (if any) onto the
 // consume log's other.admin_info and emits a request-correlated backend audit
 // line. Called right before RecordConsumeLog on the text/audio/wss paths.
@@ -111,6 +150,7 @@ func GenerateTextOtherInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, m
 	}
 
 	AppendChannelAffinityAdminInfo(ctx, adminInfo)
+	AppendDeepSeekFairUseAdminInfo(relayInfo, adminInfo)
 
 	other["admin_info"] = adminInfo
 	appendRequestPath(ctx, relayInfo, other)

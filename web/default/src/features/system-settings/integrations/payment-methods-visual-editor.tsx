@@ -290,7 +290,7 @@ export function PaymentMethodsVisualEditor({
           <StaticDataTable
             className='hidden rounded-none border-0 md:block'
             data={filteredMethods}
-            getRowKey={(method, index) => `${method.type}-${index}`}
+            getRowKey={(method) => `${method.type}-${method.name}`}
             columns={[
               {
                 id: 'name',

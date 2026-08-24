@@ -27,16 +27,16 @@ import {
 type Response = { success: boolean; message?: string }
 
 describe('check-in option persistence', () => {
-  test('converts a 5-50 display-currency range to internal quota units', () => {
+  test('converts a 0-5 display-currency range to internal quota units', () => {
     assert.deepEqual(
       buildCheckinQuotaOptionUpdates(
-        { minQuota: 5, maxQuota: 50 },
+        { minQuota: 0, maxQuota: 5 },
         { minQuota: 1000, maxQuota: 10000 },
         (amount) => amount * 500000
       ),
       [
-        { key: 'checkin_setting.min_quota', value: '2500000' },
-        { key: 'checkin_setting.max_quota', value: '25000000' },
+        { key: 'checkin_setting.min_quota', value: '0' },
+        { key: 'checkin_setting.max_quota', value: '2500000' },
       ]
     )
   })

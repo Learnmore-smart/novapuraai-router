@@ -147,7 +147,7 @@ func SettleRechargeCommission(tx *gorm.DB, inviteeId int, topUpId string, paidAm
 		return nil, err
 	}
 	if !inviter.CommissionApproved {
-		// Not an approved affiliate; the legacy ¥100 invite path handles them.
+		// Not an approved affiliate; the legacy ¥50 invite path handles them.
 		return nil, nil
 	}
 
@@ -289,8 +289,8 @@ func ReleaseMaturedCommissions() (released int, err error) {
 				inviter.PendingCommissionCents -= sum
 				inviter.CommissionBalanceCents += sum
 				if err := tx.Model(&User{}).Where("id = ?", inviterId).Updates(map[string]any{
-					"pending_commission_cents":   inviter.PendingCommissionCents,
-					"commission_balance_cents":   inviter.CommissionBalanceCents,
+					"pending_commission_cents": inviter.PendingCommissionCents,
+					"commission_balance_cents": inviter.CommissionBalanceCents,
 				}).Error; err != nil {
 					return err
 				}
@@ -471,10 +471,13 @@ func AdminListWithdrawalRequests(status string, page int, pageSize int) ([]Withd
 // AdminProcessWithdrawal transitions a pending withdrawal to paid or rejected.
 //
 // paid: admin confirms manual payout completed. PayoutChannel and PayoutTxId
-//   record how/where the money was sent (reserved for Stripe Connect). Funds
-//   were already debited at request time, so no balance change.
+//
+//	record how/where the money was sent (reserved for Stripe Connect). Funds
+//	were already debited at request time, so no balance change.
+//
 // rejected: admin refuses the request. Funds are refunded to the user's
-//   CommissionBalanceCents in the same transaction.
+//
+//	CommissionBalanceCents in the same transaction.
 //
 // Idempotent: only pending→paid and pending→rejected are allowed; re-processing
 // a terminal request is a no-op (returns the current state, no error).
@@ -553,13 +556,13 @@ func payoutChannelDisplayName(channel string) string {
 
 // GetCommissionSummary returns the user's commission balances for display.
 type CommissionSummary struct {
-	PendingCents    int64 `json:"pending_cents"`
-	BalanceCents    int64 `json:"balance_cents"`
-	TotalCents      int64 `json:"total_cents"`
-	WithdrawnCents  int64 `json:"withdrawn_cents"`
+	PendingCents       int64 `json:"pending_cents"`
+	BalanceCents       int64 `json:"balance_cents"`
+	TotalCents         int64 `json:"total_cents"`
+	WithdrawnCents     int64 `json:"withdrawn_cents"`
 	MinWithdrawalCents int64 `json:"min_withdrawal_cents"`
-	FreezeDays      int   `json:"freeze_days"`
-	Approved        bool  `json:"approved"`
+	FreezeDays         int   `json:"freeze_days"`
+	Approved           bool  `json:"approved"`
 }
 
 // GetCommissionSummaryForUser loads a user's commission balances and lifetime

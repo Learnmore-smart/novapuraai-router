@@ -9,6 +9,12 @@
 # Branded image (includes theme.css changes):
 #   docker compose -f docker-compose.yml -f docker-compose.brand.yml up -d --build
 #
+# Test config check:
+#   docker compose --env-file .env -f docker-compose.yml config
+# Production PowerShell selection (never merge both files):
+#   $env:NOVAPURA_ENV_FILE = '.env-prod'
+#   docker compose --env-file .env-prod -f docker-compose.yml config
+#
 # Production (GCP behind Cloudflare):
 #   - Change ALL default passwords
 #   - Set SESSION_SECRET, SESSION_COOKIE_SECURE, SESSION_COOKIE_TRUSTED_URL=https://novapuraai.com
@@ -24,6 +30,11 @@ services:
     container_name: novapura-api
     restart: always
     command: --log-dir /app/logs
+    # Runtime-only configuration. Test defaults to .env; Production must set
+    # NOVAPURA_ENV_FILE=.env-prod explicitly. Neither file enters the image
+    # build context because of the root .dockerignore.
+    env_file:
+      - ${NOVAPURA_ENV_FILE:-.env}
     ports:
       - "${PORT:-3000}:3000"
     volumes:

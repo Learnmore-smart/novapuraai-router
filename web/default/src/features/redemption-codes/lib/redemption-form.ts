@@ -7,7 +7,7 @@ import {
   normalizeRedemptionCurrency,
   type RedemptionCurrency,
 } from '../constants'
-import { type RedemptionFormData, type Redemption } from '../types'
+import type { RedemptionFormData, Redemption } from '../types'
 
 // ============================================================================
 // Form Schema (use getRedemptionFormSchema(t) in components for i18n messages)

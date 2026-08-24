@@ -49,7 +49,7 @@ for (const [lang, pack] of Object.entries(PACKS)) {
     }
     const dir = path.join(ROOT, section)
     fs.mkdirSync(dir, { recursive: true })
-    const text = body.trim() + '\n'
+    const text = `${body.trim()}\n`
     fs.writeFileSync(path.join(dir, `${lang}.md`), text, 'utf8')
     written++
   }

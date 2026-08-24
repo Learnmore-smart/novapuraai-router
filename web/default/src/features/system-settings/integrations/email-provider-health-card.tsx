@@ -178,8 +178,23 @@ export function EmailProviderHealthCard() {
     }
   }
 
-  const renderSESDetails = (provider: EmailProviderHealth) => (
-    <div className='text-muted-foreground mt-2 grid gap-1 text-xs sm:grid-cols-2'>
+  const renderSESDetails = (provider: EmailProviderHealth) => {
+    let productionAccessLabel = t('Unknown')
+    if (provider.production_access) {
+      productionAccessLabel = t('Approved')
+    } else if (provider.reachable) {
+      productionAccessLabel = t('Pending')
+    }
+
+    let sandboxRestrictionLabel = t('Unknown')
+    if (provider.sandbox_restricted) {
+      sandboxRestrictionLabel = t('Restricted (sandbox)')
+    } else if (provider.reachable && provider.production_access) {
+      sandboxRestrictionLabel = t('None')
+    }
+
+    return (
+      <div className='text-muted-foreground mt-2 grid gap-1 text-xs sm:grid-cols-2'>
       <span>
         {t('Credentials configured')}:{' '}
         {yesNo(provider.credentials_configured, t)}
@@ -195,22 +210,15 @@ export function EmailProviderHealthCard() {
       </span>
       <span>
         {t('Production access')}:{' '}
-        {provider.production_access
-          ? t('Approved')
-          : provider.reachable
-            ? t('Pending')
-            : t('Unknown')}
+        {productionAccessLabel}
       </span>
       <span>
         {t('Sandbox restrictions')}:{' '}
-        {provider.sandbox_restricted
-          ? t('Restricted (sandbox)')
-          : provider.reachable && provider.production_access
-            ? t('None')
-            : t('Unknown')}
+        {sandboxRestrictionLabel}
       </span>
-    </div>
-  )
+      </div>
+    )
+  }
 
   const renderProvider = (name: TransactionalEmailProvider) => {
     const provider = report.providers.find((item) => item.provider === name)

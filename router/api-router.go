@@ -55,6 +55,11 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.GET("/ratio_config", middleware.CriticalRateLimit(), controller.GetRatioConfig)
 
 		apiRouter.POST("/stripe/webhook", anonymousRequestBodyLimit, controller.StripeWebhook)
+		// Recurring subscription offer is public; Checkout, summary, and portal
+		// remain authenticated. Keep a namespaced webhook alias for integrations
+		// without changing the legacy top-up endpoint.
+		apiRouter.GET("/subscription/stripe/offer", middleware.TryUserAuth(), controller.GetStripeSubscriptionOffer)
+		apiRouter.POST("/subscription/stripe/webhook", anonymousRequestBodyLimit, controller.StripeWebhook)
 		// Stripe Connect (分佣自动打款) webhook — public, signature-verified.
 		apiRouter.POST("/stripe/connect_webhook", anonymousRequestBodyLimit, controller.StripeConnectWebhook)
 
@@ -110,6 +115,7 @@ func SetApiRouter(router *gin.Engine) {
 			{
 				selfRoute.GET("/self/groups", controller.GetUserGroups)
 				selfRoute.GET("/self", controller.GetSelf)
+				selfRoute.GET("/self/success", controller.GetUserSuccessfulRequestStatus)
 				selfRoute.GET("/models", controller.GetUserModels)
 				selfRoute.PUT("/self", middleware.CriticalRateLimit(), controller.UpdateSelf)
 				selfRoute.DELETE("/self", controller.DeleteSelf)
@@ -206,6 +212,10 @@ func SetApiRouter(router *gin.Engine) {
 			subscriptionRoute.POST("/balance/pay", middleware.CriticalRateLimit(), controller.SubscriptionRequestBalancePay)
 			subscriptionRoute.POST("/epay/pay", middleware.CriticalRateLimit(), controller.SubscriptionRequestEpay)
 			subscriptionRoute.POST("/stripe/pay", middleware.CriticalRateLimit(), controller.SubscriptionRequestStripePay)
+			subscriptionRoute.POST("/stripe/checkout", middleware.CriticalRateLimit(), controller.SubscriptionRequestStripePay)
+			subscriptionRoute.GET("/stripe/summary", controller.GetStripeSubscriptionSummary)
+			subscriptionRoute.GET("/stripe/self", controller.GetStripeSubscriptionSummary)
+			subscriptionRoute.POST("/stripe/portal", controller.PostStripeSubscriptionPortal)
 			subscriptionRoute.POST("/creem/pay", middleware.CriticalRateLimit(), controller.SubscriptionRequestCreemPay)
 			subscriptionRoute.POST("/waffo-pancake/pay", middleware.CriticalRateLimit(), controller.SubscriptionRequestWaffoPancakePay)
 		}
@@ -213,9 +223,9 @@ func SetApiRouter(router *gin.Engine) {
 		subscriptionAdminRoute.Use(middleware.AdminAuth())
 		{
 			subscriptionAdminRoute.GET("/plans", controller.AdminListSubscriptionPlans)
-			subscriptionAdminRoute.POST("/plans", controller.AdminCreateSubscriptionPlan)
-			subscriptionAdminRoute.PUT("/plans/:id", controller.AdminUpdateSubscriptionPlan)
-			subscriptionAdminRoute.PATCH("/plans/:id", controller.AdminUpdateSubscriptionPlanStatus)
+			subscriptionAdminRoute.POST("/plans", middleware.RootAuth(), controller.AdminCreateSubscriptionPlan)
+			subscriptionAdminRoute.PUT("/plans/:id", middleware.RootAuth(), controller.AdminUpdateSubscriptionPlan)
+			subscriptionAdminRoute.PATCH("/plans/:id", middleware.RootAuth(), controller.AdminUpdateSubscriptionPlanStatus)
 			subscriptionAdminRoute.POST("/bind", controller.AdminBindSubscription)
 			subscriptionAdminRoute.POST("/plans/:id/subscriptions/reset", controller.AdminResetPlanSubscriptions)
 

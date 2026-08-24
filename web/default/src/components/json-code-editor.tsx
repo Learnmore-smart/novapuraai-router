@@ -107,17 +107,18 @@ export function JsonCodeEditor({
         const selectionLineStart = value.lastIndexOf('\n', start - 1) + 1
         const selectedBlock = value.slice(selectionLineStart, end)
         const lines = selectedBlock.split('\n')
-        const nextBlock = event.shiftKey
-          ? lines
-              .map((line) =>
-                line.startsWith('  ')
-                  ? line.slice(2)
-                  : line.startsWith('\t')
-                    ? line.slice(1)
-                    : line
-              )
-              .join('\n')
-          : lines.map((line) => `  ${line}`).join('\n')
+        let nextBlock: string
+        if (event.shiftKey) {
+          nextBlock = lines
+            .map((line) => {
+              if (line.startsWith('  ')) return line.slice(2)
+              if (line.startsWith('\t')) return line.slice(1)
+              return line
+            })
+            .join('\n')
+        } else {
+          nextBlock = lines.map((line) => ['  ', line].join('')).join('\n')
+        }
         const nextValue =
           value.slice(0, selectionLineStart) + nextBlock + value.slice(end)
         updateValueWithSelection(

@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { type Table } from '@tanstack/react-table'
+import type { Table } from '@tanstack/react-table'
 import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
@@ -56,6 +56,19 @@ export function DataTablePagination<TData>({
   const totalPages = table.getPageCount()
   const totalRows = table.getRowCount()
   const pageNumbers = getPageNumbers(currentPage, totalPages)
+  const pageItems = pageNumbers.reduce<
+    Array<{ pageNumber: number | string; key: string }>
+  >((items, pageNumber) => {
+    if (pageNumber === '...') {
+      const key = items.some((item) => item.pageNumber === '...')
+        ? 'ellipsis-after'
+        : 'ellipsis-before'
+      items.push({ pageNumber, key })
+    } else {
+      items.push({ pageNumber, key: String(pageNumber) })
+    }
+    return items
+  }, [])
 
   return (
     <div
@@ -118,8 +131,8 @@ export function DataTablePagination<TData>({
             <ChevronLeftIcon className='h-4 w-4' />
           </Button>
 
-          {pageNumbers.map((pageNumber, index) => (
-            <div key={`${pageNumber}-${index}`} className='flex items-center'>
+          {pageItems.map(({ pageNumber, key }) => (
+            <div key={key} className='flex items-center'>
               {pageNumber === '...' ? (
                 <span className='text-muted-foreground/60 px-0.5 text-sm @lg/pagination:px-1'>
                   ...

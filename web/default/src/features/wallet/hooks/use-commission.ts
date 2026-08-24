@@ -87,7 +87,7 @@ export function useCommission(enabled: boolean) {
         }
         toast.error(response.message || i18next.t('Withdrawal request failed'))
         return false
-      } catch (_error) {
+      } catch {
         toast.error(i18next.t('Withdrawal request failed'))
         return false
       } finally {

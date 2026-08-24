@@ -1,6 +1,9 @@
 package operation_setting
 
-import "github.com/QuantumNous/new-api/setting/config"
+import (
+	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/setting/config"
+)
 
 // CheckinSetting 签到功能配置
 type CheckinSetting struct {
@@ -11,9 +14,9 @@ type CheckinSetting struct {
 
 // 默认配置
 var checkinSetting = CheckinSetting{
-	Enabled:  false, // 默认关闭
-	MinQuota: 1000,  // 默认最小额度 1000 (约 0.002 USD)
-	MaxQuota: 10000, // 默认最大额度 10000 (约 0.02 USD)
+	Enabled:  false,                                                   // 默认关闭
+	MinQuota: 0,                                                       // 默认最小奖励 0 CNY
+	MaxQuota: common.CNYYuanToQuota(5, common.DefaultUSDExchangeRate), // 默认最大奖励 5 CNY
 }
 
 func init() {
@@ -23,7 +26,9 @@ func init() {
 
 // GetCheckinSetting 获取签到配置
 func GetCheckinSetting() *CheckinSetting {
-	return &checkinSetting
+	effective := checkinSetting
+	effective.MinQuota, effective.MaxQuota = GetCheckinQuotaRange()
+	return &effective
 }
 
 // IsCheckinEnabled 是否启用签到功能
@@ -33,5 +38,12 @@ func IsCheckinEnabled() bool {
 
 // GetCheckinQuotaRange 获取签到额度范围
 func GetCheckinQuotaRange() (min, max int) {
-	return checkinSetting.MinQuota, checkinSetting.MaxQuota
+	max = checkinSetting.MaxQuota
+	maxAllowed := common.CNYYuanToQuota(5, USDExchangeRate)
+	if max < 0 {
+		max = 0
+	} else if max > maxAllowed {
+		max = maxAllowed
+	}
+	return 0, max
 }

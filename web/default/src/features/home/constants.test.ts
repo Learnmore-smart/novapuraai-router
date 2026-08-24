@@ -1,18 +1,18 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { LANDING_MODEL_ROWS } from './constants.ts'
+import { getPublicModelNames } from './lib/home-content.ts'
 
-test('advertises current flagship models instead of unavailable provider families', () => {
-  assert.deepEqual(LANDING_MODEL_ROWS, [
-    { name: 'GLM 5.2', note: 'Pay per token' },
-    { name: 'DeepSeek V4 Pro', note: 'Pay per token' },
-    { name: 'Kimi K2.6', note: 'Pay per token' },
-    { name: 'Nemotron 3 Ultra', note: 'Pay per token' },
-  ])
-
-  const advertisedNames = LANDING_MODEL_ROWS.map((model) => model.name).join(
-    ' '
+test('projects the public model list from server data without inventing names', () => {
+  assert.deepEqual(
+    getPublicModelNames([
+      { model_name: ' deepseek-v4-flash-0731 ' },
+      { model_name: 'glm-5.2' },
+      { model_name: 'DEEPSEEK-V4-FLASH-0731' },
+      { model_name: '' },
+      { model_name: 'qwen3.5' },
+    ]),
+    ['deepseek-v4-flash-0731', 'glm-5.2', 'qwen3.5']
   )
-  assert.doesNotMatch(advertisedNames, /GPT|Claude|Gemini/i)
+  assert.deepEqual(getPublicModelNames([]), [])
 })

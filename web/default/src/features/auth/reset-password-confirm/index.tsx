@@ -38,6 +38,16 @@ export function ResetPasswordConfirm({
 
   const isValidResetLink = Boolean(email && token)
 
+  let submitButtonLabel = t('auth.resetPasswordConfirm.confirm')
+  if (isActive) {
+    submitButtonLabel = t('auth.resetPasswordConfirm.retry', {
+      seconds: secondsLeft,
+    })
+  }
+  if (newPassword) {
+    submitButtonLabel = t('auth.resetPasswordConfirm.backToLogin')
+  }
+
   async function handleSubmit() {
     if (!isValidResetLink || !email || !token) {
       toast.error(t('Invalid reset link, please request a new password reset'))
@@ -161,13 +171,7 @@ export function ResetPasswordConfirm({
               newPassword ? false : loading || isActive || !isValidResetLink
             }
           >
-            {newPassword
-              ? t('auth.resetPasswordConfirm.backToLogin')
-              : isActive
-                ? t('auth.resetPasswordConfirm.retry', {
-                    seconds: secondsLeft,
-                  })
-                : t('auth.resetPasswordConfirm.confirm')}
+            {submitButtonLabel}
           </Button>
 
           {!newPassword && (

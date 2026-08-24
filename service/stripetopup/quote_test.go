@@ -88,15 +88,16 @@ func TestBuildQuoteRejectsOneMinorUnitBelowEachCurrencyMinimum(t *testing.T) {
 	}
 }
 
-func TestBuildQuoteCustomAmountUsesSharedPromotionBand(t *testing.T) {
+func TestBuildQuoteCustomAmountIgnoresSharedPromotionBand(t *testing.T) {
 	_, tiers := setupExactTierQuoteTest(t)
 
 	q, err := BuildQuote(1, QuoteRequest{Currency: "cny", AmountMinor: tiers[1].PaymentAmountMinor})
 	require.NoError(t, err)
 	assert.NotEqual(t, tiers[1].Id, q.TierID)
-	assert.Positive(t, q.TierID)
-	assert.Equal(t, tiers[1].BonusAmountMinor, q.PromoCreditAmountMinor)
-	assert.Contains(t, q.PromotionSnapshotJSON, `"applied":true`)
+	assert.Zero(t, q.TierID)
+	assert.Zero(t, q.PromoCreditAmountMinor)
+	assert.Equal(t, tiers[1].PaymentAmountMinor, q.TotalCreditAmountMinor)
+	assert.Contains(t, q.PromotionSnapshotJSON, `"applied":false`)
 }
 
 func TestListTopupOffersUsesProductCheckoutPresetsForEveryCurrency(t *testing.T) {
@@ -130,8 +131,8 @@ func TestBuildQuoteUSDConversion(t *testing.T) {
 	assert.Equal(t, float64(1), q.FxRateSnapshot)
 	assert.Equal(t, int64(10)*setting.MicroUSDPerUSD, q.PaidCreditMicroUSD)
 	assert.Greater(t, q.PaidQuota, 0)
-	assert.Equal(t, q.PaidQuota+q.PromoQuota, q.TotalQuota)
-	assert.Equal(t, int64(10)*setting.MicroUSDPerUSD, q.PromoCreditMicroUSD)
+	assert.Equal(t, q.PaidQuota, q.TotalQuota)
+	assert.Zero(t, q.PromoCreditMicroUSD)
 }
 
 func TestBuildQuoteCNYAndCAD(t *testing.T) {

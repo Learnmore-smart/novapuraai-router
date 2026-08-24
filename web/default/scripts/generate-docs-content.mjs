@@ -43,7 +43,7 @@ const CONTENT = {}
 
 function set(section, lang, body) {
   if (!CONTENT[section]) CONTENT[section] = {}
-  CONTENT[section][lang] = body.trim() + '\n'
+  CONTENT[section][lang] = `${body.trim()}\n`
 }
 
 // ---------------------------------------------------------------------------
@@ -986,10 +986,6 @@ Yes for the main chat, embeddings, images, and audio routes. Additional Anthropi
  * Localized variants. Keys: section -> lang -> markdown
  * For brevity and quality, zh / zh-TW / fr / ru / ja / vi are full rewrites of en.
  */
-const LOCALIZED = {
-  // populated below via setLocal
-}
-
 function setLocal(section, map) {
   for (const [lang, body] of Object.entries(map)) {
     set(section, lang, body)

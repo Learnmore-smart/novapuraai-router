@@ -33,9 +33,11 @@ import {
   updateBillingPreference,
 } from '@/features/subscriptions/api'
 import { SubscriptionPurchaseDialog } from '@/features/subscriptions/components/dialogs/subscription-purchase-dialog'
+import { SubscriptionOfferCard } from '@/features/subscriptions/components/subscription-offer-card'
 import { formatDuration, formatResetPeriod } from '@/features/subscriptions/lib'
 import type {
   PlanRecord,
+  SubscriptionLifecycleSummary,
   UserSubscriptionRecord,
 } from '@/features/subscriptions/types'
 import { formatQuota } from '@/lib/format'
@@ -89,10 +91,14 @@ export function SubscriptionPlansCard({
   const [allSubscriptions, setAllSubscriptions] = useState<
     UserSubscriptionRecord[]
   >([])
+  const [subscriptionLifecycle, setSubscriptionLifecycle] = useState<
+    SubscriptionLifecycleSummary | undefined
+  >()
   const [billingPreference, setBillingPreference] =
     useState('subscription_first')
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [offerAvailable, setOfferAvailable] = useState(false)
 
   const [purchaseOpen, setPurchaseOpen] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<PlanRecord | null>(null)
@@ -126,6 +132,9 @@ export function SubscriptionPlansCard({
         )
         setActiveSubscriptions(res.data.subscriptions || [])
         setAllSubscriptions(res.data.all_subscriptions || [])
+        setSubscriptionLifecycle(
+          res.data.subscription || res.data.current_subscription
+        )
       }
     } catch {
       // ignore
@@ -171,7 +180,7 @@ export function SubscriptionPlansCard({
 
   const hasActive = activeSubscriptions.length > 0
   const hasAny = allSubscriptions.length > 0
-  const isAvailable = loading || plans.length > 0 || hasAny
+  const isAvailable = loading || plans.length > 0 || hasAny || offerAvailable
   const disablePref = !hasActive
   const isSubPref =
     billingPreference === 'subscription_first' ||
@@ -217,30 +226,42 @@ export function SubscriptionPlansCard({
     return Math.round((used / total) * 100)
   }
 
+  const offerCard = (
+    <SubscriptionOfferCard
+      onAvailabilityChange={setOfferAvailable}
+      onPurchaseSuccess={onPurchaseSuccess}
+      subscription={subscriptionLifecycle}
+    />
+  )
+
   if (loading) {
     return (
-      <Card data-card-hover='false' className='gap-0 overflow-hidden py-0'>
-        <CardHeader className='border-b p-3 !pb-3 sm:p-5 sm:!pb-5'>
-          <Skeleton className='h-6 w-32' />
-        </CardHeader>
-        <CardContent className='space-y-4 p-3 sm:p-5'>
-          <Skeleton className='h-20 w-full' />
-          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3'>
-            {['first', 'second', 'third'].map((key) => (
-              <Skeleton key={key} className='h-48 w-full' />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <>
+        {offerCard}
+        <Card data-card-hover='false' className='gap-0 overflow-hidden py-0'>
+          <CardHeader className='border-b p-3 !pb-3 sm:p-5 sm:!pb-5'>
+            <Skeleton className='h-6 w-32' />
+          </CardHeader>
+          <CardContent className='space-y-4 p-3 sm:p-5'>
+            <Skeleton className='h-20 w-full' />
+            <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3'>
+              {['first', 'second', 'third'].map((key) => (
+                <Skeleton key={key} className='h-48 w-full' />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </>
     )
   }
 
   if (plans.length === 0 && !hasAny) {
-    return null
+    return offerCard
   }
 
   return (
     <>
+      {offerCard}
       <TitledCard
         title={t('Subscription Plans')}
         description={t('Subscribe to a plan for model access')}

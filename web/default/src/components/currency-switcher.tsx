@@ -15,9 +15,11 @@ import {
   setUserCurrencyPreference,
   useCurrencyPreferenceVersion,
 } from '@/lib/currency'
-import { useSystemConfigStore } from '@/stores/system-config-store'
-import type { CurrencyDisplayType } from '@/stores/system-config-store'
 import { cn } from '@/lib/utils'
+import {
+  useSystemConfigStore,
+  type CurrencyDisplayType,
+} from '@/stores/system-config-store'
 
 /**
  * The set of currencies a user may switch between locally (per browser).

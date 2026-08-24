@@ -221,7 +221,7 @@ export function RechargeFormCard({
       contentClassName='space-y-4 sm:space-y-6'
     >
       {/* Online Topup Section (legacy multi-provider; product Stripe is separate) */}
-      {showLegacyOnlineSection ? (
+      {showLegacyOnlineSection && (
         <div className='space-y-4 sm:space-y-6'>
           {hasConfigurableTopup && (
             <>
@@ -478,7 +478,8 @@ export function RechargeFormCard({
             </>
           )}
         </div>
-      ) : showOnlineDisabledAlert ? (
+      )}
+      {!showLegacyOnlineSection && showOnlineDisabledAlert && (
         <Alert>
           <AlertDescription>
             {t(
@@ -486,7 +487,7 @@ export function RechargeFormCard({
             )}
           </AlertDescription>
         </Alert>
-      ) : null}
+      )}
 
       {/* Creem Products Section */}
       {enableCreemTopup &&

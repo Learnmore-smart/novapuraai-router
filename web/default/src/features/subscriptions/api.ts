@@ -1,4 +1,4 @@
-import { api } from '@/lib/api'
+import { api, type ApiRequestConfig } from '@/lib/api'
 
 import type {
   ApiResponse,
@@ -12,6 +12,9 @@ import type {
   SubscriptionPayResponse,
   SubscriptionPayRequest,
   SelfSubscriptionData,
+  SubscriptionOffer,
+  SubscriptionOfferEnvelope,
+  StripeSubscriptionSummary,
 } from './types'
 
 // ============================================================================
@@ -116,10 +119,16 @@ export async function resetPlanSubscriptions(
 // User-facing Subscription Payment
 // ============================================================================
 
+type SubscriptionPayOptions = Pick<
+  ApiRequestConfig,
+  'skipBusinessError' | 'skipErrorHandler'
+>
+
 export async function paySubscriptionStripe(
-  data: SubscriptionPayRequest
+  data: SubscriptionPayRequest,
+  options?: SubscriptionPayOptions
 ): Promise<SubscriptionPayResponse> {
-  const res = await api.post('/api/subscription/stripe/pay', data)
+  const res = await api.post('/api/subscription/stripe/pay', data, options)
   return res.data
 }
 
@@ -203,6 +212,36 @@ export async function getSelfSubscriptionFull(): Promise<
 
 export async function getPublicPlans(): Promise<ApiResponse<PlanRecord[]>> {
   const res = await api.get('/api/subscription/plans')
+  return res.data
+}
+
+export async function getSubscriptionOffer(): Promise<
+  ApiResponse<SubscriptionOffer | SubscriptionOfferEnvelope>
+> {
+  const res = await api.get('/api/subscription/stripe/offer', {
+    skipErrorHandler: true,
+    skipBusinessError: true,
+  })
+  return res.data
+}
+
+export async function getStripeSubscriptionSummary(): Promise<
+  ApiResponse<StripeSubscriptionSummary>
+> {
+  const res = await api.get('/api/subscription/stripe/summary', {
+    skipErrorHandler: true,
+    skipBusinessError: true,
+  })
+  return res.data
+}
+
+export async function createCustomerPortalSession(): Promise<
+  ApiResponse<{ url: string }>
+> {
+  const res = await api.post('/api/subscription/stripe/portal', undefined, {
+    skipErrorHandler: true,
+    skipBusinessError: true,
+  })
   return res.data
 }
 

@@ -9,15 +9,7 @@ import { useTheme } from '@/context/theme-provider'
 import { isLikelyHtml } from '@/lib/content-format'
 import { useAuthStore } from '@/stores/auth-store'
 
-import {
-  CTA,
-  FAQ,
-  Features,
-  Hero,
-  HowItWorks,
-  PricingTeaser,
-  ProviderStrip,
-} from './components'
+import { NApertureHome } from './components'
 import { useHomePageContent } from './hooks'
 
 export function Home() {
@@ -131,13 +123,7 @@ export function Home() {
 
   return (
     <PublicLayout showMainContainer={false}>
-      <Hero isAuthenticated={isAuthenticated} />
-      <ProviderStrip />
-      <Features />
-      <HowItWorks />
-      <PricingTeaser />
-      <FAQ />
-      <CTA isAuthenticated={isAuthenticated} />
+      <NApertureHome isAuthenticated={isAuthenticated} />
       <Footer />
     </PublicLayout>
   )

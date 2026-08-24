@@ -264,7 +264,7 @@ func TestReleaseMaturedCommissions_ReleasesPastHold(t *testing.T) {
 
 	var refreshed User
 	require.NoError(t, DB.First(&refreshed, inviter.Id).Error)
-	assert.Zero(t, refreshed.PendingCommissionCents)    // moved out
+	assert.Zero(t, refreshed.PendingCommissionCents)              // moved out
 	assert.Equal(t, int64(500), refreshed.CommissionBalanceCents) // moved in
 	assert.Equal(t, int64(500), refreshed.CommissionTotalCents)   // unchanged
 
@@ -451,13 +451,13 @@ func TestAdminProcessWithdrawal_IsIdempotent(t *testing.T) {
 	assert.Equal(t, balanceAfterPaid, afterRetry.CommissionBalanceCents) // no refund
 }
 
-// --- Mutual exclusion: approved inviter skips ¥100 invite reward ---
+// --- Mutual exclusion: approved inviter skips ¥50 invite reward ---
 
 func TestTrySettleDelayedInviteReward_ApprovedInviterSkipsQuotaReward(t *testing.T) {
 	setupCommissionTest(t)
 	// Configure delayed invite reward.
 	common.DelayedInviteReward = true
-	common.InviteRewardCNYYuan = 100
+	common.InviteRewardCNYYuan = 50
 	common.MaxValidInvites = 10
 
 	inviter := createCommissionTestUser(t, func(u *User) {
@@ -483,7 +483,7 @@ func TestTrySettleDelayedInviteReward_ApprovedInviterSkipsQuotaReward(t *testing
 
 	var refreshedInviter User
 	require.NoError(t, DB.First(&refreshedInviter, inviter.Id).Error)
-	// Approved inviter: no ¥100 quota reward (mutual exclusion).
+	// Approved inviter: no ¥50 quota reward (mutual exclusion).
 	assert.Zero(t, refreshedInviter.Quota)
 	assert.Zero(t, refreshedInviter.PromoQuota)
 	assert.Zero(t, refreshedInviter.RewardedInviteCount)
@@ -494,7 +494,7 @@ func TestTrySettleDelayedInviteReward_ApprovedInviterSkipsQuotaReward(t *testing
 func TestTrySettleDelayedInviteReward_NonApprovedInviterGetsQuotaReward(t *testing.T) {
 	setupCommissionTest(t)
 	common.DelayedInviteReward = true
-	common.InviteRewardCNYYuan = 100
+	common.InviteRewardCNYYuan = 50
 	common.MaxValidInvites = 10
 
 	inviter := createCommissionTestUser(t, func(u *User) {
@@ -519,7 +519,7 @@ func TestTrySettleDelayedInviteReward_NonApprovedInviterGetsQuotaReward(t *testi
 
 	var refreshedInviter User
 	require.NoError(t, DB.First(&refreshedInviter, inviter.Id).Error)
-	// Non-approved inviter: gets ¥100 quota reward.
+	// Non-approved inviter: gets ¥50 quota reward.
 	assert.Positive(t, refreshedInviter.Quota)
 	assert.Positive(t, refreshedInviter.PromoQuota)
 	assert.Equal(t, 1, refreshedInviter.RewardedInviteCount)

@@ -51,6 +51,7 @@ import {
   buildPreviewRows,
   createInitialLaneState,
   createModelPricingSchema,
+  hasPositiveTokenOutput,
   hasValue,
   laneConfigs,
   numericDraftRegex,
@@ -173,13 +174,13 @@ export const ModelPricingEditorPanel = forwardRef<
         audioCompletionRatio: editData.audioCompletionRatio || '',
         discount: editData.discount || '',
       })
-      setPricingMode(
-        editData.billingMode === 'tiered_expr'
-          ? 'tiered_expr'
-          : editData.price
-            ? 'per-request'
-            : 'per-token'
-      )
+      let nextPricingMode: PricingMode = 'per-token'
+      if (editData.billingMode === 'tiered_expr') {
+        nextPricingMode = 'tiered_expr'
+      } else if (editData.price) {
+        nextPricingMode = 'per-request'
+      }
+      setPricingMode(nextPricingMode)
       setBillingExpr(editData.billingExpr || '')
       setRequestRuleExpr(editData.requestRuleExpr || '')
 
@@ -341,7 +342,10 @@ export const ModelPricingEditorPanel = forwardRef<
     if (nextMode === 'tiered_expr' && !billingExpr) {
       setBillingExpr('tier("base", p * 0 + c * 0)')
     }
-    syncDiscountPrice(form.getValues('discount') || '', discountBaseFor(nextMode))
+    syncDiscountPrice(
+      form.getValues('discount') || '',
+      discountBaseFor(nextMode)
+    )
   }
 
   // Discount rate and discounted price stay in lock-step: editing one derives
@@ -461,6 +465,16 @@ export const ModelPricingEditorPanel = forwardRef<
     ) {
       form.setError('ratio', {
         message: t('Input price is required before saving dependent prices.'),
+      })
+      return false
+    }
+
+    if (
+      pricingMode === 'per-token' &&
+      !hasPositiveTokenOutput(lanePrices.completion)
+    ) {
+      form.setError('completionRatio', {
+        message: t('Amount must be greater than 0'),
       })
       return false
     }
@@ -738,9 +752,7 @@ export const ModelPricingEditorPanel = forwardRef<
                                 inputMode='decimal'
                                 placeholder='—'
                                 value={discountPrice}
-                                disabled={
-                                  discountBaseFor(pricingMode) === null
-                                }
+                                disabled={discountBaseFor(pricingMode) === null}
                                 onChange={(event) =>
                                   handleDiscountPriceChange(event.target.value)
                                 }

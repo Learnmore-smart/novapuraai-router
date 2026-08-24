@@ -78,6 +78,57 @@ func createCampaignTestUser(t *testing.T, configure func(*User)) *User {
 	return user
 }
 
+func TestCampaignRewardDefaults(t *testing.T) {
+	assert.Equal(t, 20.0, common.RegisterPromoCNYYuan)
+	assert.Equal(t, 50.0, common.InviteRewardCNYYuan)
+}
+
+func TestRegistrationFinalizationSharesIdempotentPromoClaim(t *testing.T) {
+	setupCampaignTest(t)
+	originalNewUserQuota := common.QuotaForNewUser
+	common.QuotaForNewUser = 0
+	t.Cleanup(func() {
+		common.QuotaForNewUser = originalNewUserQuota
+	})
+
+	passwordUser := &User{
+		Username: fmt.Sprintf("password-register-%d", campaignTestSequence.Add(1)),
+		Password: "password123",
+		Email:    "password-register@example.com",
+		Role:     common.RoleCommonUser,
+		Status:   common.UserStatusEnabled,
+	}
+	require.NoError(t, passwordUser.Insert(0))
+	passwordUser.FinishInsert(0)
+	passwordUser.FinishInsert(0)
+
+	oauthUser := &User{
+		Username: fmt.Sprintf("oauth-register-%d", campaignTestSequence.Add(1)),
+		Email:    "oauth-register@example.com",
+		Role:     common.RoleCommonUser,
+		Status:   common.UserStatusEnabled,
+	}
+	require.NoError(t, DB.Transaction(func(tx *gorm.DB) error {
+		return oauthUser.InsertWithTx(tx, 0)
+	}))
+	oauthUser.FinalizeOAuthUserCreation(0)
+	oauthUser.FinalizeOAuthUserCreation(0)
+
+	expectedAmount := common.CNYYuanToQuota(2, exchangeRateForCampaign())
+	for _, userID := range []int{passwordUser.Id, oauthUser.Id} {
+		var refreshed User
+		require.NoError(t, DB.First(&refreshed, userID).Error)
+		assert.Equal(t, expectedAmount, refreshed.Quota)
+		assert.Equal(t, expectedAmount, refreshed.PromoQuota)
+
+		var claimCount int64
+		require.NoError(t, DB.Model(&CampaignClaim{}).
+			Where("user_id = ? AND kind = ?", userID, CampaignKindRegisterPromo).
+			Count(&claimCount).Error)
+		assert.EqualValues(t, 1, claimCount)
+	}
+}
+
 func qualifyCampaignInvitee(t *testing.T, inviterId int) *User {
 	t.Helper()
 	invitee := createCampaignTestUser(t, func(user *User) {

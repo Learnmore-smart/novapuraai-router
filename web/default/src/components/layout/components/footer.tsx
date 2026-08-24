@@ -44,12 +44,6 @@ interface FooterProps {
   className?: string
 }
 
-const NEW_API_FOOTER_ATTRIBUTION_KEY = [
-  'footer',
-  'new' + 'api',
-  'projectAttributionSuffix',
-].join('.')
-
 function FooterLinkItem(props: { link: FooterLink }) {
   const { t } = useTranslation()
   const isExternal = props.link.href.startsWith('http')
@@ -121,32 +115,6 @@ function LegalLinks(props: { leadingSeparator?: boolean }) {
         </Fragment>
       ))}
     </>
-  )
-}
-
-function ProjectAttribution(props: { currentYear: number; inline?: boolean }) {
-  const { t } = useTranslation()
-  const content = (
-    <span className='text-muted-foreground/50'>
-      &copy; {props.currentYear}{' '}
-      <a
-        href='https://github.com/QuantumNous/new-api'
-        target='_blank'
-        rel='noopener noreferrer'
-        className='text-foreground/70 hover:text-foreground font-medium transition-colors'
-      >
-        {t('New API')}
-      </a>
-      . {t(NEW_API_FOOTER_ATTRIBUTION_KEY)}
-    </span>
-  )
-  if (props.inline) {
-    return content
-  }
-  return (
-    <div className='text-muted-foreground/50 text-center text-xs sm:text-right'>
-      {content}
-    </div>
   )
 }
 
@@ -245,11 +213,11 @@ export function Footer(props: FooterProps) {
           <div className='flex flex-col items-center justify-between gap-4 border border-border bg-card px-4 py-4 sm:flex-row sm:px-5'>
             <div
               className='custom-footer text-muted-foreground min-w-0 text-center text-sm sm:text-left'
+              // eslint-disable-next-line react/no-danger -- footerHtml is administrator-configured HTML returned by /api/status
               dangerouslySetInnerHTML={{ __html: footerHtml }}
             />
             <div className='border-border text-muted-foreground/50 flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-1 border-t pt-4 text-xs sm:w-auto sm:justify-end sm:border-t-0 sm:border-l sm:pt-0 sm:pl-5'>
               <LegalLinks />
-              <ProjectAttribution currentYear={currentYear} inline />
             </div>
           </div>
         </div>
@@ -300,15 +268,14 @@ export function Footer(props: FooterProps) {
           </div>
         </div>
 
-        <div className='mt-14 flex flex-col items-center justify-between gap-x-3 gap-y-2 border-t border-border pt-6 sm:flex-row'>
-          <div className='text-muted-foreground/50 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs sm:justify-start'>
+        <div className='mt-14 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-t border-border pt-6 text-xs sm:justify-start'>
+          <div className='text-muted-foreground/50 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 sm:justify-start'>
             <span>
               &copy; {currentYear} {displayName}.{' '}
               {props.copyright ?? t('footer.defaultCopyright')}
             </span>
             <LegalLinks leadingSeparator />
           </div>
-          <ProjectAttribution currentYear={currentYear} />
         </div>
       </div>
     </footer>

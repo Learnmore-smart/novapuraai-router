@@ -3,11 +3,14 @@ import { ArrowRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
+import { usePricingData } from '@/features/pricing/hooks/use-pricing-data'
 
-import { LANDING_MODEL_ROWS } from '../../constants'
+import { getPublicModelNames } from '../../lib/home-content'
 
 export function PricingTeaser() {
   const { t } = useTranslation()
+  const { models, isLoading } = usePricingData()
+  const modelNames = getPublicModelNames(models)
 
   return (
     <section className='px-5 py-20 sm:px-6 md:py-28'>
@@ -40,11 +43,11 @@ export function PricingTeaser() {
             <span>{t('Billing')}</span>
           </div>
           <ul>
-            {LANDING_MODEL_ROWS.map((row, index) => (
+            {modelNames.map((modelName, index) => (
               <li
-                key={row.name}
+                key={modelName}
                 className={
-                  index < LANDING_MODEL_ROWS.length - 1
+                  index < modelNames.length - 1
                     ? 'border-border hover:bg-muted/40 grid grid-cols-[1fr_auto] items-center gap-4 border-b px-5 py-4 transition-colors sm:px-6'
                     : 'hover:bg-muted/40 grid grid-cols-[1fr_auto] items-center gap-4 px-5 py-4 transition-colors sm:px-6'
                 }
@@ -54,13 +57,23 @@ export function PricingTeaser() {
                     className='bg-primary/70 size-1.5 shrink-0 rounded-full'
                     aria-hidden='true'
                   />
-                  {t(row.name)}
+                  {modelName}
                 </span>
                 <span className='text-muted-foreground font-mono text-xs'>
-                  {t(row.note)}
+                  {t('Live pricing')}
                 </span>
               </li>
             ))}
+            {isLoading && (
+              <li className='text-muted-foreground px-5 py-4 text-sm sm:px-6'>
+                {t('Loading model catalogue')}
+              </li>
+            )}
+            {!isLoading && modelNames.length === 0 && (
+              <li className='text-muted-foreground px-5 py-4 text-sm sm:px-6'>
+                {t('No models available')}
+              </li>
+            )}
           </ul>
         </div>
       </div>

@@ -32,6 +32,14 @@ export const Route = createFileRoute('/_authenticated/models/$section')({
       })
     }
 
+    if (params.section === 'metadata') {
+      throw redirect({
+        to: '/models/$section',
+        params: { section: MODELS_DEFAULT_SECTION },
+        replace: true,
+      })
+    }
+
     const validSections = MODELS_SECTION_IDS as unknown as string[]
     if (!validSections.includes(params.section)) {
       throw redirect({

@@ -226,7 +226,7 @@ func TrySettleDelayedInviteReward(inviteeId int) error {
 		inviteeStateChanged = true
 
 		// Pay inviter if under cap. Approved affiliates are mutually exclusive with
-		// the fixed ¥100 invite reward: they earn cash commission via
+		// the fixed ¥50 invite reward: they earn cash commission via
 		// SettleRechargeCommission on the invitee's paid top-ups instead, so skip
 		// the quota grant here (AffCount still increments for affiliate tracking).
 		inviter.AffCount++

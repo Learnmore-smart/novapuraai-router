@@ -67,12 +67,12 @@ export function AffiliateRewardsCard({
                   }
                 >
                   {t(
-                    'Earn ¥100 in API credits for both you and each friend you invite, once they verify their email and complete their first billable request.'
+                    'Earn ¥50 in API credits for both you and each friend you invite, once they verify their email and complete their first billable request.'
                   )}
                 </TooltipTrigger>
                 <TooltipContent className='max-w-sm text-xs leading-relaxed'>
                   {t(
-                    'Earn ¥100 in API credits for both you and each friend you invite, once they verify their email and complete their first billable request.'
+                    'Earn ¥50 in API credits for both you and each friend you invite, once they verify their email and complete their first billable request.'
                   )}
                 </TooltipContent>
               </Tooltip>

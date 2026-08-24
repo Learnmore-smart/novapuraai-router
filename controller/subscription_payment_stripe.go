@@ -9,6 +9,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/service/stripesubscription"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/gin-gonic/gin"
 	"github.com/stripe/stripe-go/v85"
@@ -27,13 +28,48 @@ func SubscriptionRequestStripePay(c *gin.Context) {
 		return
 	}
 
-	plan, err := model.GetSubscriptionPlanById(req.PlanId)
+	plan, err := model.GetSubscriptionPlanByIdNoCache(req.PlanId)
 	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
+	if model.IsStripeRecurringPlan(plan) {
+		if err := model.ValidatePurchasableSubscriptionPlan(plan, model.StripeRecurringPurchaseSource); err != nil {
+			common.ApiError(c, err)
+			return
+		}
+	}
 	if !plan.Enabled {
 		common.ApiErrorMsg(c, "套餐未启用")
+		return
+	}
+	if plan.StripeSubscriptionEnabled {
+		user, err := model.GetUserById(c.GetInt("id"), false)
+		if err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		if user == nil {
+			common.ApiErrorMsg(c, "用户不存在")
+			return
+		}
+		checkout, err := stripesubscription.CreateCheckout(c.Request.Context(), stripesubscription.CheckoutInput{
+			UserID:     user.Id,
+			PlanID:     plan.Id,
+			Email:      user.Email,
+			CustomerID: user.StripeCustomer,
+			SuccessURL: paymentReturnPath("/console/subscription?status=success"),
+			CancelURL:  paymentReturnPath("/console/subscription?status=cancel"),
+		})
+		if err != nil {
+			stripeSubscriptionHTTPError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": "success", "data": checkout})
+		return
+	}
+	if err := model.ValidatePurchasableSubscriptionPlan(plan, model.PaymentProviderStripe); err != nil {
+		common.ApiError(c, err)
 		return
 	}
 	if plan.StripePriceId == "" {

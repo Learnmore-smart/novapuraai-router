@@ -6,10 +6,12 @@ import { cn } from '@/lib/utils'
 
 import privacyEn from '@/i18n/policies/privacy/en.json'
 import privacyZh from '@/i18n/policies/privacy/zh.json'
+import refundEn from '@/i18n/policies/refund/en.json'
+import refundZh from '@/i18n/policies/refund/zh.json'
 import termsEn from '@/i18n/policies/terms/en.json'
 import termsZh from '@/i18n/policies/terms/zh.json'
 
-type PolicyKind = 'privacy' | 'terms'
+type PolicyKind = 'privacy' | 'terms' | 'refund'
 
 type PolicyBundle = {
   title?: string
@@ -35,6 +37,13 @@ const TERMS_BY_LANG: Record<string, { terms: PolicyBundle }> = {
   'zh-TW': termsZh as { terms: PolicyBundle },
 }
 
+const REFUND_BY_LANG: Record<string, { refund: PolicyBundle }> = {
+  en: refundEn as { refund: PolicyBundle },
+  zh: refundZh as { refund: PolicyBundle },
+  'zh-CN': refundZh as { refund: PolicyBundle },
+  'zh-TW': refundZh as { refund: PolicyBundle },
+}
+
 /** Locales that ship full legal policy JSON. Others fall back to English. */
 const LOCALIZED_POLICY_LANGS = new Set(['en', 'zh'])
 
@@ -52,6 +61,9 @@ function getPolicy(kind: PolicyKind, language: string | undefined): PolicyBundle
   const lang = resolveLang(language)
   if (kind === 'privacy') {
     return (PRIVACY_BY_LANG[lang] ?? PRIVACY_BY_LANG.en).privacy
+  }
+  if (kind === 'refund') {
+    return (REFUND_BY_LANG[lang] ?? REFUND_BY_LANG.en).refund
   }
   return (TERMS_BY_LANG[lang] ?? TERMS_BY_LANG.en).terms
 }
@@ -164,9 +176,13 @@ export function PolicyContent({ kind }: PolicyContentProps) {
   )
   const showingEnglishFallback = !hasLocalizedPolicy(i18n.language)
 
-  const pageTitle =
-    policy.title ||
-    (kind === 'privacy' ? t('Privacy Policy') : t('Terms and Conditions'))
+  let fallbackTitle = t('Terms and Conditions')
+  if (kind === 'privacy') {
+    fallbackTitle = t('Privacy Policy')
+  } else if (kind === 'refund') {
+    fallbackTitle = t('Refund Policy')
+  }
+  const pageTitle = policy.title || fallbackTitle
 
   return (
     <PublicLayout>

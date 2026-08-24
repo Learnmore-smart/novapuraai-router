@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 
 import useDialogState from '@/hooks/use-dialog'
 
-import { type PlanRecord, type SubscriptionsDialogType } from '../types'
+import type { PlanRecord, SubscriptionsDialogType } from '../types'
 
 type SubscriptionsContextType = {
   open: SubscriptionsDialogType | null

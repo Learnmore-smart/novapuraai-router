@@ -502,7 +502,7 @@ func PostTextConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, us
 		Group:            relayInfo.UsingGroup,
 		Other:            other,
 	})
-	// Delayed invite rewards: first successful billable consume may unlock ¥100 each side.
+	// Delayed invite rewards: first successful billable consume may unlock ¥50 each side.
 	if summary.Quota > 0 {
 		gopool.Go(func() {
 			if err := model.TrySettleDelayedInviteReward(relayInfo.UserId); err != nil {

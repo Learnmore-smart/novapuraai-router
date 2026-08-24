@@ -1,4 +1,4 @@
-import { type ManageUserAction } from '../types'
+import type { ManageUserAction } from '../types'
 
 // ============================================================================
 // User Action Messages

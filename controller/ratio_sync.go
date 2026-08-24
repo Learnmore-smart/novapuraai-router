@@ -104,6 +104,17 @@ func valueMap(value any) map[string]any {
 	}
 }
 
+func validatePricingSyncData(data map[string]any) error {
+	for _, field := range pricingSyncFields {
+		for modelName := range valueMap(data[field]) {
+			if common.IsInvalidModelName(modelName) {
+				return fmt.Errorf("invalid upstream model name %q: trailing quote is not allowed", modelName)
+			}
+		}
+	}
+	return nil
+}
+
 func asFloat64(value any) (float64, bool) {
 	switch typed := value.(type) {
 	case float64:
@@ -509,6 +520,12 @@ func FetchUpstreamRatios(c *gin.Context) {
 				Name:   r.Name,
 				Status: "error",
 				Error:  r.Err,
+			})
+		} else if err := validatePricingSyncData(r.Data); err != nil {
+			testResults = append(testResults, dto.TestResult{
+				Name:   r.Name,
+				Status: "error",
+				Error:  err.Error(),
 			})
 		} else {
 			testResults = append(testResults, dto.TestResult{

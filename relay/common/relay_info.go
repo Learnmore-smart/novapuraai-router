@@ -184,6 +184,11 @@ type RelayInfo struct {
 
 	StreamStatus *StreamStatus
 
+	// DeepSeekFairUse contains only HMAC-derived identifiers and policy
+	// counters. Log generation nests it below admin_info; raw client
+	// credentials and network identifiers are never carried here.
+	DeepSeekFairUse *DeepSeekFairUseAudit
+
 	ThinkingContentInfo
 	TokenCountMeta
 	*ClaudeConvertInfo
@@ -191,6 +196,27 @@ type RelayInfo struct {
 	*ResponsesUsageInfo
 	*ChannelMeta
 	*TaskRelayInfo
+}
+
+// DeepSeekFairUseAudit is the request-local snapshot used by admin-only
+// consume/error diagnostics. It deliberately contains no raw IP, token, or
+// Authorization material.
+type DeepSeekFairUseAudit struct {
+	AccountHMAC          string
+	RiskHMAC             string
+	RiskIPHMAC           string
+	RiskCountryHMAC      string
+	RiskUserAgentHMAC    string
+	PeakLimit            int
+	Active               int
+	ConcurrentSeconds    int64
+	Admitted             int
+	Successful           int
+	EffectiveConcurrency int
+	Degraded             bool
+	DegradeUntil         time.Time
+	ExhaustionEvents     int
+	RiskMarked           bool
 }
 
 func (info *RelayInfo) InitChannelMeta(c *gin.Context) {

@@ -20,6 +20,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestValidateChannelRejectsTrailingQuoteModelNames(t *testing.T) {
+	channel := &model.Channel{
+		Key:    "channel-key",
+		Models: "deepseek-v4-flash-0731\"",
+	}
+
+	err := validateChannel(channel, true)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "trailing quote")
+}
+
 func TestInteractiveChannelTestContextHasTenMinuteDeadline(t *testing.T) {
 	startedAt := time.Now()
 	ctx, cancel := newInteractiveChannelTestContext(context.Background())

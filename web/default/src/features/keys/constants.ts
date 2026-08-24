@@ -1,4 +1,4 @@
-import { type StatusBadgeProps } from '@/components/status-badge'
+import type { StatusBadgeProps } from '@/components/status-badge'
 
 // ============================================================================
 // API Key Status Configuration

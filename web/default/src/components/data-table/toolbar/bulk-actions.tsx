@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { type Table } from '@tanstack/react-table'
+import type { Table } from '@tanstack/react-table'
 import { X } from 'lucide-react'
 import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -84,8 +84,8 @@ export function DataTableBulkActions<TData>({
     const buttons = buttonsRef.current
     if (!buttons) return
 
-    const currentIndex = Array.from(buttons).findIndex(
-      (button) => button === document.activeElement
+    const currentIndex = [...buttons].indexOf(
+      document.activeElement as HTMLButtonElement
     )
 
     switch (event.key) {
@@ -106,10 +106,12 @@ export function DataTableBulkActions<TData>({
         event.preventDefault()
         buttons[0]?.focus()
         break
-      case 'End':
+      case 'End': {
         event.preventDefault()
-        buttons[buttons.length - 1]?.focus()
+        const lastButton = [...buttons].at(-1)
+        lastButton?.focus()
         break
+      }
       case 'Escape': {
         // Check if the Escape key came from a dropdown trigger or content
         // We can't check dropdown state because the menu closes before our handler runs.

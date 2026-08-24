@@ -35,26 +35,25 @@ func setupExactTierQuoteTest(t *testing.T) (*model.TopupPromotionCampaign, []mod
 	return campaign, tiers
 }
 
-func TestBuildQuoteAppliesSharedSameCurrencyBandsAtMinorUnitBoundaries(t *testing.T) {
+func TestBuildQuoteCreditsOneToOneAcrossFormerPromotionBoundaries(t *testing.T) {
 	setupExactTierQuoteTest(t)
 
 	tests := []struct {
 		currency     string
 		paymentMinor int64
-		bonusMinor   int64
 	}{
-		{currency: "cny", paymentMinor: 999, bonusMinor: 0},
-		{currency: "cny", paymentMinor: 1000, bonusMinor: 2000},
-		{currency: "usd", paymentMinor: 1999, bonusMinor: 3998},
-		{currency: "usd", paymentMinor: 2000, bonusMinor: 6000},
-		{currency: "cad", paymentMinor: 4999, bonusMinor: 14997},
-		{currency: "cad", paymentMinor: 5000, bonusMinor: 20000},
-		{currency: "cny", paymentMinor: 9999, bonusMinor: 39996},
-		{currency: "usd", paymentMinor: 10000, bonusMinor: 50000},
-		{currency: "cad", paymentMinor: 19999, bonusMinor: 99995},
-		{currency: "cny", paymentMinor: 20000, bonusMinor: 120000},
-		{currency: "usd", paymentMinor: 49999, bonusMinor: 299994},
-		{currency: "cad", paymentMinor: 50000, bonusMinor: 350000},
+		{currency: "cny", paymentMinor: 999},
+		{currency: "cny", paymentMinor: 1000},
+		{currency: "usd", paymentMinor: 1999},
+		{currency: "usd", paymentMinor: 2000},
+		{currency: "cad", paymentMinor: 4999},
+		{currency: "cad", paymentMinor: 5000},
+		{currency: "cny", paymentMinor: 9999},
+		{currency: "usd", paymentMinor: 10000},
+		{currency: "cad", paymentMinor: 19999},
+		{currency: "cny", paymentMinor: 20000},
+		{currency: "usd", paymentMinor: 49999},
+		{currency: "cad", paymentMinor: 50000},
 	}
 
 	for _, test := range tests {
@@ -63,11 +62,9 @@ func TestBuildQuoteAppliesSharedSameCurrencyBandsAtMinorUnitBoundaries(t *testin
 			quote, err := BuildQuote(42, QuoteRequest{Currency: test.currency, AmountMinor: test.paymentMinor})
 			require.NoError(t, err)
 			assert.Equal(t, test.paymentMinor, quote.PaidCreditAmountMinor)
-			assert.Equal(t, test.bonusMinor, quote.PromoCreditAmountMinor)
-			assert.Equal(t, test.paymentMinor+test.bonusMinor, quote.TotalCreditAmountMinor)
-			if test.bonusMinor > 0 {
-				assert.Positive(t, quote.PromotionTierID)
-			}
+			assert.Zero(t, quote.PromoCreditAmountMinor)
+			assert.Equal(t, test.paymentMinor, quote.TotalCreditAmountMinor)
+			assert.Zero(t, quote.PromotionTierID)
 		})
 	}
 }
@@ -78,15 +75,15 @@ func TestBuildQuoteUsesExactTierAndIgnoresClientAmount(t *testing.T) {
 
 	quote, err := BuildQuote(42, QuoteRequest{Currency: "cny", TierID: tiers[0].Id, AmountMajor: 99999})
 	require.NoError(t, err)
-	assert.Equal(t, tiers[0].Id, quote.TierID)
+	assert.Zero(t, quote.TierID)
 	assert.Equal(t, int64(1000), quote.AmountMinor)
 	assert.Equal(t, int64(1000), quote.PaidCreditAmountMinor)
-	assert.Equal(t, int64(2000), quote.PromoCreditAmountMinor)
-	assert.Equal(t, int64(3000), quote.TotalCreditAmountMinor)
+	assert.Zero(t, quote.PromoCreditAmountMinor)
+	assert.Equal(t, int64(1000), quote.TotalCreditAmountMinor)
 	assert.Equal(t, "¥10.00", quote.PaymentDisplay)
-	assert.Equal(t, "¥20.00", quote.BonusDisplay)
-	assert.Equal(t, "¥30.00", quote.TotalDisplay)
-	assert.Equal(t, 30, quote.PromoExpiryDays)
+	assert.Equal(t, "¥0.00", quote.BonusDisplay)
+	assert.Equal(t, "¥10.00", quote.TotalDisplay)
+	assert.Zero(t, quote.PromoExpiryDays)
 }
 
 func TestBuildQuoteRejectsDisabledCampaignTierAndCurrency(t *testing.T) {
@@ -110,7 +107,7 @@ func TestBuildQuoteRejectsDisabledCampaignTierAndCurrency(t *testing.T) {
 	require.ErrorContains(t, err, "unsupported currency")
 }
 
-func TestBuildQuoteRespectsPositiveRedemptionLimitButLaunchZeroRepeats(t *testing.T) {
+func TestBuildQuoteIgnoresLegacyPromotionRedemptionLimits(t *testing.T) {
 	campaign, tiers := setupExactTierQuoteTest(t)
 	tier := tiers[0]
 
@@ -122,6 +119,21 @@ func TestBuildQuoteRespectsPositiveRedemptionLimitButLaunchZeroRepeats(t *testin
 
 	campaign.PerUserLimit = 3
 	require.NoError(t, model.DB.Save(campaign).Error)
-	_, err = BuildQuote(9, QuoteRequest{Currency: "cny", TierID: tier.Id})
-	require.ErrorIs(t, err, model.ErrTopupPromotionUserLimit)
+	quote, err := BuildQuote(9, QuoteRequest{Currency: "cny", TierID: tier.Id})
+	require.NoError(t, err)
+	assert.Zero(t, quote.PromoCreditAmountMinor)
+}
+
+func TestBuildQuoteCreditsExactlyWhatTheUserPaysDespiteLegacyPromotionRows(t *testing.T) {
+	setupExactTierQuoteTest(t)
+
+	quote, err := BuildQuote(42, QuoteRequest{Currency: "cny", AmountMinor: 10_000})
+	require.NoError(t, err)
+	assert.Equal(t, int64(10_000), quote.PaidCreditAmountMinor)
+	assert.Zero(t, quote.PromoCreditAmountMinor)
+	assert.Equal(t, int64(10_000), quote.TotalCreditAmountMinor)
+	assert.Equal(t, quote.PaidQuota, quote.TotalQuota)
+	assert.Zero(t, quote.PromotionTierID)
+	assert.Equal(t, "¥100.00", quote.PaymentDisplay)
+	assert.Equal(t, "¥100.00", quote.TotalDisplay)
 }

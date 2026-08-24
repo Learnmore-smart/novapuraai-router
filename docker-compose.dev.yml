@@ -8,6 +8,10 @@
 # Rebuild backend after Go code changes:
 #   docker compose -f docker-compose.dev.yml up -d --build new-api
 #
+# Production selection is explicit and exclusive:
+#   $env:NOVAPURA_ENV_FILE = '.env-prod'
+#   docker compose --env-file .env-prod -f docker-compose.dev.yml config
+#
 # Stop:
 #   docker compose -f docker-compose.dev.yml down
 #
@@ -22,6 +26,10 @@ services:
     image: new-api-dev:local
     container_name: new-api-dev
     restart: unless-stopped
+    # Runtime-only configuration; Test defaults to .env and Production must
+    # set NOVAPURA_ENV_FILE=.env-prod explicitly. Never copied into layers.
+    env_file:
+      - ${NOVAPURA_ENV_FILE:-.env}
     ports:
       - "3000:3000"
     volumes:

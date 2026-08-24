@@ -78,7 +78,7 @@ export function CommissionCard({
 
   if (!approved) {
     // Non-approved users don't see the cash commission card at all — they
-    // continue on the legacy ¥100 API quota invite reward path.
+    // continue on the legacy ¥50 API quota invite reward path.
     return null
   }
 

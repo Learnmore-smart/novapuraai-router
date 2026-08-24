@@ -1,0 +1,20 @@
+# File path: /etc/systemd/system/new-api-prod.service
+# sudo systemctl daemon-reload
+# sudo systemctl enable --now new-api-prod
+[Unit]
+Description=NovaPuraAI Production Service
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/path/to/new-api
+Environment=GIN_MODE=release
+# Production public recurring values and non-secret runtime settings only.
+# Secret Manager/runtime injection remains the source for credential secrets.
+EnvironmentFile=-/path/to/new-api/.env-prod
+ExecStart=/path/to/new-api/new-api --port 3000 --log-dir /path/to/new-api/logs
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

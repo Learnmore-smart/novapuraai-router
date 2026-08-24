@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { type ColumnDef, type RowSelectionState } from '@tanstack/react-table'
+import type { ColumnDef, RowSelectionState } from '@tanstack/react-table'
 import {
   Search,
   Info,
@@ -378,7 +378,7 @@ export function UpstreamConflictDialog({
     const payload: SyncOverwritePayload[] = Object.entries(groupedSelections)
       .map(([modelName, fields]) => ({
         model_name: modelName,
-        fields: Array.from(fields),
+        fields: [...fields],
       }))
       .filter((item) => item.fields.length > 0)
 

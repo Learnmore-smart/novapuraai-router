@@ -6,9 +6,10 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
-func TestCreateReservedOrderSnapshotsTierAndReleasesFailedCheckout(t *testing.T) {
+func TestCreateReservedOrderDoesNotReserveLegacyPromotion(t *testing.T) {
 	campaign, tiers := setupExactTierQuoteTest(t)
 	require.NoError(t, model.DB.AutoMigrate(&model.User{}, &model.StripeTopupOrder{}))
 	user := &model.User{Username: "reserved-order", Email: "reserved@example.com"}
@@ -25,14 +26,12 @@ func TestCreateReservedOrderSnapshotsTierAndReleasesFailedCheckout(t *testing.T)
 	assert.Equal(t, quote.PromoExpiryDays, order.PromoExpiryDays)
 
 	var redemption model.TopupPromoRedemption
-	require.NoError(t, model.DB.Where("order_id = ?", order.OrderID).First(&redemption).Error)
-	assert.Equal(t, model.TopupPromoRedemptionReserved, redemption.Status)
+	require.ErrorIs(t, model.DB.Where("order_id = ?", order.OrderID).First(&redemption).Error, gorm.ErrRecordNotFound)
 	require.NoError(t, model.DB.First(campaign, campaign.Id).Error)
-	assert.Equal(t, quote.PromoCreditMicroUSD, campaign.ReservedPromoMicroUSD)
+	assert.Zero(t, campaign.ReservedPromoMicroUSD)
 
 	require.NoError(t, model.MarkStripeTopupOrderStatus(order.OrderID, "*", model.StripeOrderFailed, "checkout creation failed"))
-	require.NoError(t, model.DB.Where("order_id = ?", order.OrderID).First(&redemption).Error)
-	assert.Equal(t, model.TopupPromoRedemptionReleased, redemption.Status)
+	require.ErrorIs(t, model.DB.Where("order_id = ?", order.OrderID).First(&redemption).Error, gorm.ErrRecordNotFound)
 	require.NoError(t, model.DB.First(campaign, campaign.Id).Error)
 	assert.Zero(t, campaign.ReservedPromoMicroUSD)
 }

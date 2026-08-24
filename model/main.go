@@ -269,14 +269,23 @@ func InitLogDB() (err error) {
 }
 
 func migrateDB() error {
+	// Resolve all recurring public environment/catalog inputs before any broad
+	// migration can mutate the database. The same immutable config is passed to
+	// the selected-plan sync below so startup cannot drift across env reads.
+	runtimeStripeConfig, err := StripeSubscriptionRuntimePreflight()
+	if err != nil {
+		return err
+	}
 	// Migrate price_amount column from float/double to decimal for existing tables
-	migrateSubscriptionPlanPriceAmount()
+	if err := migrateSubscriptionPlanPriceAmount(); err != nil {
+		return err
+	}
 	// Migrate model_limits column from varchar to text for existing tables
 	if err := migrateTokenModelLimitsToText(); err != nil {
 		return err
 	}
 
-	err := DB.AutoMigrate(
+	err = DB.AutoMigrate(
 		&Channel{},
 		&Token{},
 		&User{},
@@ -318,6 +327,10 @@ func migrateDB() error {
 		&BalanceLedger{},
 		&BalanceCreditLot{},
 		&StripeWebhookEvent{},
+		&StripeSubscriptionReservation{},
+		&StripeSubscriptionFounderClaim{},
+		&StripeSubscription{},
+		&StripeSubscriptionInvoice{},
 		&TopupPromotionCampaign{},
 		&TopupPromoTier{},
 		&TopupPromoRedemption{},
@@ -326,6 +339,9 @@ func migrateDB() error {
 		&StripeCredential{},
 	)
 	if err != nil {
+		return err
+	}
+	if err := ensureStripeSubscriptionReservationActiveUsers(); err != nil {
 		return err
 	}
 	if err := SeedLaunchTopupPromotion(DB); err != nil {
@@ -343,8 +359,19 @@ func migrateDB() error {
 			return err
 		}
 	}
+	if err := EnsureStripeSubscriptionPlan(runtimeStripeConfig); err != nil {
+		return err
+	}
 	common.SysLog("database migrated")
 	return nil
+}
+
+func ensureStripeSubscriptionPlanForRuntime() error {
+	config, err := StripeSubscriptionRuntimePreflight()
+	if err != nil {
+		return err
+	}
+	return EnsureStripeSubscriptionPlan(config)
 }
 
 func migrateLOGDB() error {
@@ -452,8 +479,23 @@ func ensureSubscriptionPlanTableSQLite() error {
 	if !common.UsingMainDatabase(common.DatabaseTypeSQLite) {
 		return nil
 	}
+	if DB == nil {
+		return gorm.ErrInvalidDB
+	}
+	return DB.Transaction(func(tx *gorm.DB) error {
+		return ensureSubscriptionPlanTableSQLiteTx(tx)
+	})
+}
+
+func ensureSubscriptionPlanTableSQLiteTx(db *gorm.DB) error {
+	if !common.UsingMainDatabase(common.DatabaseTypeSQLite) {
+		return nil
+	}
+	if db == nil {
+		return gorm.ErrInvalidDB
+	}
 	tableName := "subscription_plans"
-	if !DB.Migrator().HasTable(tableName) {
+	if !db.Migrator().HasTable(tableName) {
 		createSQL := `CREATE TABLE ` + "`" + tableName + "`" + ` (
 ` + "`id`" + ` integer,
 ` + "`title`" + ` varchar(128) NOT NULL,
@@ -470,6 +512,21 @@ func ensureSubscriptionPlanTableSQLite() error {
 ` + "`stripe_price_id`" + ` varchar(128) DEFAULT '',
 ` + "`creem_product_id`" + ` varchar(128) DEFAULT '',
 ` + "`waffo_pancake_product_id`" + ` varchar(128) DEFAULT '',
+				` + "`code`" + ` varchar(64),
+				` + "`recurring_code`" + ` varchar(64),
+				` + "`stripe_subscription_enabled`" + ` numeric,
+` + "`stripe_subscription_model`" + ` varchar(128),
+` + "`max_active_subscriptions`" + ` integer,
+` + "`founder_purchase_limit`" + ` integer,
+` + "`max_active_per_user`" + ` integer,
+` + "`founder_stripe_price_id`" + ` varchar(128),
+` + "`standard_stripe_price_id`" + ` varchar(128),
+` + "`founder_amount_minor`" + ` bigint,
+` + "`standard_amount_minor`" + ` bigint,
+` + "`stripe_currency`" + ` varchar(8),
+` + "`stripe_product_id`" + ` varchar(128),
+` + "`stripe_account_id`" + ` varchar(128),
+` + "`stripe_portal_configuration_id`" + ` varchar(128),
 ` + "`max_purchase_per_user`" + ` integer DEFAULT 0,
 ` + "`upgrade_group`" + ` varchar(64) DEFAULT '',
 ` + "`downgrade_group`" + ` varchar(64) DEFAULT '',
@@ -480,12 +537,15 @@ func ensureSubscriptionPlanTableSQLite() error {
 ` + "`updated_at`" + ` bigint,
 PRIMARY KEY (` + "`id`" + `)
 )`
-		return DB.Exec(createSQL).Error
+		if err := db.Exec(createSQL).Error; err != nil {
+			return err
+		}
+		return db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS `idx_subscription_plans_recurring_code` ON `" + tableName + "` (`recurring_code`)").Error
 	}
 	var cols []struct {
 		Name string `gorm:"column:name"`
 	}
-	if err := DB.Raw("PRAGMA table_info(`" + tableName + "`)").Scan(&cols).Error; err != nil {
+	if err := db.Raw("PRAGMA table_info(`" + tableName + "`)").Scan(&cols).Error; err != nil {
 		return err
 	}
 	existing := make(map[string]struct{}, len(cols))
@@ -507,6 +567,21 @@ PRIMARY KEY (` + "`id`" + `)
 		{Name: "stripe_price_id", DDL: "`stripe_price_id` varchar(128) DEFAULT ''"},
 		{Name: "creem_product_id", DDL: "`creem_product_id` varchar(128) DEFAULT ''"},
 		{Name: "waffo_pancake_product_id", DDL: "`waffo_pancake_product_id` varchar(128) DEFAULT ''"},
+		{Name: "code", DDL: "`code` varchar(64)"},
+		{Name: "recurring_code", DDL: "`recurring_code` varchar(64)"},
+		{Name: "stripe_subscription_enabled", DDL: "`stripe_subscription_enabled` numeric"},
+		{Name: "stripe_subscription_model", DDL: "`stripe_subscription_model` varchar(128)"},
+		{Name: "max_active_subscriptions", DDL: "`max_active_subscriptions` integer"},
+		{Name: "founder_purchase_limit", DDL: "`founder_purchase_limit` integer"},
+		{Name: "max_active_per_user", DDL: "`max_active_per_user` integer"},
+		{Name: "founder_stripe_price_id", DDL: "`founder_stripe_price_id` varchar(128)"},
+		{Name: "standard_stripe_price_id", DDL: "`standard_stripe_price_id` varchar(128)"},
+		{Name: "founder_amount_minor", DDL: "`founder_amount_minor` bigint"},
+		{Name: "standard_amount_minor", DDL: "`standard_amount_minor` bigint"},
+		{Name: "stripe_currency", DDL: "`stripe_currency` varchar(8)"},
+		{Name: "stripe_product_id", DDL: "`stripe_product_id` varchar(128)"},
+		{Name: "stripe_account_id", DDL: "`stripe_account_id` varchar(128)"},
+		{Name: "stripe_portal_configuration_id", DDL: "`stripe_portal_configuration_id` varchar(128)"},
 		{Name: "max_purchase_per_user", DDL: "`max_purchase_per_user` integer DEFAULT 0"},
 		{Name: "upgrade_group", DDL: "`upgrade_group` varchar(64) DEFAULT ''"},
 		{Name: "downgrade_group", DDL: "`downgrade_group` varchar(64) DEFAULT ''"},
@@ -520,9 +595,12 @@ PRIMARY KEY (` + "`id`" + `)
 		if _, ok := existing[col.Name]; ok {
 			continue
 		}
-		if err := DB.Exec("ALTER TABLE `" + tableName + "` ADD COLUMN " + col.DDL).Error; err != nil {
+		if err := db.Exec("ALTER TABLE `" + tableName + "` ADD COLUMN " + col.DDL).Error; err != nil {
 			return err
 		}
+	}
+	if err := db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS `idx_subscription_plans_recurring_code` ON `" + tableName + "` (`recurring_code`)").Error; err != nil {
+		return err
 	}
 	return nil
 }
@@ -582,11 +660,11 @@ func migrateTokenModelLimitsToText() error {
 
 // migrateSubscriptionPlanPriceAmount migrates price_amount column from float/double to decimal(10,6)
 // This is safe to run multiple times - it checks the column type first
-func migrateSubscriptionPlanPriceAmount() {
+func migrateSubscriptionPlanPriceAmount() error {
 	// SQLite doesn't support ALTER COLUMN, and its type affinity handles this automatically
 	// Skip early to avoid GORM parsing the existing table DDL which may cause issues
 	if common.UsingMainDatabase(common.DatabaseTypeSQLite) {
-		return
+		return nil
 	}
 
 	tableName := "subscription_plans"
@@ -594,12 +672,12 @@ func migrateSubscriptionPlanPriceAmount() {
 
 	// Check if table exists first
 	if !DB.Migrator().HasTable(tableName) {
-		return
+		return nil
 	}
 
 	// Check if column exists
 	if !DB.Migrator().HasColumn(&SubscriptionPlan{}, columnName) {
-		return
+		return nil
 	}
 
 	var alterSQL string
@@ -609,9 +687,9 @@ func migrateSubscriptionPlanPriceAmount() {
 		if err := DB.Raw(`SELECT data_type FROM information_schema.columns
 			WHERE table_schema = current_schema() AND table_name = ? AND column_name = ?`,
 			tableName, columnName).Scan(&dataType).Error; err != nil {
-			common.SysLog(fmt.Sprintf("Warning: failed to query metadata for %s.%s: %v", tableName, columnName, err))
+			return fmt.Errorf("failed to inspect %s.%s metadata: %w", tableName, columnName, err)
 		} else if dataType == "numeric" {
-			return // Already decimal/numeric
+			return nil // Already decimal/numeric
 		}
 		alterSQL = fmt.Sprintf(`ALTER TABLE %s ALTER COLUMN %s TYPE decimal(10,6) USING %s::decimal(10,6)`,
 			tableName, columnName, columnName)
@@ -621,23 +699,23 @@ func migrateSubscriptionPlanPriceAmount() {
 		if err := DB.Raw(`SELECT COLUMN_TYPE FROM information_schema.columns
 				WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?`,
 			tableName, columnName).Scan(&columnType).Error; err != nil {
-			common.SysLog(fmt.Sprintf("Warning: failed to query metadata for %s.%s: %v", tableName, columnName, err))
+			return fmt.Errorf("failed to inspect %s.%s metadata: %w", tableName, columnName, err)
 		} else if strings.HasPrefix(strings.ToLower(columnType), "decimal") {
-			return // Already decimal
+			return nil // Already decimal
 		}
 		alterSQL = fmt.Sprintf("ALTER TABLE %s MODIFY COLUMN %s decimal(10,6) NOT NULL DEFAULT 0",
 			tableName, columnName)
 	} else {
-		return
+		return nil
 	}
 
 	if alterSQL != "" {
 		if err := DB.Exec(alterSQL).Error; err != nil {
-			common.SysLog(fmt.Sprintf("Warning: failed to migrate %s.%s to decimal: %v", tableName, columnName, err))
-		} else {
-			common.SysLog(fmt.Sprintf("Successfully migrated %s.%s to decimal(10,6)", tableName, columnName))
+			return fmt.Errorf("failed to migrate %s.%s to decimal: %w", tableName, columnName, err)
 		}
+		common.SysLog(fmt.Sprintf("Successfully migrated %s.%s to decimal(10,6)", tableName, columnName))
 	}
+	return nil
 }
 
 func closeDB(db *gorm.DB) error {

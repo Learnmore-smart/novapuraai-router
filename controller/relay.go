@@ -1,12 +1,14 @@
 package controller
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
@@ -21,8 +23,10 @@ import (
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
 	"github.com/QuantumNous/new-api/relay/helper"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/service/deepseekfairuse"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/QuantumNous/new-api/types"
 
 	"github.com/bytedance/gopkg/util/gopool"
@@ -121,6 +125,15 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 	if err != nil {
 		newAPIError = types.NewError(err, types.ErrorCodeGenRelayInfoFailed)
 		return
+	}
+
+	fairUseSession, fairUseErr := beginDeepSeekFairUse(c, relayInfo, relayFormat)
+	if fairUseErr != nil {
+		newAPIError = fairUseErr
+		return
+	}
+	if fairUseSession != nil {
+		defer fairUseSession.finish(c, relayInfo, &newAPIError)
 	}
 
 	needSensitiveCheck := setting.ShouldCheckPromptSensitive()
@@ -254,6 +267,224 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 	}
 }
 
+const (
+	deepSeekFairUseLimitErrorCode types.ErrorCode = "deepseek_fair_use_limit"
+	deepSeekFairUseRedisErrorCode types.ErrorCode = "deepseek_fair_use_redis_unavailable"
+)
+
+type deepSeekFairUseSession struct {
+	lease         *deepseekfairuse.Lease
+	identifiers   deepseekfairuse.Identifiers
+	cancel        context.CancelFunc
+	stopHeartbeat func()
+	heartbeatMu   sync.Mutex
+	heartbeatErr  error
+	finishOnce    sync.Once
+}
+
+// notifyDeepSeekFairUseAdmin is a hook so the policy transition can be tested
+// without sending notifications. Production notifications are asynchronous and
+// contain only the account HMAC plus policy counters.
+var notifyDeepSeekFairUseAdmin = func(accountHMAC string, snapshot deepseekfairuse.Snapshot) {
+	gopool.Go(func() {
+		service.NotifyRootUser(
+			dto.NotifyTypeDeepSeekFairUse,
+			"DeepSeek fair-use protection activated",
+			fmt.Sprintf("account_hmac=%s effective_concurrency=%d degrade_until=%s exhaustion_events=%d", accountHMAC, snapshot.EffectiveConcurrency, snapshot.DegradeUntil.UTC().Format(time.RFC3339), snapshot.ExhaustionEvents),
+		)
+	})
+}
+
+func beginDeepSeekFairUse(c *gin.Context, relayInfo *relaycommon.RelayInfo, relayFormat types.RelayFormat) (*deepSeekFairUseSession, *types.NewAPIError) {
+	if !isDeepSeekFairUseEligible(relayInfo, relayFormat) {
+		return nil, nil
+	}
+	if !common.RedisEnabled || common.RDB == nil {
+		return nil, newDeepSeekFairUseRedisError()
+	}
+
+	identifiers := deepseekfairuse.BuildIdentifiers([]byte(common.CryptoSecret), deepseekfairuse.IdentityInput{
+		UserID:    relayInfo.UserId,
+		TokenID:   relayInfo.TokenId,
+		ClientIP:  c.ClientIP(),
+		Country:   deepSeekFairUseCountry(c),
+		UserAgent: c.Request.UserAgent(),
+	})
+	requestContext, cancel := context.WithCancel(c.Request.Context())
+	leaseID := "deepseek-fup-" + common.NewRequestId()
+	lease, decision, err := deepseekfairuse.New(common.RDB).Acquire(requestContext, identifiers.AccountHMAC, leaseID, identifiers.RiskSignals())
+	if err != nil {
+		cancel()
+		logger.LogWarn(c, "DeepSeek fair-use Redis unavailable: "+err.Error())
+		return nil, newDeepSeekFairUseRedisError()
+	}
+
+	recordDeepSeekFairUseAudit(relayInfo, identifiers, decision.Snapshot, decision.RiskMarked)
+	c.Set("deepseek_fair_use_audit", relayInfo.DeepSeekFairUse)
+	if !decision.Allowed {
+		cancel()
+		if decision.NotifyRootAdmin {
+			notifyDeepSeekFairUseAdmin(identifiers.AccountHMAC, decision.Snapshot)
+		}
+		return nil, newDeepSeekFairUseLimitError()
+	}
+
+	session := &deepSeekFairUseSession{
+		lease:       lease,
+		identifiers: identifiers,
+		cancel:      cancel,
+	}
+	c.Request = c.Request.WithContext(requestContext)
+	session.stopHeartbeat = lease.StartHeartbeat(requestContext, func(err error) {
+		session.heartbeatMu.Lock()
+		session.heartbeatErr = err
+		session.heartbeatMu.Unlock()
+		cancel()
+	})
+	return session, nil
+}
+
+func isDeepSeekFairUseEligible(relayInfo *relaycommon.RelayInfo, relayFormat types.RelayFormat) bool {
+	if relayInfo == nil || (relayFormat != types.RelayFormatOpenAI && relayFormat != types.RelayFormatOpenAIResponses && relayFormat != types.RelayFormatOpenAIResponsesCompaction && relayFormat != types.RelayFormatClaude) {
+		return false
+	}
+	group := relayInfo.UserGroup
+	originalModelName := relayInfo.OriginModelName
+	if relayFormat == types.RelayFormatOpenAIResponsesCompaction {
+		originalModelName = strings.TrimSuffix(originalModelName, ratio_setting.CompactModelSuffix)
+	}
+	return deepseekfairuse.IsEligible(deepseekfairuse.EligibilityInput{
+		DedicatedEntitlement: group == deepseekfairuse.DeepSeekV4FlashDedicatedGroup,
+		Group:                group,
+		DedicatedGroup:       deepseekfairuse.DeepSeekV4FlashDedicatedGroup,
+		OriginalModelName:    originalModelName,
+	})
+}
+
+func deepSeekFairUseCountry(c *gin.Context) string {
+	if c == nil || c.Request == nil {
+		return ""
+	}
+	for _, header := range []string{
+		"CF-IPCountry",
+		"CloudFront-Viewer-Country",
+		"X-Vercel-IP-Country",
+		"X-Country",
+	} {
+		if value := strings.TrimSpace(c.GetHeader(header)); value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func recordDeepSeekFairUseAudit(relayInfo *relaycommon.RelayInfo, identifiers deepseekfairuse.Identifiers, snapshot deepseekfairuse.Snapshot, riskMarked bool) {
+	if relayInfo == nil {
+		return
+	}
+	audit := relayInfo.DeepSeekFairUse
+	if audit == nil {
+		audit = &relaycommon.DeepSeekFairUseAudit{}
+		relayInfo.DeepSeekFairUse = audit
+	}
+	audit.AccountHMAC = identifiers.AccountHMAC
+	audit.RiskHMAC = identifiers.RiskHMAC
+	audit.RiskIPHMAC = identifiers.RiskIPHMAC
+	audit.RiskCountryHMAC = identifiers.RiskCountryHMAC
+	audit.RiskUserAgentHMAC = identifiers.RiskUserAgentHMAC
+	audit.PeakLimit = deepseekfairuse.PeakConcurrency
+	audit.Active = snapshot.Active
+	audit.ConcurrentSeconds = snapshot.ConcurrentSeconds
+	audit.Admitted = snapshot.Admitted
+	audit.Successful = snapshot.Successful
+	audit.EffectiveConcurrency = snapshot.EffectiveConcurrency
+	audit.Degraded = snapshot.Degraded
+	audit.DegradeUntil = snapshot.DegradeUntil
+	audit.ExhaustionEvents = snapshot.ExhaustionEvents
+	audit.RiskMarked = audit.RiskMarked || riskMarked
+}
+
+func (session *deepSeekFairUseSession) finish(c *gin.Context, relayInfo *relaycommon.RelayInfo, apiErr **types.NewAPIError) {
+	if session == nil || session.lease == nil {
+		return
+	}
+	session.finishOnce.Do(func() {
+		if session.stopHeartbeat != nil {
+			session.stopHeartbeat()
+		}
+		session.heartbeatMu.Lock()
+		heartbeatErr := session.heartbeatErr
+		session.heartbeatMu.Unlock()
+
+		completed := apiErr != nil && *apiErr == nil && deepSeekFairUseCompleted(relayInfo)
+		releaseContext, releaseCancel := context.WithTimeout(context.Background(), 2*time.Second)
+		snapshot, releaseErr := session.lease.Release(releaseContext, completed)
+		releaseCancel()
+		if releaseErr == nil {
+			recordDeepSeekFairUseAudit(relayInfo, session.identifiers, snapshot, false)
+		}
+		if session.cancel != nil {
+			session.cancel()
+		}
+
+		if heartbeatErr != nil {
+			logger.LogWarn(c, "DeepSeek fair-use heartbeat failed: "+heartbeatErr.Error())
+			promoteDeepSeekFairUseRedisError(c, relayInfo, apiErr, true)
+			return
+		}
+		if releaseErr != nil {
+			logger.LogWarn(c, "DeepSeek fair-use lease release failed: "+releaseErr.Error())
+			promoteDeepSeekFairUseRedisError(c, relayInfo, apiErr, false)
+		}
+	})
+}
+
+func deepSeekFairUseCompleted(relayInfo *relaycommon.RelayInfo) bool {
+	if relayInfo == nil {
+		return false
+	}
+	if !relayInfo.IsStream {
+		return true
+	}
+	return relayInfo.StreamStatus != nil && relayInfo.StreamStatus.IsNormalEnd() && relayInfo.StreamStatus.EndError == nil && !relayInfo.StreamStatus.HasErrors()
+}
+
+func promoteDeepSeekFairUseRedisError(c *gin.Context, relayInfo *relaycommon.RelayInfo, apiErr **types.NewAPIError, force bool) {
+	if apiErr == nil || (!force && *apiErr != nil) || (c != nil && c.Writer != nil && c.Writer.Written()) {
+		return
+	}
+	previousErr := *apiErr
+	*apiErr = newDeepSeekFairUseRedisError()
+	if previousErr == nil && relayInfo != nil && relayInfo.Billing != nil && c != nil {
+		relayInfo.Billing.Refund(c)
+	}
+}
+
+func newDeepSeekFairUseLimitError() *types.NewAPIError {
+	return types.NewErrorWithStatusCode(
+		errors.New("DeepSeek fair-use limit reached; retry later"),
+		deepSeekFairUseLimitErrorCode,
+		http.StatusTooManyRequests,
+		types.ErrOptionWithSkipRetry(),
+	)
+}
+
+func newDeepSeekFairUseRedisError() *types.NewAPIError {
+	return types.NewErrorWithStatusCode(
+		errors.New("DeepSeek fair-use protection is temporarily unavailable"),
+		deepSeekFairUseRedisErrorCode,
+		http.StatusServiceUnavailable,
+		types.ErrOptionWithSkipRetry(),
+	)
+}
+
+func isDeepSeekFairUseError(err *types.NewAPIError) bool {
+	if err == nil {
+		return false
+	}
+	return err.GetErrorCode() == deepSeekFairUseLimitErrorCode || err.GetErrorCode() == deepSeekFairUseRedisErrorCode
+}
+
 var upgrader = websocket.Upgrader{
 	Subprotocols: []string{"realtime"}, // WS 握手支持的协议，如果有使用 Sec-WebSocket-Protocol，则必须在此声明对应的 Protocol TODO add other protocol
 	CheckOrigin: func(r *http.Request) bool {
@@ -332,6 +563,9 @@ func shouldRetry(c *gin.Context, openaiErr *types.NewAPIError, retryTimes int) b
 	if openaiErr == nil {
 		return false
 	}
+	if isDeepSeekFairUseError(openaiErr) {
+		return false
+	}
 	// Never switch channels after streaming response has started (MVP §11.4).
 	if c.GetBool("event_stream_headers_set") {
 		return false
@@ -371,7 +605,7 @@ func processChannelError(c *gin.Context, channelError types.ChannelError, err *t
 	logger.LogError(c, fmt.Sprintf("channel error (channel #%d, status code: %d): %s", channelError.ChannelId, err.StatusCode, common.LocalLogPreview(err.Error())))
 	// 不要使用context获取渠道信息，异步处理时可能会出现渠道信息不一致的情况
 	// do not use context to get channel info, there may be inconsistent channel info when processing asynchronously
-	if err != nil && err.StatusCode == 429 {
+	if err != nil && err.StatusCode == 429 && !isDeepSeekFairUseError(err) {
 		gopool.Go(func() {
 			service.ApplyChannelCooldownOnRateLimit(channelError.ChannelId)
 		})
@@ -408,6 +642,11 @@ func processChannelError(c *gin.Context, channelError types.ChannelError, err *t
 			adminInfo["multi_key_index"] = common.GetContextKeyInt(c, constant.ContextKeyChannelMultiKeyIndex)
 		}
 		service.AppendChannelAffinityAdminInfo(c, adminInfo)
+		if audit, ok := c.Get("deepseek_fair_use_audit"); ok {
+			if fairUseAudit, ok := audit.(*relaycommon.DeepSeekFairUseAudit); ok {
+				service.AppendDeepSeekFairUseAuditInfo(fairUseAudit, adminInfo)
+			}
+		}
 		other["admin_info"] = adminInfo
 		startTime := common.GetContextKeyTime(c, constant.ContextKeyRequestStartTime)
 		if startTime.IsZero() {

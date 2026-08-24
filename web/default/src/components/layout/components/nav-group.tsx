@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { Link, useLocation } from '@tanstack/react-router'
 import { ChevronRight } from 'lucide-react'
-import { type ReactNode, useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import {
@@ -48,11 +48,11 @@ import {
 } from '@/components/ui/sidebar'
 
 import { checkIsActive } from '../lib/url-utils'
-import {
-  type NavCollapsible,
-  type NavChatPresets,
-  type NavLink,
-  type NavGroup as NavGroupProps,
+import type {
+  NavCollapsible,
+  NavChatPresets,
+  NavLink,
+  NavGroup as NavGroupProps,
 } from '../types'
 import { ChatPresetsItem } from './chat-presets-item'
 
