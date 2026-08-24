@@ -95,8 +95,8 @@ func SwitchTransactionalEmailProvider(c *gin.Context) {
 	}
 
 	provider := emaildelivery.ProviderName(strings.ToLower(strings.TrimSpace(request.Provider)))
-	if provider != emaildelivery.ProviderBrevo && provider != emaildelivery.ProviderSES {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "provider must be brevo or ses"})
+	if provider != emaildelivery.ProviderSES {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "provider must be ses"})
 		return
 	}
 

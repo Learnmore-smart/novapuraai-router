@@ -137,7 +137,7 @@ func main() {
 	// rates while preserving the persisted last-known-good values on failure.
 	service.StartBillingFXRefreshTask()
 
-	// Retry only provider-idempotent Brevo sends that returned an ambiguous timeout.
+	// Retry safe transactional email deliveries that encountered an ambiguous timeout or retryable error.
 	emaildelivery.StartSafeRetryWorker()
 
 	// Report this process as a system instance so the System Info page can show

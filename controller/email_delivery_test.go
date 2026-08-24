@@ -39,7 +39,7 @@ func setupEmailDeliveryControllerTest(t *testing.T) {
 	model.LOG_DB = db
 	common.RedisEnabled = false
 	require.NoError(t, db.AutoMigrate(&model.Option{}, &model.User{}, &model.Log{}))
-	common.OptionMap = map[string]string{"EmailProvider": "brevo"}
+	common.OptionMap = map[string]string{"EmailProvider": "ses"}
 	t.Cleanup(func() {
 		getTransactionalEmailHealth = previousHealth
 		retryTransactionalEmails = previousRetry
@@ -212,9 +212,9 @@ func TestGetTransactionalEmailHealthReturnsProviderAndQueueState(t *testing.T) {
 	setupEmailDeliveryControllerTest(t)
 	getTransactionalEmailHealth = func(context.Context) (emaildelivery.HealthReport, error) {
 		return emaildelivery.HealthReport{
-			SelectedProvider: emaildelivery.ProviderBrevo,
+			SelectedProvider: emaildelivery.ProviderSES,
 			Providers: []emaildelivery.ProviderHealth{{
-				Provider:   emaildelivery.ProviderBrevo,
+				Provider:   emaildelivery.ProviderSES,
 				Configured: true,
 				Reachable:  true,
 				Ready:      true,
@@ -236,9 +236,20 @@ func TestGetTransactionalEmailHealthReturnsProviderAndQueueState(t *testing.T) {
 	}
 	require.NoError(t, common.Unmarshal(recorder.Body.Bytes(), &response))
 	assert.True(t, response.Success)
-	assert.Equal(t, emaildelivery.ProviderBrevo, response.Data.SelectedProvider)
+	assert.Equal(t, emaildelivery.ProviderSES, response.Data.SelectedProvider)
 	assert.EqualValues(t, 2, response.Data.SafeRetryCount)
 	assert.EqualValues(t, 1, response.Data.ManualReviewCount)
+}
+
+func TestSwitchTransactionalEmailProviderRejectsNonSESProvider(t *testing.T) {
+	setupEmailDeliveryControllerTest(t)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodPut, "/api/option/email-provider", strings.NewReader(`{"provider":"brevo"}`))
+	SwitchTransactionalEmailProvider(ctx)
+
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), "provider must be ses")
 }
 
 func TestSwitchTransactionalEmailProviderPersistsConfiguredSESWithoutProductionAccess(t *testing.T) {
