@@ -32,7 +32,7 @@ import {
 } from './email-provider-health'
 import { SESCredentialPanel } from './ses-credential-panel'
 
-const PROVIDER_ORDER: TransactionalEmailProvider[] = ['brevo', 'ses']
+const PROVIDER_ORDER: TransactionalEmailProvider[] = ['ses']
 
 function yesNo(value: boolean | undefined, t: (key: string) => string) {
   if (value === true) return t('Yes')
@@ -160,8 +160,8 @@ export function EmailProviderHealthCard() {
     (provider) => provider.provider === report.selected_provider
   )
 
-  const providerLabel = (provider: TransactionalEmailProvider) =>
-    provider === 'brevo' ? 'Brevo' : t('Amazon SES API')
+  const providerLabel = (_provider: TransactionalEmailProvider) =>
+    t('Amazon SES API')
 
   const failureLabel = (reason?: string) => {
     switch (reason) {
@@ -309,7 +309,7 @@ export function EmailProviderHealthCard() {
           </div>
           <p className='text-muted-foreground mt-1 max-w-2xl text-xs'>
             {t(
-              'Brevo is the production fallback. Switch to Amazon SES API only after production access is approved and credentials, region, and verified sender are configured.'
+              'Amazon SES API is configured for transactional verification, reset, receipt, and notification emails.'
             )}
           </p>
         </div>

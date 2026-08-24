@@ -21,7 +21,7 @@ export type UpdateOptionResponse = {
   message: string
 }
 
-export type TransactionalEmailProvider = 'brevo' | 'ses'
+export type TransactionalEmailProvider = 'ses'
 
 export type EmailProviderHealth = {
   provider: TransactionalEmailProvider

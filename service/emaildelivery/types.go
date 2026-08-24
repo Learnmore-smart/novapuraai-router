@@ -5,8 +5,7 @@ import "context"
 type ProviderName string
 
 const (
-	ProviderBrevo ProviderName = "brevo"
-	ProviderSES   ProviderName = "ses"
+	ProviderSES ProviderName = "ses"
 )
 
 type MessageType string

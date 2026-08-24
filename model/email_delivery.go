@@ -11,8 +11,7 @@ import (
 const emailDeliveryManualReviewAfter = 5 * time.Minute
 
 const (
-	EmailProviderBrevo = "brevo"
-	EmailProviderSES   = "ses"
+	EmailProviderSES = "ses"
 
 	EmailMessageTypeVerification  = "verification"
 	EmailMessageTypePasswordReset = "password_reset"
@@ -24,13 +23,14 @@ const (
 	EmailDeliveryStatusFailed      = "failed"
 	EmailDeliveryStatusRetryQueued = "retry_queued"
 
-	EmailFailureConfiguration    = "configuration"
-	EmailFailureAuthentication   = "authentication"
-	EmailFailureRejected         = "rejected"
-	EmailFailureRateLimited      = "rate_limited"
-	EmailFailureUnavailable      = "provider_unavailable"
-	EmailFailureTimeoutAmbiguous = "timeout_ambiguous"
-	EmailFailureInternal         = "internal"
+	EmailFailureConfiguration            = "configuration"
+	EmailFailureAuthentication           = "authentication"
+	EmailFailureRejected                 = "rejected"
+	EmailFailureRateLimited              = "rate_limited"
+	EmailFailureProviderUnavailable      = "provider_unavailable"
+	EmailFailureTimeoutAmbiguous         = "timeout_ambiguous"
+	EmailFailureProductionAccessRequired = "production_access_required"
+	EmailFailureInternal                 = "internal"
 )
 
 type EmailDelivery struct {
@@ -148,9 +148,8 @@ func ListSafeRetryEmailDeliveries(now time.Time, limit int) ([]EmailDelivery, er
 	}
 	var deliveries []EmailDelivery
 	err := DB.Where(
-		"status = ? AND provider = ? AND retry_deadline IS NOT NULL AND retry_deadline >= ?",
+		"status = ? AND retry_deadline IS NOT NULL AND retry_deadline >= ?",
 		EmailDeliveryStatusRetryQueued,
-		EmailProviderBrevo,
 		now,
 	).Order("id asc").Limit(limit).Find(&deliveries).Error
 	return deliveries, err
@@ -159,10 +158,9 @@ func ListSafeRetryEmailDeliveries(now time.Time, limit int) ([]EmailDelivery, er
 func ClaimEmailDeliveryForSafeRetry(id int, now time.Time) (bool, error) {
 	result := DB.Model(&EmailDelivery{}).
 		Where(
-			"id = ? AND status = ? AND provider = ? AND retry_deadline IS NOT NULL AND retry_deadline >= ?",
+			"id = ? AND status = ? AND retry_deadline IS NOT NULL AND retry_deadline >= ?",
 			id,
 			EmailDeliveryStatusRetryQueued,
-			EmailProviderBrevo,
 			now,
 		).
 		Updates(map[string]any{
@@ -185,9 +183,8 @@ func GetEmailDeliverySummary(now time.Time) (*EmailDeliverySummary, error) {
 
 	if err := DB.Model(&EmailDelivery{}).
 		Where(
-			"status = ? AND provider = ? AND retry_deadline IS NOT NULL AND retry_deadline >= ?",
+			"status = ? AND retry_deadline IS NOT NULL AND retry_deadline >= ?",
 			EmailDeliveryStatusRetryQueued,
-			EmailProviderBrevo,
 			now,
 		).
 		Count(&summary.SafeRetryCount).Error; err != nil {
@@ -195,9 +192,8 @@ func GetEmailDeliverySummary(now time.Time) (*EmailDeliverySummary, error) {
 	}
 	if err := DB.Model(&EmailDelivery{}).
 		Where(
-			"(status = ? AND (provider <> ? OR retry_deadline IS NULL OR retry_deadline < ?)) OR (status = ? AND updated_at < ?)",
+			"(status = ? AND (retry_deadline IS NULL OR retry_deadline < ?)) OR (status = ? AND updated_at < ?)",
 			EmailDeliveryStatusRetryQueued,
-			EmailProviderBrevo,
 			now,
 			EmailDeliveryStatusSending,
 			now.Add(-emailDeliveryManualReviewAfter),

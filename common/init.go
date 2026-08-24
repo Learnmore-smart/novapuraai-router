@@ -248,7 +248,6 @@ func initGitHubOAuthEnv() {
 var EnvManagedSecretOptionKeys = map[string]struct{}{
 	"StripeApiSecret":           {},
 	"StripeWebhookSecret":       {},
-	"BREVO_API_KEY":             {},
 	"AWS_SES_ACCESS_KEY_ID":     {},
 	"AWS_SES_SECRET_ACCESS_KEY": {},
 	"AWS_SES_SESSION_TOKEN":     {},

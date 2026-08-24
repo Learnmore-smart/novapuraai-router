@@ -33,10 +33,9 @@ func setupEmailServiceTest(t *testing.T) time.Time {
 
 func TestServicePreventsDuplicateAcrossProviderSwitch(t *testing.T) {
 	now := setupEmailServiceTest(t)
-	brevo := &fakeProvider{name: ProviderBrevo, results: []ProviderResult{{MessageID: "brevo-id"}}, safeRetry: true}
-	ses := &fakeProvider{name: ProviderSES, results: []ProviderResult{{MessageID: "ses-id"}}}
-	selected := ProviderBrevo
-	service := NewService(map[ProviderName]Provider{ProviderBrevo: brevo, ProviderSES: ses}, func() ProviderName {
+	ses := &fakeProvider{name: ProviderSES, results: []ProviderResult{{MessageID: "ses-id"}}, safeRetry: true}
+	selected := ProviderSES
+	service := NewService(map[ProviderName]Provider{ProviderSES: ses}, func() ProviderName {
 		return selected
 	}, func() time.Time { return now })
 	request := SendRequest{BusinessKey: "verification:user-42:code-7", Message: testMessage()}
@@ -45,16 +44,14 @@ func TestServicePreventsDuplicateAcrossProviderSwitch(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, DeliveryStatusSent, first.Status)
 	assert.False(t, first.Duplicate)
-	assert.Equal(t, ProviderBrevo, first.Provider)
+	assert.Equal(t, ProviderSES, first.Provider)
 
-	selected = ProviderSES
 	duplicate, err := service.Send(context.Background(), request)
 	require.NoError(t, err)
 	assert.True(t, duplicate.Duplicate)
 	assert.Equal(t, DeliveryStatusSent, duplicate.Status)
-	assert.Equal(t, ProviderBrevo, duplicate.Provider)
-	assert.Equal(t, 1, brevo.sendCalls)
-	assert.Zero(t, ses.sendCalls)
+	assert.Equal(t, ProviderSES, duplicate.Provider)
+	assert.Equal(t, 1, ses.sendCalls)
 
 	deliveries := make([]model.EmailDelivery, 0)
 	require.NoError(t, model.DB.Find(&deliveries).Error)
@@ -65,16 +62,16 @@ func TestServicePreventsDuplicateAcrossProviderSwitch(t *testing.T) {
 	assert.Empty(t, deliveries[0].EncryptedPayload)
 }
 
-func TestServiceAllowsNewProviderAfterDefinitiveFailure(t *testing.T) {
+func TestServiceAllowsRetryAfterDefinitiveFailure(t *testing.T) {
 	now := setupEmailServiceTest(t)
-	brevo := &fakeProvider{
-		name:      ProviderBrevo,
-		errors:    []*DeliveryError{{Reason: FailureRejected}},
+	ses := &fakeProvider{
+		name:      ProviderSES,
+		errors:    []*DeliveryError{{Reason: FailureRejected}, nil},
+		results:   []ProviderResult{{}, {MessageID: "ses-id-2"}},
 		safeRetry: true,
 	}
-	ses := &fakeProvider{name: ProviderSES, results: []ProviderResult{{MessageID: "ses-id"}}}
-	selected := ProviderBrevo
-	service := NewService(map[ProviderName]Provider{ProviderBrevo: brevo, ProviderSES: ses}, func() ProviderName {
+	selected := ProviderSES
+	service := NewService(map[ProviderName]Provider{ProviderSES: ses}, func() ProviderName {
 		return selected
 	}, func() time.Time { return now })
 	request := SendRequest{BusinessKey: "password-reset:user-42:token-1", Message: testMessage()}
@@ -85,13 +82,11 @@ func TestServiceAllowsNewProviderAfterDefinitiveFailure(t *testing.T) {
 	assert.Equal(t, DeliveryStatusFailed, failed.Status)
 	assert.Equal(t, FailureRejected, failed.FailureReason)
 
-	selected = ProviderSES
 	sent, err := service.Send(context.Background(), request)
 	require.NoError(t, err)
 	assert.Equal(t, DeliveryStatusSent, sent.Status)
 	assert.Equal(t, ProviderSES, sent.Provider)
-	assert.Equal(t, 1, brevo.sendCalls)
-	assert.Equal(t, 1, ses.sendCalls)
+	assert.Equal(t, 2, ses.sendCalls)
 
 	delivery, err := model.GetEmailDeliveryByKey(service.idempotencyKey(request.BusinessKey, request.Message.Type))
 	require.NoError(t, err)
@@ -99,16 +94,15 @@ func TestServiceAllowsNewProviderAfterDefinitiveFailure(t *testing.T) {
 	assert.Equal(t, model.EmailProviderSES, delivery.Provider)
 }
 
-func TestServiceQueuesAmbiguousBrevoTimeoutWithoutProviderFailover(t *testing.T) {
+func TestServiceQueuesAmbiguousTimeout(t *testing.T) {
 	now := setupEmailServiceTest(t)
-	brevo := &fakeProvider{
-		name:      ProviderBrevo,
+	ses := &fakeProvider{
+		name:      ProviderSES,
 		errors:    []*DeliveryError{{Reason: FailureTimeoutAmbiguous, Ambiguous: true}},
 		safeRetry: true,
 	}
-	ses := &fakeProvider{name: ProviderSES, results: []ProviderResult{{MessageID: "ses-id"}}}
-	selected := ProviderBrevo
-	service := NewService(map[ProviderName]Provider{ProviderBrevo: brevo, ProviderSES: ses}, func() ProviderName {
+	selected := ProviderSES
+	service := NewService(map[ProviderName]Provider{ProviderSES: ses}, func() ProviderName {
 		return selected
 	}, func() time.Time { return now })
 	request := SendRequest{BusinessKey: "notification:event-9", Message: testMessage()}
@@ -122,30 +116,28 @@ func TestServiceQueuesAmbiguousBrevoTimeoutWithoutProviderFailover(t *testing.T)
 	stored, err := model.GetEmailDeliveryByKey(service.idempotencyKey(request.BusinessKey, request.Message.Type))
 	require.NoError(t, err)
 	require.NotNil(t, stored.RetryDeadline)
-	assert.Equal(t, now.Add(brevoIdempotencyWindow), *stored.RetryDeadline)
+	assert.Equal(t, now.Add(safeRetryWindow), *stored.RetryDeadline)
 	assert.NotEmpty(t, stored.EncryptedPayload)
 	assert.False(t, strings.Contains(stored.EncryptedPayload, request.Message.To))
 
-	selected = ProviderSES
 	duplicate, err := service.Send(context.Background(), request)
 	require.NoError(t, err)
 	assert.True(t, duplicate.Duplicate)
 	assert.Equal(t, DeliveryStatusRetryQueued, duplicate.Status)
-	assert.Equal(t, ProviderBrevo, duplicate.Provider)
-	assert.Equal(t, 1, brevo.sendCalls)
-	assert.Zero(t, ses.sendCalls)
+	assert.Equal(t, ProviderSES, duplicate.Provider)
+	assert.Equal(t, 1, ses.sendCalls)
 }
 
-func TestServiceRetriesOnlyEligibleBrevoDeliveryWithSameKey(t *testing.T) {
+func TestServiceRetriesOnlyEligibleDeliveryWithSameKey(t *testing.T) {
 	now := setupEmailServiceTest(t)
-	brevo := &fakeProvider{
-		name:      ProviderBrevo,
+	ses := &fakeProvider{
+		name:      ProviderSES,
 		errors:    []*DeliveryError{{Reason: FailureTimeoutAmbiguous, Ambiguous: true}, nil},
-		results:   []ProviderResult{{}, {MessageID: "brevo-retry-id"}},
+		results:   []ProviderResult{{}, {MessageID: "ses-retry-id"}},
 		safeRetry: true,
 	}
-	service := NewService(map[ProviderName]Provider{ProviderBrevo: brevo}, func() ProviderName {
-		return ProviderBrevo
+	service := NewService(map[ProviderName]Provider{ProviderSES: ses}, func() ProviderName {
+		return ProviderSES
 	}, func() time.Time { return now })
 	request := SendRequest{BusinessKey: "receipt:payment-17", Message: testMessage()}
 	request.Message.Type = MessageTypeReceipt
@@ -157,29 +149,29 @@ func TestServiceRetriesOnlyEligibleBrevoDeliveryWithSameKey(t *testing.T) {
 	assert.Equal(t, 1, retryResult.Processed)
 	assert.Equal(t, 1, retryResult.Sent)
 	assert.Zero(t, retryResult.Failed)
-	assert.Equal(t, 2, brevo.sendCalls)
-	require.Len(t, brevo.idempotencyKeys, 2)
-	assert.Equal(t, brevo.idempotencyKeys[0], brevo.idempotencyKeys[1])
+	assert.Equal(t, 2, ses.sendCalls)
+	require.Len(t, ses.idempotencyKeys, 2)
+	assert.Equal(t, ses.idempotencyKeys[0], ses.idempotencyKeys[1])
 
 	stored, err := model.GetEmailDeliveryByKey(service.idempotencyKey(request.BusinessKey, request.Message.Type))
 	require.NoError(t, err)
 	assert.Equal(t, model.EmailDeliveryStatusSent, stored.Status)
-	assert.Equal(t, "brevo-retry-id", stored.ProviderMessageId)
+	assert.Equal(t, "ses-retry-id", stored.ProviderMessageId)
 	assert.Empty(t, stored.EncryptedPayload)
 }
 
 func TestServiceReportsAmbiguousSafeRetryAsQueuedNotFailed(t *testing.T) {
 	now := setupEmailServiceTest(t)
-	brevo := &fakeProvider{
-		name: ProviderBrevo,
+	ses := &fakeProvider{
+		name: ProviderSES,
 		errors: []*DeliveryError{
 			{Reason: FailureTimeoutAmbiguous, Ambiguous: true},
 			{Reason: FailureTimeoutAmbiguous, Ambiguous: true},
 		},
 		safeRetry: true,
 	}
-	service := NewService(map[ProviderName]Provider{ProviderBrevo: brevo}, func() ProviderName {
-		return ProviderBrevo
+	service := NewService(map[ProviderName]Provider{ProviderSES: ses}, func() ProviderName {
+		return ProviderSES
 	}, func() time.Time { return now })
 	request := SendRequest{BusinessKey: "receipt:payment-ambiguous", Message: testMessage()}
 	request.Message.Type = MessageTypeReceipt
@@ -198,7 +190,7 @@ func TestServiceReportsAmbiguousSafeRetryAsQueuedNotFailed(t *testing.T) {
 	assert.Equal(t, model.EmailDeliveryStatusRetryQueued, stored.Status)
 }
 
-func TestServiceNeverAutomaticallyRetriesAmbiguousSESDelivery(t *testing.T) {
+func TestServiceNeverAutomaticallyRetriesAmbiguousSESDeliveryWithoutSafeRetry(t *testing.T) {
 	now := setupEmailServiceTest(t)
 	ses := &fakeProvider{
 		name:   ProviderSES,
@@ -228,16 +220,6 @@ func TestServiceNeverAutomaticallyRetriesAmbiguousSESDelivery(t *testing.T) {
 
 func TestServiceHealthCombinesProviderReadinessAndSanitizedQueueSummary(t *testing.T) {
 	now := setupEmailServiceTest(t)
-	brevo := &fakeProvider{
-		name: ProviderBrevo,
-		health: ProviderHealth{
-			Provider:   ProviderBrevo,
-			Configured: true,
-			Reachable:  true,
-			Ready:      true,
-		},
-		safeRetry: true,
-	}
 	ses := &fakeProvider{
 		name: ProviderSES,
 		health: ProviderHealth{
@@ -245,27 +227,26 @@ func TestServiceHealthCombinesProviderReadinessAndSanitizedQueueSummary(t *testi
 			Configured:       true,
 			Reachable:        true,
 			SendingEnabled:   true,
-			ProductionAccess: false,
-			FailureReason:    FailureProductionAccessRequired,
+			ProductionAccess: true,
+			Ready:            true,
 		},
+		safeRetry: true,
 	}
-	service := NewService(map[ProviderName]Provider{ProviderBrevo: brevo, ProviderSES: ses}, func() ProviderName {
-		return ProviderBrevo
+	service := NewService(map[ProviderName]Provider{ProviderSES: ses}, func() ProviderName {
+		return ProviderSES
 	}, func() time.Time { return now })
 	request := SendRequest{BusinessKey: "health-summary", Message: testMessage()}
 	request.Message.To = "private-recipient@example.com"
-	brevo.errors = []*DeliveryError{{Reason: FailureTimeoutAmbiguous, Ambiguous: true}}
+	ses.errors = []*DeliveryError{{Reason: FailureTimeoutAmbiguous, Ambiguous: true}}
 	_, err := service.Send(context.Background(), request)
 	require.Error(t, err)
 
 	report, err := service.Health(context.Background())
 	require.NoError(t, err)
-	assert.Equal(t, ProviderBrevo, report.SelectedProvider)
-	require.Len(t, report.Providers, 2)
-	assert.Equal(t, ProviderBrevo, report.Providers[0].Provider)
+	assert.Equal(t, ProviderSES, report.SelectedProvider)
+	require.Len(t, report.Providers, 1)
+	assert.Equal(t, ProviderSES, report.Providers[0].Provider)
 	assert.True(t, report.Providers[0].Ready)
-	assert.Equal(t, ProviderSES, report.Providers[1].Provider)
-	assert.False(t, report.Providers[1].Ready)
 	assert.EqualValues(t, 1, report.SafeRetryCount)
 	assert.Zero(t, report.ManualReviewCount)
 	require.NotNil(t, report.LatestDelivery)

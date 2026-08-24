@@ -72,11 +72,7 @@ func InitOptionMap() {
 	common.OptionMap["SMTPForceAuthLogin"] = strconv.FormatBool(common.SMTPForceAuthLogin)
 	// SES region is non-secret and Dashboard-writable; environment wins at runtime.
 	common.OptionMap["AWS_SES_REGION"] = strings.TrimSpace(os.Getenv("AWS_SES_REGION"))
-	emailProvider := strings.ToLower(strings.TrimSpace(os.Getenv("EMAIL_PROVIDER")))
-	if emailProvider != EmailProviderSES {
-		emailProvider = EmailProviderBrevo
-	}
-	common.OptionMap["EmailProvider"] = emailProvider
+	common.OptionMap["EmailProvider"] = EmailProviderSES
 	common.OptionMap["Notice"] = ""
 	common.OptionMap["About"] = ""
 	common.OptionMap["HomePageContent"] = ""
@@ -323,7 +319,7 @@ func UpdateOption(key string, value string) error {
 
 func UpdateEmailProvider(provider string) error {
 	provider = strings.ToLower(strings.TrimSpace(provider))
-	if provider != EmailProviderBrevo && provider != EmailProviderSES {
+	if provider != EmailProviderSES {
 		return fmt.Errorf("unsupported email provider")
 	}
 

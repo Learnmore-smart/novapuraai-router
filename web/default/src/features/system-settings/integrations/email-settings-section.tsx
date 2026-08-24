@@ -234,7 +234,7 @@ export function EmailSettingsSection({
                     'Amazon SES API is selected. These legacy SMTP host, port, username, and password fields are not required and are not used for SES API delivery.'
                   )
                 : t(
-                    'These settings remain available for legacy SMTP compatibility. Prefer the transactional provider cards above for Brevo and Amazon SES API.'
+                    'These settings remain available for legacy SMTP compatibility. Prefer Amazon SES API for transactional email delivery.'
                   )}
             </p>
           </div>

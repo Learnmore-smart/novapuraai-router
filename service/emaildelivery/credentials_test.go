@@ -95,8 +95,7 @@ func TestServiceProviderReplacementIsVisibleToHealth(t *testing.T) {
 	now := setupEmailServiceTest(t)
 	oldSES := &fakeProvider{name: ProviderSES, health: ProviderHealth{Provider: ProviderSES, Configured: false}}
 	service := NewService(map[ProviderName]Provider{
-		ProviderBrevo: &fakeProvider{name: ProviderBrevo},
-		ProviderSES:   oldSES,
+		ProviderSES: oldSES,
 	}, func() ProviderName { return ProviderSES }, func() time.Time { return now })
 
 	service.replaceProvider(ProviderSES, &fakeProvider{name: ProviderSES, health: ProviderHealth{
@@ -110,7 +109,7 @@ func TestServiceProviderReplacementIsVisibleToHealth(t *testing.T) {
 
 	report, err := service.Health(context.Background())
 	require.NoError(t, err)
-	sesHealth := report.Providers[1]
+	sesHealth := report.Providers[0]
 	assert.True(t, sesHealth.Ready)
 	assert.True(t, sesHealth.ProductionAccess)
 }

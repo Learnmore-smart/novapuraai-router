@@ -165,3 +165,9 @@ func (client *fakeSESClient) GetAccount(_ context.Context, _ *sesv2.GetAccountIn
 
 var _ sesAPI = (*fakeSESClient)(nil)
 var _ = types.Body{}
+
+type timeoutError struct{}
+
+func (timeoutError) Error() string   { return "timeout" }
+func (timeoutError) Timeout() bool   { return true }
+func (timeoutError) Temporary() bool { return true }

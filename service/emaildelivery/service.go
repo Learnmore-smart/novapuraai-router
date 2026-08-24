@@ -11,7 +11,7 @@ import (
 	"github.com/QuantumNous/new-api/model"
 )
 
-const brevoIdempotencyWindow = 14 * time.Minute
+const safeRetryWindow = 14 * time.Minute
 
 const (
 	DeliveryStatusSending     = "sending"
@@ -211,9 +211,9 @@ func (service *Service) RetrySafeQueue(ctx context.Context, limit int) (RetryRes
 func (service *Service) Health(ctx context.Context) (HealthReport, error) {
 	report := HealthReport{
 		SelectedProvider: service.selectedProvider(),
-		Providers:        make([]ProviderHealth, 2),
+		Providers:        make([]ProviderHealth, 1),
 	}
-	names := []ProviderName{ProviderBrevo, ProviderSES}
+	names := []ProviderName{ProviderSES}
 	type healthResult struct {
 		index  int
 		health ProviderHealth
@@ -283,7 +283,7 @@ func (service *Service) finishFailure(delivery *model.EmailDelivery, messageType
 		var retryDeadline *time.Time
 		provider, _ := service.provider(ProviderName(delivery.Provider))
 		if provider != nil && provider.SupportsSafeRetry() {
-			deadline := service.now().UTC().Add(brevoIdempotencyWindow)
+			deadline := service.now().UTC().Add(safeRetryWindow)
 			retryDeadline = &deadline
 		}
 		if err := model.MarkEmailDeliveryRetryQueued(delivery.Id, sendErr.Reason, retryDeadline); err != nil {

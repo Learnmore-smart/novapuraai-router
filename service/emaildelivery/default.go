@@ -57,17 +57,6 @@ func RetrySafeDeliveries(ctx context.Context, limit int) (RetryResult, error) {
 func DefaultService() *Service {
 	defaultServiceOnce.Do(func() {
 		client := &http.Client{Timeout: defaultProviderTimeout}
-		fromAddress, fromName := defaultEmailSender()
-
-		brevo := newBrevoProvider(
-			strings.TrimSpace(os.Getenv("BREVO_API_KEY")),
-			fromAddress,
-			fromName,
-			brevoAPIBaseURL,
-			client,
-		)
-		brevo.replyToAddress = defaultEmailReplyTo()
-
 		ses, err := buildDefaultSESProvider(client)
 		if err != nil {
 			common.SysError("transactional SES credential loading failed")
@@ -75,8 +64,7 @@ func DefaultService() *Service {
 		}
 
 		defaultService = NewService(map[ProviderName]Provider{
-			ProviderBrevo: brevo,
-			ProviderSES:   ses,
+			ProviderSES: ses,
 		}, SelectedProvider, time.Now)
 	})
 	return defaultService
@@ -202,8 +190,5 @@ func StartSafeRetryWorker() {
 }
 
 func normalizeProvider(value string) ProviderName {
-	if strings.EqualFold(strings.TrimSpace(value), string(ProviderSES)) {
-		return ProviderSES
-	}
-	return ProviderBrevo
+	return ProviderSES
 }

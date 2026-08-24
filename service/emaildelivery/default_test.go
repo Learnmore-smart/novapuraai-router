@@ -23,15 +23,14 @@ func TestSelectedProviderUsesEnvironmentUntilAdminOverrideExists(t *testing.T) {
 	assert.Equal(t, ProviderSES, SelectedProvider())
 
 	common.OptionMapRWMutex.Lock()
-	common.OptionMap["EmailProvider"] = "brevo"
+	common.OptionMap["EmailProvider"] = "ses"
 	common.OptionMapRWMutex.Unlock()
-	assert.Equal(t, ProviderBrevo, SelectedProvider())
+	assert.Equal(t, ProviderSES, SelectedProvider())
 }
 
-func TestNormalizeProviderNeverPromotesInvalidValueToSES(t *testing.T) {
-	assert.Equal(t, ProviderBrevo, normalizeProvider(""))
-	assert.Equal(t, ProviderBrevo, normalizeProvider("unknown"))
-	assert.Equal(t, ProviderBrevo, normalizeProvider(" BREVO "))
+func TestNormalizeProviderDefaultsToSES(t *testing.T) {
+	assert.Equal(t, ProviderSES, normalizeProvider(""))
+	assert.Equal(t, ProviderSES, normalizeProvider("unknown"))
 	assert.Equal(t, ProviderSES, normalizeProvider(" SES "))
 }
 

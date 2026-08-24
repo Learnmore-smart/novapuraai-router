@@ -328,7 +328,6 @@ func TestIsEnvManagedSecretOptionKey(t *testing.T) {
 	// SMTPToken is env-preferred but DB-writable, so it is not treated as a
 	// strictly env-managed key that the admin API must reject.
 	assert.False(t, IsEnvManagedSecretOptionKey("SMTPToken"))
-	assert.True(t, IsEnvManagedSecretOptionKey("BREVO_API_KEY"))
 	assert.True(t, IsEnvManagedSecretOptionKey("AWS_SES_ACCESS_KEY_ID"))
 	assert.True(t, IsEnvManagedSecretOptionKey("AWS_SES_SECRET_ACCESS_KEY"))
 	assert.True(t, IsEnvManagedSecretOptionKey("AWS_SES_SESSION_TOKEN"))

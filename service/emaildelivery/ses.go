@@ -3,6 +3,7 @@ package emaildelivery
 import (
 	"context"
 	"errors"
+	"net"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"
@@ -150,4 +151,12 @@ func sesFailureReason(err error) string {
 	default:
 		return FailureProviderUnavailable
 	}
+}
+
+func isAmbiguousTimeout(ctx context.Context, err error) bool {
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	var netErr net.Error
+	return errors.As(err, &netErr) && netErr.Timeout()
 }

@@ -27,7 +27,7 @@ func readRepositoryConfigForTest(t *testing.T, name string) string {
 	root := repositoryRootForConfigTest(t)
 	content, err := os.ReadFile(filepath.Join(root, name))
 	require.NoError(t, err)
-	return string(content)
+	return strings.ReplaceAll(string(content), "\r\n", "\n")
 }
 
 func dockerIgnoreExcludesTestPath(rules string, fileName string) bool {
