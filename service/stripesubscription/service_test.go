@@ -520,7 +520,7 @@ func TestCreateCheckoutUsesProductionCatalogOnlyWithLiveRuntime(t *testing.T) {
 	assert.Equal(t, model.StripeSubscriptionStatusActive, subscription.Status)
 }
 
-func TestCreateCheckoutFailureKeepsRecoverableReservation(t *testing.T) {
+func TestCreateCheckoutFailureReleasesReservationSeat(t *testing.T) {
 	db, plan, user := setupStripeSubscriptionServiceDB(t)
 	fake := &fakeStripeSubscriptionGateway{checkoutErr: errors.New("stripe unavailable")}
 	restore := SetGatewayForTest(fake)
@@ -537,7 +537,10 @@ func TestCreateCheckoutFailureKeepsRecoverableReservation(t *testing.T) {
 	require.NoError(t, db.Model(&model.StripeSubscriptionReservation{}).
 		Where("plan_id = ? AND user_id = ? AND status = ?", plan.Id, user.Id, model.StripeSubscriptionReservationReconciliation).
 		Count(&reconciliationCount).Error)
-	assert.Equal(t, int64(1), reconciliationCount)
+	assert.Zero(t, reconciliationCount)
+	var released model.StripeSubscriptionReservation
+	require.NoError(t, db.Where("plan_id = ? AND user_id = ? AND status = ?", plan.Id, user.Id, model.StripeSubscriptionReservationReleased).First(&released).Error)
+	assert.Nil(t, released.ActiveUserId)
 }
 
 func TestCreateCheckoutRetryReusesPersistedSessionAndIdempotencyKey(t *testing.T) {

@@ -27,6 +27,15 @@ const (
 	stripeSubscriptionPortalEnvTestKey        = "STRIPE_SUBSCRIPTION_PORTAL_CONFIGURATION_ID"
 )
 
+type legacyStripeSubscriptionReservationCheckoutURL struct {
+	Id          int64  `gorm:"primaryKey"`
+	CheckoutURL string `gorm:"column:checkout_url;type:varchar(512)"`
+}
+
+func (legacyStripeSubscriptionReservationCheckoutURL) TableName() string {
+	return "stripe_subscription_reservations"
+}
+
 func clearStripeSubscriptionEnv(t *testing.T) {
 	t.Helper()
 	for _, key := range []string{
@@ -378,6 +387,79 @@ func TestExpiredPendingReservationCannotBecomeReconciliation(t *testing.T) {
 	require.NoError(t, db.First(reservation, reservation.Id).Error)
 	assert.Equal(t, StripeSubscriptionReservationExpired, reservation.Status)
 	assert.Nil(t, reservation.ActiveUserId)
+}
+
+func TestCheckoutReconciliationBoundsRemoteErrorToDatabaseColumn(t *testing.T) {
+	db := setupStripeSubscriptionModelTestDB(t)
+	plan := seedStripeSubscriptionPlan(t, db)
+	seedStripeSubscriptionUser(t, db, 7112)
+	now := common.GetTimestamp()
+	reservation := &StripeSubscriptionReservation{
+		PlanId:      plan.Id,
+		UserId:      7112,
+		ReferenceId: "overlength-checkout-error",
+		Tier:        StripeSubscriptionTierFounder,
+		Status:      StripeSubscriptionReservationPending,
+		ExpiresAt:   now + 1800,
+	}
+	require.NoError(t, db.Create(reservation).Error)
+	longReason := strings.Repeat("结账失败", 100)
+
+	require.NoError(t, MarkStripeSubscriptionCheckoutReconciliation(
+		reservation.Id,
+		"",
+		"",
+		longReason,
+		now,
+	))
+
+	require.NoError(t, db.First(reservation, reservation.Id).Error)
+	assert.Equal(t, StripeSubscriptionReservationReconciliation, reservation.Status)
+	assert.Equal(t, string([]rune(longReason)[:255]), reservation.RemoteSessionError)
+}
+
+func TestStripeSubscriptionCheckoutURLMigrationPreservesLongHostedURL(t *testing.T) {
+	db := setupStripeSubscriptionModelTestDB(t)
+	plan := seedStripeSubscriptionPlan(t, db)
+	seedStripeSubscriptionUser(t, db, 7113)
+	require.NoError(t, db.AutoMigrate(&legacyStripeSubscriptionReservationCheckoutURL{}))
+	legacyColumns, err := db.Migrator().ColumnTypes(&StripeSubscriptionReservation{})
+	require.NoError(t, err)
+	legacyType := ""
+	for _, column := range legacyColumns {
+		if column.Name() == "checkout_url" {
+			legacyType = strings.ToLower(column.DatabaseTypeName())
+			break
+		}
+	}
+	require.Equal(t, "varchar", legacyType)
+	longURL := "https://checkout.stripe.com/c/pay/" + strings.Repeat("a", 700)
+	reservation := &StripeSubscriptionReservation{
+		PlanId:      plan.Id,
+		UserId:      7113,
+		ReferenceId: "long-hosted-checkout-url",
+		CheckoutURL: longURL,
+		Tier:        StripeSubscriptionTierFounder,
+		Status:      StripeSubscriptionReservationPending,
+		ExpiresAt:   common.GetTimestamp() + 1800,
+	}
+	require.NoError(t, db.Create(reservation).Error)
+	require.NoError(t, db.AutoMigrate(&StripeSubscriptionReservation{}))
+
+	var migrated StripeSubscriptionReservation
+	require.NoError(t, db.First(&migrated, reservation.Id).Error)
+	assert.Equal(t, longURL, migrated.CheckoutURL)
+
+	columns, err := db.Migrator().ColumnTypes(&StripeSubscriptionReservation{})
+	require.NoError(t, err)
+
+	for _, column := range columns {
+		if column.Name() == "checkout_url" {
+			assert.Equal(t, "text", strings.ToLower(column.DatabaseTypeName()))
+			return
+		}
+	}
+	t.Fatal("checkout_url column not found")
 }
 
 func TestReservationActiveUserMigrationRepairsDerivedSeatKeys(t *testing.T) {

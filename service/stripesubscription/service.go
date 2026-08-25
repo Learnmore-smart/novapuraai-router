@@ -611,14 +611,10 @@ func CreateCheckout(ctx context.Context, input CheckoutInput) (*CheckoutResult, 
 
 	checkout, err := currentGateway().CreateCheckoutSession(ctx, params)
 	if err != nil || checkout == nil || strings.TrimSpace(checkout.ID) == "" || strings.TrimSpace(checkout.URL) == "" {
-		remoteSessionID := ""
-		remoteSessionURL := ""
 		if checkout != nil && strings.TrimSpace(checkout.ID) != "" {
-			remoteSessionID = strings.TrimSpace(checkout.ID)
-			remoteSessionURL = strings.TrimSpace(checkout.URL)
 			_ = currentGateway().ExpireCheckoutSession(ctx, checkout.ID)
 		}
-		_ = model.MarkStripeSubscriptionCheckoutReconciliation(reservation.Id, remoteSessionID, remoteSessionURL, errorText(err, "Stripe returned an incomplete Checkout session"), common.GetTimestamp())
+		_ = model.ReleasePendingStripeSubscriptionReservation(reservation.Id, common.GetTimestamp())
 		if err != nil {
 			return nil, err
 		}
@@ -626,12 +622,12 @@ func CreateCheckout(ctx context.Context, input CheckoutInput) (*CheckoutResult, 
 	}
 	if reservation.CheckoutSessionId != "" && reservation.CheckoutSessionId != checkout.ID {
 		_ = currentGateway().ExpireCheckoutSession(ctx, checkout.ID)
-		_ = model.MarkStripeSubscriptionCheckoutReconciliation(reservation.Id, reservation.CheckoutSessionId, reservation.CheckoutURL, "Stripe returned a different session for a persisted idempotency key", common.GetTimestamp())
+		_ = model.ReleasePendingStripeSubscriptionReservation(reservation.Id, common.GetTimestamp())
 		return nil, fmt.Errorf("%w: Checkout idempotency session mismatch", ErrRecurringPaymentMismatch)
 	}
 	if err := model.SetStripeSubscriptionCheckoutSessionDetails(reservation.Id, checkout.ID, checkout.URL, customerID); err != nil {
 		_ = currentGateway().ExpireCheckoutSession(ctx, checkout.ID)
-		_ = model.MarkStripeSubscriptionCheckoutReconciliation(reservation.Id, checkout.ID, checkout.URL, err.Error(), common.GetTimestamp())
+		_ = model.ReleasePendingStripeSubscriptionReservation(reservation.Id, common.GetTimestamp())
 		return nil, err
 	}
 	return &CheckoutResult{
@@ -648,13 +644,6 @@ func CreateCheckout(ctx context.Context, input CheckoutInput) (*CheckoutResult, 
 		CurrentPriceTier:     reservation.Tier,
 		PriceID:              priceID,
 	}, nil
-}
-
-func errorText(err error, fallback string) string {
-	if err == nil {
-		return fallback
-	}
-	return err.Error()
 }
 
 func asRecurringMismatch(err error) error {

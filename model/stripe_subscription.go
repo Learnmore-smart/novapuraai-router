@@ -461,7 +461,7 @@ type StripeSubscriptionReservation struct {
 	ReferenceId          string `json:"reference_id" gorm:"type:varchar(128);not null;uniqueIndex"`
 	IdempotencyKey       string `json:"-" gorm:"type:varchar(128);uniqueIndex"`
 	CheckoutSessionId    string `json:"checkout_session_id" gorm:"type:varchar(128);index"`
-	CheckoutURL          string `json:"checkout_url,omitempty" gorm:"type:varchar(512)"`
+	CheckoutURL          string `json:"checkout_url,omitempty" gorm:"type:text"`
 	RemoteSessionStatus  string `json:"remote_session_status" gorm:"type:varchar(32);index"`
 	RemoteSessionError   string `json:"-" gorm:"type:varchar(255)"`
 	StripeCustomerId     string `json:"stripe_customer_id" gorm:"type:varchar(128);index"`
@@ -1301,6 +1301,10 @@ func MarkStripeSubscriptionCheckoutReconciliation(reservationID int64, sessionID
 	if now <= 0 {
 		now = common.GetTimestamp()
 	}
+	reason = strings.TrimSpace(reason)
+	if reasonRunes := []rune(reason); len(reasonRunes) > 255 {
+		reason = string(reasonRunes[:255])
+	}
 	var outcomeErr error
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		var reservation StripeSubscriptionReservation
@@ -1313,7 +1317,7 @@ func MarkStripeSubscriptionCheckoutReconciliation(reservationID int64, sessionID
 				"status":                StripeSubscriptionReservationExpired,
 				"active_user_id":        nil,
 				"remote_session_status": StripeSubscriptionRemoteSessionExpired,
-				"remote_session_error":  strings.TrimSpace(reason),
+				"remote_session_error":  reason,
 				"released_at":           now,
 				"updated_at":            now,
 			}).Error; err != nil {
@@ -1333,7 +1337,7 @@ func MarkStripeSubscriptionCheckoutReconciliation(reservationID int64, sessionID
 			"status":                StripeSubscriptionReservationReconciliation,
 			"active_user_id":        reservation.UserId,
 			"remote_session_status": StripeSubscriptionRemoteSessionReconciliation,
-			"remote_session_error":  strings.TrimSpace(reason),
+			"remote_session_error":  reason,
 			"updated_at":            now,
 		}
 		if strings.TrimSpace(sessionID) != "" {
