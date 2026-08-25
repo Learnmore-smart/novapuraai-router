@@ -306,32 +306,86 @@ func EnsureStripeSubscriptionPlan(config StripeSubscriptionConfig) error {
 		if len(plans) == 1 {
 			plan := &plans[0]
 			plan.NormalizeDefaults()
-			if strings.TrimSpace(plan.Code) != config.PlanCode ||
-				(plan.RecurringCode != nil && strings.TrimSpace(*plan.RecurringCode) != config.PlanCode) ||
-				!stripeSubscriptionModelMatchesConfig(plan, config) || plan.PriceAmount != 19.99 ||
-				strings.ToLower(strings.TrimSpace(plan.Currency)) != config.Currency ||
-				plan.DurationUnit != config.BillingInterval || plan.DurationValue != 1 ||
-				plan.MaxActiveSubscriptions != config.MaxActiveSeats || plan.FounderPurchaseLimit != config.FounderPurchaseLimit ||
-				plan.MaxActivePerUser != config.MaxActivePerUser || plan.FounderStripePriceId != config.FounderPriceID ||
-				plan.StandardStripePriceId != config.StandardPriceID || plan.FounderAmountMinor != config.FounderAmountMinor ||
-				plan.StandardAmountMinor != config.StandardAmountMinor || strings.ToLower(strings.TrimSpace(plan.StripeCurrency)) != config.Currency ||
-				plan.StripeProductId != config.ProductID || plan.StripeAccountId != config.AccountID ||
-				plan.StripePortalConfigurationId != config.PortalConfigurationID || strings.TrimSpace(plan.UpgradeGroup) != config.UpgradeGroup ||
-				plan.AllowBalancePay == nil || *plan.AllowBalancePay || plan.TotalAmount != 0 || plan.AllowWalletOverflow == nil || *plan.AllowWalletOverflow {
+			if ValidateStripeSubscriptionPlan(plan, config, false) != nil &&
+				ValidateStripeSubscriptionPlan(plan, DefaultSandboxStripeSubscriptionConfig(), false) != nil &&
+				ValidateStripeSubscriptionPlan(plan, DefaultProductionStripeSubscriptionConfig(), false) != nil {
 				return fmt.Errorf("%w: %s subscription plan %q conflicts with fixed Stripe contract", ErrStripeSubscriptionPlanInvalid, config.Environment, config.PlanCode)
 			}
 			updates := map[string]any{}
+			if strings.TrimSpace(plan.Code) != config.PlanCode {
+				updates["code"] = config.PlanCode
+			}
+			if plan.RecurringCode == nil || strings.TrimSpace(*plan.RecurringCode) != config.PlanCode {
+				updates["recurring_code"] = config.PlanCode
+			}
+			if plan.Title != config.PlanTitle {
+				updates["title"] = config.PlanTitle
+			}
 			if strings.TrimSpace(plan.StripeSubscriptionModel) != strings.TrimSpace(config.Model) {
 				updates["stripe_subscription_model"] = config.Model
 			}
-			if plan.RecurringCode == nil {
-				updates["recurring_code"] = config.PlanCode
+			if plan.PriceAmount != 19.99 {
+				updates["price_amount"] = 19.99
+			}
+			if strings.ToUpper(strings.TrimSpace(plan.Currency)) != strings.ToUpper(config.Currency) {
+				updates["currency"] = strings.ToUpper(config.Currency)
+			}
+			if plan.DurationUnit != config.BillingInterval {
+				updates["duration_unit"] = config.BillingInterval
+			}
+			if plan.DurationValue != 1 {
+				updates["duration_value"] = 1
 			}
 			if plan.Enabled != config.Enabled {
 				updates["enabled"] = config.Enabled
 			}
 			if plan.StripeSubscriptionEnabled != config.Enabled {
 				updates["stripe_subscription_enabled"] = config.Enabled
+			}
+			if plan.MaxActiveSubscriptions != config.MaxActiveSeats {
+				updates["max_active_subscriptions"] = config.MaxActiveSeats
+			}
+			if plan.FounderPurchaseLimit != config.FounderPurchaseLimit {
+				updates["founder_purchase_limit"] = config.FounderPurchaseLimit
+			}
+			if plan.MaxActivePerUser != config.MaxActivePerUser {
+				updates["max_active_per_user"] = config.MaxActivePerUser
+			}
+			if plan.FounderStripePriceId != config.FounderPriceID {
+				updates["founder_stripe_price_id"] = config.FounderPriceID
+			}
+			if plan.StandardStripePriceId != config.StandardPriceID {
+				updates["standard_stripe_price_id"] = config.StandardPriceID
+			}
+			if plan.FounderAmountMinor != config.FounderAmountMinor {
+				updates["founder_amount_minor"] = config.FounderAmountMinor
+			}
+			if plan.StandardAmountMinor != config.StandardAmountMinor {
+				updates["standard_amount_minor"] = config.StandardAmountMinor
+			}
+			if strings.ToLower(strings.TrimSpace(plan.StripeCurrency)) != strings.ToLower(config.Currency) {
+				updates["stripe_currency"] = config.Currency
+			}
+			if plan.StripeProductId != config.ProductID {
+				updates["stripe_product_id"] = config.ProductID
+			}
+			if plan.StripeAccountId != config.AccountID {
+				updates["stripe_account_id"] = config.AccountID
+			}
+			if plan.StripePortalConfigurationId != config.PortalConfigurationID {
+				updates["stripe_portal_configuration_id"] = config.PortalConfigurationID
+			}
+			if strings.TrimSpace(plan.UpgradeGroup) != config.UpgradeGroup {
+				updates["upgrade_group"] = config.UpgradeGroup
+			}
+			if plan.AllowBalancePay == nil || *plan.AllowBalancePay {
+				updates["allow_balance_pay"] = false
+			}
+			if plan.AllowWalletOverflow == nil || *plan.AllowWalletOverflow {
+				updates["allow_wallet_overflow"] = false
+			}
+			if plan.TotalAmount != 0 {
+				updates["total_amount"] = 0
 			}
 			if len(updates) == 0 {
 				return nil

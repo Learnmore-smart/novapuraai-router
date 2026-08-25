@@ -949,6 +949,22 @@ func TestEnsureProductionStripeSubscriptionPlanIsDisabledAndIdempotent(t *testin
 	assert.Equal(t, ProductionStripeSubscriptionPortalConfigurationID, plans[0].StripePortalConfigurationId)
 }
 
+func TestEnsureStripeSubscriptionPlanMigratesExistingSandboxPlanToProduction(t *testing.T) {
+	clearStripeSubscriptionEnv(t)
+	db := setupStripeSubscriptionModelTestDB(t)
+	seedStripeSubscriptionPlan(t, db)
+
+	require.NoError(t, EnsureStripeSubscriptionPlanForEnvironment(ProductionStripeSubscriptionEnvironment))
+
+	var plan SubscriptionPlan
+	require.NoError(t, db.Where("code = ?", SandboxStripeSubscriptionPlanCode).First(&plan).Error)
+	assert.Equal(t, ProductionStripeSubscriptionAccountID, plan.StripeAccountId)
+	assert.Equal(t, ProductionStripeSubscriptionProductID, plan.StripeProductId)
+	assert.Equal(t, ProductionStripeSubscriptionFounderPriceID, plan.FounderStripePriceId)
+	assert.Equal(t, ProductionStripeSubscriptionStandardPriceID, plan.StandardStripePriceId)
+	assert.Equal(t, ProductionStripeSubscriptionPortalConfigurationID, plan.StripePortalConfigurationId)
+}
+
 func TestEnsureSandboxStripeSubscriptionPlanIsDisabledAndIdempotent(t *testing.T) {
 	clearStripeSubscriptionEnv(t)
 	db := setupStripeSubscriptionModelTestDB(t)
