@@ -59,6 +59,7 @@ func SetApiRouter(router *gin.Engine) {
 		// remain authenticated. Keep a namespaced webhook alias for integrations
 		// without changing the legacy top-up endpoint.
 		apiRouter.GET("/subscription/stripe/offer", middleware.TryUserAuth(), controller.GetStripeSubscriptionOffer)
+		apiRouter.GET("/subscription/stripe/cancel", controller.GetStripeSubscriptionCancel)
 		apiRouter.POST("/subscription/stripe/webhook", anonymousRequestBodyLimit, controller.StripeWebhook)
 		// Stripe Connect (分佣自动打款) webhook — public, signature-verified.
 		apiRouter.POST("/stripe/connect_webhook", anonymousRequestBodyLimit, controller.StripeConnectWebhook)

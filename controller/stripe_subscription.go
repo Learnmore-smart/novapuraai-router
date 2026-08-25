@@ -2,16 +2,28 @@ package controller
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service/stripesubscription"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
+
+// GetStripeSubscriptionCancel is a public browser return from Stripe. The
+// random reservation reference is the capability; no authenticated dashboard
+// session is assumed to survive the hosted Checkout redirect.
+func GetStripeSubscriptionCancel(c *gin.Context) {
+	if err := stripesubscription.CancelCheckout(c.Request.Context(), c.Query("reference_id")); err != nil {
+		logger.LogError(c.Request.Context(), fmt.Sprintf("failed to cancel recurring Stripe Checkout: %v", err))
+	}
+	c.Redirect(http.StatusSeeOther, paymentReturnPath("/"))
+}
 
 // GetStripeSubscriptionOffer exposes only the exact configured recurring
 // sandbox offer. It returns enabled:false while the feature is disabled so

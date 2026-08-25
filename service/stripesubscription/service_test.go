@@ -433,6 +433,8 @@ func TestCreateCheckoutUsesHostedSubscriptionAndReservesOneFounderSeat(t *testin
 	require.NotNil(t, fake.checkoutParams.ExpiresAt)
 	assert.InDelta(t, time.Now().Add(30*time.Minute).Unix(), *fake.checkoutParams.ExpiresAt, 90)
 	assert.Equal(t, "https://checkout.example/subscription", result.PayLink)
+	require.NotNil(t, fake.checkoutParams.CancelURL)
+	assert.Equal(t, "https://novapura.example/api/subscription/stripe/cancel?reference_id="+result.ReferenceID, *fake.checkoutParams.CancelURL)
 	assert.Equal(t, model.StripeSubscriptionTierFounder, result.Tier)
 	assert.Equal(t, model.StripeSubscriptionTierFounder, result.CurrentPriceTier)
 	assert.Equal(t, model.SandboxStripeSubscriptionFounderPriceID, result.PriceID)
@@ -541,6 +543,32 @@ func TestCreateCheckoutFailureReleasesReservationSeat(t *testing.T) {
 	var released model.StripeSubscriptionReservation
 	require.NoError(t, db.Where("plan_id = ? AND user_id = ? AND status = ?", plan.Id, user.Id, model.StripeSubscriptionReservationReleased).First(&released).Error)
 	assert.Nil(t, released.ActiveUserId)
+}
+
+func TestCancelCheckoutExpiresHostedSessionAndReleasesPendingSeat(t *testing.T) {
+	db, plan, user := setupStripeSubscriptionServiceDB(t)
+	fake := &fakeStripeSubscriptionGateway{checkoutResult: &stripe.CheckoutSession{ID: "cs_canceled_by_customer", URL: "https://checkout.example/cancel"}}
+	restore := SetGatewayForTest(fake)
+	t.Cleanup(restore)
+
+	checkout, err := CreateCheckout(context.Background(), CheckoutInput{
+		UserID:    user.Id,
+		PlanID:    plan.Id,
+		Email:     user.Email,
+		CancelURL: "https://novapura.example/api/subscription/stripe/cancel",
+	})
+	require.NoError(t, err)
+	require.NoError(t, CancelCheckout(context.Background(), checkout.ReferenceID))
+	assert.Equal(t, []string{"cs_canceled_by_customer"}, fake.expiredIDs)
+
+	var reservation model.StripeSubscriptionReservation
+	require.NoError(t, db.First(&reservation, checkout.ReservationID).Error)
+	assert.Equal(t, model.StripeSubscriptionReservationReleased, reservation.Status)
+	assert.Nil(t, reservation.ActiveUserId)
+
+	offer, err := GetStripeSubscriptionOffer(plan.Id)
+	require.NoError(t, err)
+	assert.Equal(t, int64(20), offer.Remaining)
 }
 
 func TestCreateCheckoutRetryReusesPersistedSessionAndIdempotencyKey(t *testing.T) {

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -382,6 +383,18 @@ func defaultSubscriptionURL(value string) string {
 	return base + "/console/subscription"
 }
 
+func checkoutCancellationURL(value string, referenceID string) string {
+	parsed, err := url.Parse(defaultSubscriptionURL(value))
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		parsed, _ = url.Parse(defaultSubscriptionURL(""))
+	}
+	parsed.Path = "/api/subscription/stripe/cancel"
+	parsed.RawPath = ""
+	parsed.RawQuery = url.Values{"reference_id": {referenceID}}.Encode()
+	parsed.Fragment = ""
+	return parsed.String()
+}
+
 type recurringCheckoutState struct {
 	AlreadyActive  bool
 	AlreadyPending bool
@@ -583,7 +596,7 @@ func CreateCheckout(ctx context.Context, input CheckoutInput) (*CheckoutResult, 
 	params := &stripe.CheckoutSessionParams{
 		ClientReferenceID: stripe.String(reservation.ReferenceId),
 		SuccessURL:        stripe.String(defaultSubscriptionURL(input.SuccessURL)),
-		CancelURL:         stripe.String(defaultSubscriptionURL(input.CancelURL)),
+		CancelURL:         stripe.String(checkoutCancellationURL(input.CancelURL, reservation.ReferenceId)),
 		LineItems: []*stripe.CheckoutSessionLineItemParams{{
 			Price:    stripe.String(priceID),
 			Quantity: stripe.Int64(1),
@@ -644,6 +657,37 @@ func CreateCheckout(ctx context.Context, input CheckoutInput) (*CheckoutResult, 
 		CurrentPriceTier:     reservation.Tier,
 		PriceID:              priceID,
 	}, nil
+}
+
+// CancelCheckout expires the still-open hosted Checkout before releasing its
+// local capacity. The pending-only model transition makes a concurrently paid
+// reservation a no-op instead of revoking an active subscription.
+func CancelCheckout(ctx context.Context, referenceID string) error {
+	if err := validateStripeRuntimeForLifecycle(false); err != nil {
+		return err
+	}
+	referenceID = strings.TrimSpace(referenceID)
+	if !strings.HasPrefix(referenceID, "sub_ref_") || len(referenceID) > 64 {
+		return model.ErrStripeSubscriptionReservation
+	}
+	reservation, err := model.GetStripeSubscriptionReservationByReference(referenceID)
+	if err != nil {
+		return err
+	}
+	switch reservation.Status {
+	case model.StripeSubscriptionReservationActive, model.StripeSubscriptionReservationReleased, model.StripeSubscriptionReservationExpired:
+		return nil
+	case model.StripeSubscriptionReservationPending, model.StripeSubscriptionReservationReconciliation:
+	default:
+		return model.ErrStripeSubscriptionReservation
+	}
+	sessionID := strings.TrimSpace(reservation.CheckoutSessionId)
+	if sessionID != "" {
+		if err := currentGateway().ExpireCheckoutSession(ctx, sessionID); err != nil {
+			return err
+		}
+	}
+	return model.ReleasePendingStripeSubscriptionReservation(reservation.Id, common.GetTimestamp())
 }
 
 func asRecurringMismatch(err error) error {

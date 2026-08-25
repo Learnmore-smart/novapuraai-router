@@ -25,6 +25,7 @@ import (
 
 type controllerStripeSubscriptionGateway struct {
 	portalParams *stripe.BillingPortalSessionParams
+	expiredIDs   []string
 }
 
 func clearStripeSubscriptionControllerEnv(t *testing.T) {
@@ -54,7 +55,8 @@ func (f *controllerStripeSubscriptionGateway) CreateCheckoutSession(context.Cont
 	return &stripe.CheckoutSession{ID: "cs_controller", URL: "https://checkout.example/controller"}, nil
 }
 
-func (f *controllerStripeSubscriptionGateway) ExpireCheckoutSession(context.Context, string) error {
+func (f *controllerStripeSubscriptionGateway) ExpireCheckoutSession(_ context.Context, sessionID string) error {
+	f.expiredIDs = append(f.expiredIDs, sessionID)
 	return nil
 }
 
@@ -159,6 +161,32 @@ func decodeControllerJSON(t *testing.T, recorder *httptest.ResponseRecorder) map
 	var body map[string]interface{}
 	require.NoError(t, common.Unmarshal(recorder.Body.Bytes(), &body))
 	return body
+}
+
+func TestStripeSubscriptionCancelRedirectsHomeAndReleasesSeat(t *testing.T) {
+	_, plan, user := setupStripeSubscriptionControllerDB(t)
+	fake := &controllerStripeSubscriptionGateway{}
+	restore := stripesubscription.SetGatewayForTest(fake)
+	t.Cleanup(restore)
+	checkout, err := stripesubscription.CreateCheckout(context.Background(), stripesubscription.CheckoutInput{
+		UserID: user.Id,
+		PlanID: plan.Id,
+		Email:  user.Email,
+	})
+	require.NoError(t, err)
+
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodGet, "/api/subscription/stripe/cancel?reference_id="+checkout.ReferenceID, nil)
+	GetStripeSubscriptionCancel(ctx)
+
+	assert.Equal(t, http.StatusSeeOther, recorder.Code)
+	assert.Equal(t, paymentReturnPath("/"), recorder.Header().Get("Location"))
+	assert.Equal(t, []string{"cs_controller"}, fake.expiredIDs)
+	offer, err := stripesubscription.GetStripeSubscriptionOffer(plan.Id)
+	require.NoError(t, err)
+	assert.Equal(t, int64(20), offer.Remaining)
 }
 
 func TestRecurringStripePayMapsCapacityAndDuplicateToStableHTTP409Codes(t *testing.T) {
