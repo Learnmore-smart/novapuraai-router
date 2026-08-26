@@ -6,6 +6,7 @@ import {
   PowerOff,
   ArrowUp,
   ArrowDown,
+  Shield,
   KeyRound,
   ShieldAlert,
   Link2,
@@ -176,6 +177,15 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
             {t('Promote')}
             <DropdownMenuShortcut>
               <ArrowUp size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+        )}
+
+        {!isRoot && (
+          <DropdownMenuItem onClick={() => handleManage('promote_root')}>
+            {t('Promote to Root')}
+            <DropdownMenuShortcut>
+              <Shield size={16} />
             </DropdownMenuShortcut>
           </DropdownMenuItem>
         )}

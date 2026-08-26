@@ -263,6 +263,9 @@ export function UsersMutateDrawer({
                           items={[
                             { value: '1', label: t('Common User') },
                             { value: '10', label: t('Admin') },
+                            ...(canEditAdminPermissions
+                              ? [{ value: '100', label: t('Root') }]
+                              : []),
                           ]}
                           onValueChange={(value) =>
                             value !== null && field.onChange(Number.parseInt(value))
@@ -280,11 +283,14 @@ export function UsersMutateDrawer({
                                 {t('Common User')}
                               </SelectItem>
                               <SelectItem value='10'>{t('Admin')}</SelectItem>
+                              {canEditAdminPermissions && (
+                                <SelectItem value='100'>{t('Root')}</SelectItem>
+                              )}
                             </SelectGroup>
                           </SelectContent>
                         </Select>
                         <FormDescription>
-                          {t("Set the user's role (cannot be Root)")}
+                          {t("Set the user's role")}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>

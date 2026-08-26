@@ -105,6 +105,7 @@ const (
 	MsgUserCannotDisableRootUser     = "user.cannot_disable_root_user"
 	MsgUserCannotDemoteRootUser      = "user.cannot_demote_root_user"
 	MsgUserAlreadyAdmin              = "user.already_admin"
+	MsgUserAlreadyRoot               = "user.already_root"
 	MsgUserAlreadyCommon             = "user.already_common"
 	MsgUserAdminCannotPromote        = "user.admin_cannot_promote"
 	MsgUserOriginalPasswordError     = "user.original_password_error"
