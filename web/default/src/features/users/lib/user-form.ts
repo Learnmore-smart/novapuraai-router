@@ -68,10 +68,10 @@ export function transformFormDataToPayload(
 
   const role = userId === undefined ? data.role || 1 : (data.role ?? 0)
 
-  // Only send the permission matrix when the target is an admin and the catalog
-  // is available; without the catalog we cannot build a full matrix, so we omit
-  // the field (the backend then leaves existing permissions untouched).
-  if (role >= ROLE.ADMIN && catalog) {
+  // Only send the permission matrix when the target is an admin (not root)
+  // and the catalog is available. Root is a superuser; per-user overrides
+  // are cleared server-side and must not be stored as admin-baseline denies.
+  if (role >= ROLE.ADMIN && role < ROLE.SUPER_ADMIN && catalog) {
     payload.admin_permissions = normalizeAdminPermissions(
       data.admin_permissions as AdminPermissionMatrix | undefined,
       catalog

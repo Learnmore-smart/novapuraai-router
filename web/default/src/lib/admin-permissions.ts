@@ -60,7 +60,7 @@ export function hasPermission(
   action: string
 ): boolean {
   if (!user) return false
-  if (user.role === ROLE.SUPER_ADMIN) return true
+  if ((user.role ?? 0) >= ROLE.SUPER_ADMIN) return true
   return user.permissions?.admin_permissions?.[resource]?.[action] === true
 }
 

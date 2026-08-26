@@ -34,13 +34,30 @@ func validUserInfo(username string, role int) bool {
 	return true
 }
 
+func sessionUserID(v any) (int, bool) {
+	switch n := v.(type) {
+	case int:
+		return n, true
+	case int64:
+		return int(n), true
+	case float64:
+		return int(n), n == float64(int(n))
+	default:
+		return 0, false
+	}
+}
+
 func authHelper(c *gin.Context, minRole int) {
 	session := sessions.Default(c)
 	username := session.Get("username")
-	role := session.Get("role")
-	id := session.Get("id")
-	status := session.Get("status")
 	useAccessToken := false
+	var (
+		userID          int
+		currentRole     int
+		currentStatus   int
+		currentUsername string
+		currentGroup    any
+	)
 	if username == nil {
 		// Check access token
 		accessToken := c.Request.Header.Get("Authorization")
@@ -78,11 +95,11 @@ func authHelper(c *gin.Context, minRole int) {
 				c.Abort()
 				return
 			}
-			// Token is valid
-			username = user.Username
-			role = user.Role
-			id = user.Id
-			status = user.Status
+			currentUsername = user.Username
+			currentRole = user.Role
+			userID = user.Id
+			currentStatus = user.Status
+			currentGroup = session.Get("group")
 			useAccessToken = true
 		} else {
 			c.JSON(http.StatusOK, gin.H{
@@ -92,6 +109,34 @@ func authHelper(c *gin.Context, minRole int) {
 			c.Abort()
 			return
 		}
+	} else {
+		// Session only proves identity. Role, status, username, and group are
+		// loaded from the live user record so promote/demote/disable take
+		// effect without waiting for the next login.
+		var ok bool
+		userID, ok = sessionUserID(session.Get("id"))
+		if !ok || userID == 0 {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"success": false,
+				"message": common.TranslateMessage(c, i18n.MsgAuthUserInfoInvalid),
+			})
+			c.Abort()
+			return
+		}
+		userCache, cacheErr := model.GetUserCache(userID)
+		if cacheErr != nil {
+			common.SysLog(fmt.Sprintf("authHelper GetUserCache error for user %d: %v", userID, cacheErr))
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"message": common.TranslateMessage(c, i18n.MsgDatabaseError),
+			})
+			c.Abort()
+			return
+		}
+		currentUsername = userCache.Username
+		currentRole = userCache.Role
+		currentStatus = userCache.Status
+		currentGroup = userCache.Group
 	}
 	// get header New-Api-User
 	apiUserIdStr := c.Request.Header.Get("New-Api-User")
@@ -113,7 +158,7 @@ func authHelper(c *gin.Context, minRole int) {
 		return
 
 	}
-	if id != apiUserId {
+	if userID != apiUserId {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
 			"message": common.TranslateMessage(c, i18n.MsgAuthUserIdMismatch),
@@ -121,7 +166,7 @@ func authHelper(c *gin.Context, minRole int) {
 		c.Abort()
 		return
 	}
-	if status.(int) == common.UserStatusDisabled {
+	if currentStatus == common.UserStatusDisabled {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
 			"message": common.TranslateMessage(c, i18n.MsgAuthUserBanned),
@@ -129,7 +174,7 @@ func authHelper(c *gin.Context, minRole int) {
 		c.Abort()
 		return
 	}
-	if role.(int) < minRole {
+	if currentRole < minRole {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
 			"message": common.TranslateMessage(c, i18n.MsgAuthInsufficientPrivilege),
@@ -137,7 +182,7 @@ func authHelper(c *gin.Context, minRole int) {
 		c.Abort()
 		return
 	}
-	if !validUserInfo(username.(string), role.(int)) {
+	if !validUserInfo(currentUsername, currentRole) {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
 			"message": common.TranslateMessage(c, i18n.MsgAuthUserInfoInvalid),
@@ -147,11 +192,11 @@ func authHelper(c *gin.Context, minRole int) {
 	}
 	// 防止不同newapi版本冲突，导致数据不通用
 	c.Header("Auth-Version", "864b7076dbcd0a3c01b5520316720ebf")
-	c.Set("username", username)
-	c.Set("role", role)
-	c.Set("id", id)
-	c.Set("group", session.Get("group"))
-	c.Set("user_group", session.Get("group"))
+	c.Set("username", currentUsername)
+	c.Set("role", currentRole)
+	c.Set("id", userID)
+	c.Set("group", currentGroup)
+	c.Set("user_group", currentGroup)
 	c.Set("use_access_token", useAccessToken)
 
 	// 管理/root 写操作审计兜底：内聚在鉴权链路里，保证任何经过 AdminAuth/RootAuth

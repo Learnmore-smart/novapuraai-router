@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import type { NavGroup, NavItem } from '@/components/layout/types'
 import { MODEL_CATALOG_PATH } from '@/features/models/catalog-links'
 import { useStatus } from '@/hooks/use-status'
+import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
 type SidebarSectionConfig = {
@@ -256,11 +257,13 @@ function filterNavItems(
  *      The overlay is also skipped entirely when the backend tells us the
  *      user cannot configure sidebar_settings (e.g. root accounts), so a
  *      stale historical value cannot lock them out of entries they have no
- *      UI to restore.
+ *      UI to restore. Root additionally bypasses the admin layer so hiding
+ *      System Settings in SidebarModulesAdmin cannot lock out superusers.
  */
 export function useSidebarConfig(navGroups: NavGroup[]): NavGroup[] {
   const { status } = useStatus()
   const { auth } = useAuthStore()
+  const isRoot = (auth?.user?.role ?? 0) >= ROLE.SUPER_ADMIN
 
   const adminConfig = useMemo(
     () =>
@@ -271,27 +274,30 @@ export function useSidebarConfig(navGroups: NavGroup[]): NavGroup[] {
   )
 
   const userConfig = useMemo(() => {
-    // If the backend marks the user as unable to configure the sidebar
-    // (e.g. root accounts), skip the user overlay entirely — a stale
-    // historical sidebar_modules value from a previous role would otherwise
-    // hide admin entries for someone who has no in-product UI to restore
-    // them.
-    if (auth?.user?.permissions?.sidebar_settings === false) {
+    // Root always sees the full catalog so a leftover admin-era
+    // sidebar_modules value (or a site-wide hide of System Settings)
+    // cannot lock them out of pages they have no UI to restore.
+    if (isRoot || auth?.user?.permissions?.sidebar_settings === false) {
       return null
     }
     return parseUserSidebarConfig(auth?.user?.sidebar_modules)
-  }, [auth?.user?.permissions?.sidebar_settings, auth?.user?.sidebar_modules])
+  }, [
+    isRoot,
+    auth?.user?.permissions?.sidebar_settings,
+    auth?.user?.sidebar_modules,
+  ])
 
-  const filteredNavGroups = useMemo(
-    () =>
-      navGroups
-        .map((group) => ({
-          ...group,
-          items: filterNavItems(group.items, adminConfig, userConfig),
-        }))
-        .filter((group) => group.items.length > 0), // Only show navigation groups with visible items
-    [navGroups, adminConfig, userConfig]
-  )
+  const filteredNavGroups = useMemo(() => {
+    if (isRoot) {
+      return navGroups
+    }
+    return navGroups
+      .map((group) => ({
+        ...group,
+        items: filterNavItems(group.items, adminConfig, userConfig),
+      }))
+      .filter((group) => group.items.length > 0)
+  }, [navGroups, adminConfig, userConfig, isRoot])
 
   return filteredNavGroups
 }
@@ -304,6 +310,10 @@ export function useSidebarConfig(navGroups: NavGroup[]): NavGroup[] {
 export function useIsSidebarModuleVisible(url: string): boolean {
   const { status } = useStatus()
   const { auth } = useAuthStore()
+
+  if ((auth?.user?.role ?? 0) >= ROLE.SUPER_ADMIN) {
+    return true
+  }
 
   const adminConfig = parseSidebarConfig(
     status?.SidebarModulesAdmin as string | null | undefined

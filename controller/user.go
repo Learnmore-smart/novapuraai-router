@@ -463,7 +463,6 @@ func GetAffCode(c *gin.Context) {
 
 func GetSelf(c *gin.Context) {
 	id := c.GetInt("id")
-	userRole := c.GetInt("role")
 	user, err := model.GetUserById(id, false)
 	if err != nil {
 		common.ApiError(c, err)
@@ -472,46 +471,46 @@ func GetSelf(c *gin.Context) {
 	// Hide admin remarks: set to empty to trigger omitempty tag, ensuring the remark field is not included in JSON returned to regular users
 	user.Remark = ""
 
-	// 计算用户权限信息
-	permissions := calculateUserPermissions(userRole)
-	permissions["admin_permissions"] = authz.Capabilities(id, userRole)
+	// Permissions follow the live database role, not a stale login session.
+	permissions := calculateUserPermissions(user.Role)
+	permissions["admin_permissions"] = authz.Capabilities(id, user.Role)
 
 	// 获取用户设置并提取sidebar_modules
 	userSetting := user.GetSetting()
 
 	// 构建响应数据，包含用户信息和权限
 	responseData := map[string]interface{}{
-		"id":                user.Id,
-		"username":          user.Username,
-		"display_name":      user.DisplayName,
-		"role":              user.Role,
-		"status":            user.Status,
-		"email":             user.Email,
-		"github_id":         user.GitHubId,
-		"discord_id":        user.DiscordId,
-		"oidc_id":           user.OidcId,
-		"wechat_id":         user.WeChatId,
-		"telegram_id":       user.TelegramId,
-		"group":             user.Group,
-		"quota":             user.Quota,
-		"promo_quota":       user.PromoQuota,
-		"cash_quota":        user.CashQuota(), // derived: total - promo
-		"used_quota":        user.UsedQuota,
-		"request_count":     user.RequestCount,
-		"aff_code":          user.AffCode,
-		"aff_count":         user.AffCount,
-		"aff_quota":         user.AffQuota,
-		"aff_history_quota": user.AffHistoryQuota,
-		"commission_approved":        user.CommissionApproved,
-		"pending_commission_cents":   user.PendingCommissionCents,
-		"commission_balance_cents":   user.CommissionBalanceCents,
-		"commission_total_cents":     user.CommissionTotalCents,
-		"inviter_id":        user.InviterId,
-		"linux_do_id":       user.LinuxDOId,
-		"setting":           user.Setting,
-		"stripe_customer":   user.StripeCustomer,
-		"sidebar_modules":   userSetting.SidebarModules, // 正确提取sidebar_modules字段
-		"permissions":       permissions,                // 新增权限字段
+		"id":                       user.Id,
+		"username":                 user.Username,
+		"display_name":             user.DisplayName,
+		"role":                     user.Role,
+		"status":                   user.Status,
+		"email":                    user.Email,
+		"github_id":                user.GitHubId,
+		"discord_id":               user.DiscordId,
+		"oidc_id":                  user.OidcId,
+		"wechat_id":                user.WeChatId,
+		"telegram_id":              user.TelegramId,
+		"group":                    user.Group,
+		"quota":                    user.Quota,
+		"promo_quota":              user.PromoQuota,
+		"cash_quota":               user.CashQuota(), // derived: total - promo
+		"used_quota":               user.UsedQuota,
+		"request_count":            user.RequestCount,
+		"aff_code":                 user.AffCode,
+		"aff_count":                user.AffCount,
+		"aff_quota":                user.AffQuota,
+		"aff_history_quota":        user.AffHistoryQuota,
+		"commission_approved":      user.CommissionApproved,
+		"pending_commission_cents": user.PendingCommissionCents,
+		"commission_balance_cents": user.CommissionBalanceCents,
+		"commission_total_cents":   user.CommissionTotalCents,
+		"inviter_id":               user.InviterId,
+		"linux_do_id":              user.LinuxDOId,
+		"setting":                  user.Setting,
+		"stripe_customer":          user.StripeCustomer,
+		"sidebar_modules":          userSetting.SidebarModules, // 正确提取sidebar_modules字段
+		"permissions":              permissions,                // 新增权限字段
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -1031,7 +1030,7 @@ func updateAdminPermissionsForUserInTx(c *gin.Context, tx *gorm.DB, userID int, 
 	if c.GetInt("role") != common.RoleRootUser {
 		return false, fmt.Errorf("only root can update admin permissions")
 	}
-	if userRole < common.RoleAdminUser {
+	if userRole < common.RoleAdminUser || userRole >= common.RoleRootUser {
 		return true, authz.ClearUserAuthorizationInTx(tx, userID)
 	}
 	return true, authz.SetUserPermissionsInTx(tx, userID, permissions)
@@ -1179,7 +1178,9 @@ func ManageUser(c *gin.Context) {
 	}
 
 	authzTouched := false
-	if req.Action == "demote" {
+	roleChanged := req.Action == "promote" || req.Action == "promote_root" || req.Action == "demote"
+	if roleChanged {
+		user.ApplyDefaultSidebarModules()
 		if err := model.DB.Transaction(func(tx *gorm.DB) error {
 			if err := user.UpdateWithTx(tx, false); err != nil {
 				return err
