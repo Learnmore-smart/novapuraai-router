@@ -60,11 +60,12 @@ export function filterByQuotaType(
   quotaType: string
 ): PricingModel[] {
   if (quotaType === QUOTA_TYPES.ALL) return models
-  const targetType =
-    quotaType === QUOTA_TYPES.TOKEN
-      ? QUOTA_TYPE_VALUES.TOKEN
-      : QUOTA_TYPE_VALUES.REQUEST
-  return models.filter((m) => m.quota_type === targetType)
+  if (quotaType === QUOTA_TYPES.TOKEN) {
+    return models.filter(
+      (m) => m.quota_type === QUOTA_TYPE_VALUES.TOKEN && !m.price_unset
+    )
+  }
+  return models.filter((m) => m.quota_type === QUOTA_TYPE_VALUES.REQUEST)
 }
 
 /**
@@ -103,10 +104,16 @@ export function sortModels(
       )
       break
     case SORT_OPTIONS.PRICE_LOW:
-      sorted.sort((a, b) => getModelPrice(a) - getModelPrice(b))
+      sorted.sort((a, b) => {
+        if (a.price_unset !== b.price_unset) return a.price_unset ? 1 : -1
+        return getModelPrice(a) - getModelPrice(b)
+      })
       break
     case SORT_OPTIONS.PRICE_HIGH:
-      sorted.sort((a, b) => getModelPrice(b) - getModelPrice(a))
+      sorted.sort((a, b) => {
+        if (a.price_unset !== b.price_unset) return a.price_unset ? 1 : -1
+        return getModelPrice(b) - getModelPrice(a)
+      })
       break
   }
 

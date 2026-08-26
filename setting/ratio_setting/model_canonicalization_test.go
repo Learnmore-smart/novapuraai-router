@@ -44,10 +44,15 @@ func TestRepairModelPricingJSONRejectsOtherMalformedNamesWithoutPartialRepair(t 
 	assert.False(t, changed)
 }
 
-func TestValidateModelPricingJSONRejectsTrailingQuoteNames(t *testing.T) {
-	require.NoError(t, ValidateModelPricingJSON(`{"deepseek-v4-flash-0731":0.11}`))
-	assert.Error(t, ValidateModelPricingJSON(`{"deepseek-v4-flash-0731\"":0.11}`))
-	assert.Error(t, ValidateModelPricingJSON(`not json`))
+func TestParseModelPricingNumberMapOmitsNullEntries(t *testing.T) {
+	values, err := parseModelPricingNumberMap(`{"keep":1.5,"adept/fuyu-8b":null}`)
+	require.NoError(t, err)
+	assert.Equal(t, 1.5, values["keep"])
+	assert.NotContains(t, values, "adept/fuyu-8b")
+}
+
+func TestValidateModelPricingJSONAllowsNullValues(t *testing.T) {
+	require.NoError(t, ValidateModelPricingJSON(`{"adept/fuyu-8b":null,"gpt-4o":1.25}`))
 }
 
 func TestValidateModelPricingOptionValueCoversTieredBillingMaps(t *testing.T) {

@@ -50,7 +50,7 @@ import {
   isDynamicPricingModel,
 } from '../lib/dynamic-price'
 import { parseTags } from '../lib/filters'
-import { getAvailableGroups, isTokenBasedModel } from '../lib/model-helpers'
+import { getAvailableGroups, isPriceUnset, isTokenBasedModel } from '../lib/model-helpers'
 import { formatFixedPrice, formatGroupPrice } from '../lib/price'
 import type {
   ModelCapability,
@@ -583,6 +583,14 @@ function PriceSection(props: {
   const tokenUnitLabel = props.tokenUnit === 'K' ? '1K' : '1M'
   const baseGroupKey = '_base'
   const baseGroupRatioMap = { [baseGroupKey]: 1 }
+  if (isPriceUnset(props.model)) {
+    return (
+      <section>
+        <SectionTitle>{t('Base Price')}</SectionTitle>
+        <p className='text-muted-foreground text-sm'>{t('Unset price')}</p>
+      </section>
+    )
+  }
   const dynamicSummary = getDynamicPricingSummary(props.model, {
     tokenUnit: props.tokenUnit,
     showRechargePrice: props.showRechargePrice,
@@ -908,6 +916,15 @@ function GroupPricingSection(props: {
             'This model is not available in any group, or no group pricing information is configured.'
           )}
         </p>
+      </section>
+    )
+  }
+
+  if (isPriceUnset(props.model)) {
+    return (
+      <section>
+        <SectionTitle>{t('Pricing by Group')}</SectionTitle>
+        <p className='text-muted-foreground text-sm'>{t('Unset price')}</p>
       </section>
     )
   }

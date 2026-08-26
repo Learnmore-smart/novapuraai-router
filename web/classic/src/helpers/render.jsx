@@ -431,6 +431,23 @@ export function getLobeHubIcon(iconName, size = 14) {
     return <Avatar size='extra-extra-small'>?</Avatar>;
   }
 
+  if (
+    iconName.startsWith('/') ||
+    iconName.startsWith('http://') ||
+    iconName.startsWith('https://') ||
+    iconName.startsWith('data:')
+  ) {
+    return (
+      <img
+        src={iconName}
+        alt=''
+        width={size}
+        height={size}
+        style={{ width: size, height: size, objectFit: 'contain' }}
+      />
+    );
+  }
+
   // 解析组件路径与点号链式属性
   const segments = String(iconName).split('.');
   const baseKey = segments[0];

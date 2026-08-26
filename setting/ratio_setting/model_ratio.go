@@ -410,20 +410,32 @@ func handleThinkingBudgetModel(name, prefix, wildcard string) string {
 	return name
 }
 
+func lookupConfiguredModelRatio(name string) (float64, bool) {
+	if ratio, ok := modelRatioMap.Get(name); ok {
+		return ratio, true
+	}
+	if strings.HasSuffix(name, CompactModelSuffix) {
+		if wildcardRatio, ok := modelRatioMap.Get(CompactWildcardModelKey); ok {
+			return wildcardRatio, true
+		}
+	}
+	return 0, false
+}
+
+// GetConfiguredModelRatio returns the stored token ratio when one exists.
+// Unlike GetModelRatio it never invents the 37.5 GPT-4.5 fallback, so public
+// pricing and "is this model priced?" checks can tell unset models apart.
+func GetConfiguredModelRatio(name string) (float64, bool) {
+	return lookupConfiguredModelRatio(FormatMatchingModelName(name))
+}
+
 func GetModelRatio(name string) (float64, bool, string) {
 	name = FormatMatchingModelName(name)
 
-	ratio, ok := modelRatioMap.Get(name)
-	if !ok {
-		if strings.HasSuffix(name, CompactModelSuffix) {
-			if wildcardRatio, ok := modelRatioMap.Get(CompactWildcardModelKey); ok {
-				return wildcardRatio, true, name
-			}
-			//return 0, true, name
-		}
-		return 37.5, operation_setting.SelfUseModeEnabled, name
+	if ratio, ok := lookupConfiguredModelRatio(name); ok {
+		return ratio, true, name
 	}
-	return ratio, true, name
+	return 37.5, operation_setting.SelfUseModeEnabled, name
 }
 
 func DefaultModelRatio2JSONString() string {

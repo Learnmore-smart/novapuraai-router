@@ -3517,6 +3517,7 @@
     "ONE ENDPOINT · LIVE ROUTING": "一个端点 · 实时路由",
     "One endpoint, an observable path": "一个端点，全程可观测",
     "One endpoint, visible usage, predictable access.": "一个端点、用量可见、访问可预期。",
+    "One entry per model with USD prices per 1M tokens: input, output, cache_read, cache_write, image_input, audio_input, audio_output, discount (0–1), or per_request for fixed pricing. null clears a custom price so the model will not fall back to a default. This full document replaces stored prices; omitted models are cleared. Expression-billed models that are not listed are kept.": "每个模型一条记录，价格为每 1M tokens 的美元价：input、output、cache_read、cache_write、image_input、audio_input、audio_output、discount（0–1），或按次计费的 per_request。null 会清除自定义价格，模型不会再回落到默认高价。这份完整文档会替换已保存的价格；未列出的模型会被清除。未列出的表达式计费模型会保留。",
     "One entry per model with USD prices per 1M tokens: input, output, cache_read, cache_write, image_input, audio_input, audio_output, discount (0–1), or per_request for fixed pricing. Set a model to null to remove it; models not listed stay unchanged.": "每个模型一条记录，使用每 100 万 token 的美元价格：input、output、cache_read、cache_write、image_input、audio_input、audio_output、discount（0–1），或使用 per_request 表示按次固定价格。将模型设为 null 可删除该模型；未列出的模型保持不变。",
     "One gateway for routing, prepaid spend, and request-level visibility — so product teams ship models instead of plumbing.": "一个网关搞定路由、预付费支出与请求级可见性——让产品团队交付模型，而不是堆管道。",
     "One IP or CIDR range per line": "每行一个 IP 或 CIDR 范围",

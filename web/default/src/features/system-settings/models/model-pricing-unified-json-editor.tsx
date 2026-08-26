@@ -47,7 +47,9 @@ export const ModelPricingUnifiedJsonEditor = forwardRef<
     ref,
     () => ({
       commitDraft: () => {
-        const result = applyPricingJson(props.maps, draft)
+        const result = applyPricingJson(props.maps, draft, {
+          replace: !props.candidateModelsOnly,
+        })
         if (!result.ok) {
           setErrors(result.errors)
           return false
@@ -67,7 +69,9 @@ export const ModelPricingUnifiedJsonEditor = forwardRef<
         <h3 className='text-sm font-medium'>{t('Unified JSON')}</h3>
         <p className='text-muted-foreground text-sm leading-6'>
           {t(
-            'One entry per model with USD prices per 1M tokens: input, output, cache_read, cache_write, image_input, audio_input, audio_output, discount (0–1), or per_request for fixed pricing. Set a model to null to remove it; models not listed stay unchanged.'
+            props.candidateModelsOnly
+              ? 'One entry per model with USD prices per 1M tokens: input, output, cache_read, cache_write, image_input, audio_input, audio_output, discount (0–1), or per_request for fixed pricing. Set a model to null to remove it; models not listed stay unchanged.'
+              : 'One entry per model with USD prices per 1M tokens: input, output, cache_read, cache_write, image_input, audio_input, audio_output, discount (0–1), or per_request for fixed pricing. null clears a custom price so the model will not fall back to a default. This full document replaces stored prices; omitted models are cleared. Expression-billed models that are not listed are kept.'
           )}
         </p>
       </div>

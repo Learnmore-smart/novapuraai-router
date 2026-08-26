@@ -7,6 +7,9 @@ func applyBillingCurrencyPrices(pricing []model.Pricing, currency string, fxRate
 		item := &pricing[i]
 		item.BillingCurrency = currency
 		item.BillingFXRate = fxRate
+		if item.PriceUnset {
+			continue
+		}
 		if item.QuotaType == 1 {
 			value := item.ModelPrice * fxRate
 			item.BillingPerRequest = &value

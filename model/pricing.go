@@ -42,6 +42,10 @@ type Pricing struct {
 	BillingInputPerMillion  *float64                `json:"billing_input_per_million,omitempty"`
 	BillingOutputPerMillion *float64                `json:"billing_output_per_million,omitempty"`
 	BillingPerRequest       *float64                `json:"billing_per_request,omitempty"`
+	// PriceUnset is true when the model is enabled but has neither a per-request
+	// price nor a configured token ratio. The public market must not invent the
+	// 37.5 GPT-4.5 fallback in that case.
+	PriceUnset bool `json:"price_unset,omitempty"`
 }
 
 type PricingVendor struct {
@@ -430,10 +434,14 @@ func updatePricing() {
 		if findPrice {
 			pricing.ModelPrice = modelPrice
 			pricing.QuotaType = 1
-		} else {
-			modelRatio, _, _ := ratio_setting.GetModelRatio(model)
+		} else if modelRatio, found := ratio_setting.GetConfiguredModelRatio(model); found {
 			pricing.ModelRatio = modelRatio
 			pricing.CompletionRatio = ratio_setting.GetCompletionRatio(model)
+			pricing.QuotaType = 0
+		} else if billing_setting.GetBillingMode(model) == "tiered_expr" {
+			pricing.QuotaType = 0
+		} else {
+			pricing.PriceUnset = true
 			pricing.QuotaType = 0
 		}
 		if cacheRatio, ok := ratio_setting.GetCacheRatio(model); ok {
@@ -453,8 +461,10 @@ func updatePricing() {
 			audioCompletionRatio := ratio_setting.GetAudioCompletionRatio(model)
 			pricing.AudioCompletionRatio = &audioCompletionRatio
 		}
-		if discount, ok := ratio_setting.GetModelDiscount(model); ok {
-			pricing.Discount = &discount
+		if !pricing.PriceUnset {
+			if discount, ok := ratio_setting.GetModelDiscount(model); ok {
+				pricing.Discount = &discount
+			}
 		}
 		if billingMode := billing_setting.GetBillingMode(model); billingMode == "tiered_expr" {
 			if expr, ok := billing_setting.GetBillingExpr(model); ok && strings.TrimSpace(expr) != "" {

@@ -20,9 +20,10 @@ import { formatPricingNumber } from './pricing-format'
  *     "dall-e-3": { "per_request": 0.04 },
  *     "old-model": null
  *   }
- * `null` removes the model from every pricing map. Models not mentioned are
- * left untouched. Expression-billed models are exported/imported by other
- * tooling and are skipped here.
+ * `null` removes the model from every pricing map. By default, models not
+ * mentioned are left untouched (merge). Pass `{ replace: true }` to treat the
+ * document as the complete price list: omitted models are cleared, except
+ * expression-billed models and the reserved global discount key `"*"`.
  */
 
 export type BulkPricingMaps = {
@@ -170,12 +171,17 @@ export function getUnsetPricingModelNames(
     .sort((a, b) => a.localeCompare(b))
 }
 
+export type ApplyPricingJsonOptions = {
+  replace?: boolean
+}
+
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value)
 
 export function applyPricingJson(
   maps: BulkPricingMaps,
-  jsonText: string
+  jsonText: string,
+  options: ApplyPricingJsonOptions = {}
 ): BulkApplyResult {
   let parsed: unknown
   try {
@@ -280,17 +286,51 @@ export function applyPricingJson(
     return { ok: false, errors }
   }
 
-  const priceMap = parseMap(maps.modelPrice)
-  const ratioMap = parseMap(maps.modelRatio)
-  const cacheMap = parseMap(maps.cacheRatio)
-  const createCacheMap = parseMap(maps.createCacheRatio)
-  const completionMap = parseMap(maps.completionRatio)
-  const imageMap = parseMap(maps.imageRatio)
-  const audioMap = parseMap(maps.audioRatio)
-  const audioCompletionMap = parseMap(maps.audioCompletionRatio)
-  const discountMap = parseMap(maps.modelDiscount)
-  const billingModeMap = parseStringMap(maps.billingMode)
-  const billingExprMap = parseStringMap(maps.billingExpr)
+  const existingPriceMap = parseMap(maps.modelPrice)
+  const existingRatioMap = parseMap(maps.modelRatio)
+  const existingCacheMap = parseMap(maps.cacheRatio)
+  const existingCreateCacheMap = parseMap(maps.createCacheRatio)
+  const existingCompletionMap = parseMap(maps.completionRatio)
+  const existingImageMap = parseMap(maps.imageRatio)
+  const existingAudioMap = parseMap(maps.audioRatio)
+  const existingAudioCompletionMap = parseMap(maps.audioCompletionRatio)
+  const existingDiscountMap = parseMap(maps.modelDiscount)
+  const existingBillingModeMap = parseStringMap(maps.billingMode)
+  const existingBillingExprMap = parseStringMap(maps.billingExpr)
+
+  const documentNames = new Set(
+    entries.map(([rawName]) => rawName.trim()).filter((name) => name !== '')
+  )
+
+  const emptyIfReplace = <T extends NumberMap | Record<string, string>>(
+    current: T
+  ): T => (options.replace ? ({} as T) : { ...current })
+
+  const priceMap = emptyIfReplace(existingPriceMap)
+  const ratioMap = emptyIfReplace(existingRatioMap)
+  const cacheMap = emptyIfReplace(existingCacheMap)
+  const createCacheMap = emptyIfReplace(existingCreateCacheMap)
+  const completionMap = emptyIfReplace(existingCompletionMap)
+  const imageMap = emptyIfReplace(existingImageMap)
+  const audioMap = emptyIfReplace(existingAudioMap)
+  const audioCompletionMap = emptyIfReplace(existingAudioCompletionMap)
+  const discountMap = emptyIfReplace(existingDiscountMap)
+  const billingModeMap = emptyIfReplace(existingBillingModeMap)
+  const billingExprMap = emptyIfReplace(existingBillingExprMap)
+
+  if (options.replace) {
+    const globalDiscount = existingDiscountMap[GLOBAL_MODEL_DISCOUNT_KEY]
+    if (globalDiscount !== undefined) {
+      discountMap[GLOBAL_MODEL_DISCOUNT_KEY] = globalDiscount
+    }
+    for (const [name, mode] of Object.entries(existingBillingModeMap)) {
+      if (documentNames.has(name) || mode !== 'tiered_expr') continue
+      billingModeMap[name] = mode
+      if (existingBillingExprMap[name] !== undefined) {
+        billingExprMap[name] = existingBillingExprMap[name]
+      }
+    }
+  }
 
   let applied = 0
   let removed = 0
@@ -301,17 +341,17 @@ export function applyPricingJson(
 
     if (rawEntry === null) {
       const hadConfig =
-        Object.hasOwn(priceMap, name) ||
-        Object.hasOwn(ratioMap, name) ||
-        Object.hasOwn(cacheMap, name) ||
-        Object.hasOwn(createCacheMap, name) ||
-        Object.hasOwn(completionMap, name) ||
-        Object.hasOwn(imageMap, name) ||
-        Object.hasOwn(audioMap, name) ||
-        Object.hasOwn(audioCompletionMap, name) ||
-        Object.hasOwn(discountMap, name) ||
-        Object.hasOwn(billingModeMap, name) ||
-        Object.hasOwn(billingExprMap, name)
+        Object.hasOwn(existingPriceMap, name) ||
+        Object.hasOwn(existingRatioMap, name) ||
+        Object.hasOwn(existingCacheMap, name) ||
+        Object.hasOwn(existingCreateCacheMap, name) ||
+        Object.hasOwn(existingCompletionMap, name) ||
+        Object.hasOwn(existingImageMap, name) ||
+        Object.hasOwn(existingAudioMap, name) ||
+        Object.hasOwn(existingAudioCompletionMap, name) ||
+        Object.hasOwn(existingDiscountMap, name) ||
+        Object.hasOwn(existingBillingModeMap, name) ||
+        Object.hasOwn(existingBillingExprMap, name)
       delete priceMap[name]
       delete ratioMap[name]
       delete cacheMap[name]
@@ -383,6 +423,28 @@ export function applyPricingJson(
       discountMap[name] = entry.discount
     }
     applied += 1
+  }
+
+  if (options.replace) {
+    const previousNames = new Set([
+      ...Object.keys(existingPriceMap),
+      ...Object.keys(existingRatioMap),
+      ...Object.keys(existingCacheMap),
+      ...Object.keys(existingCreateCacheMap),
+      ...Object.keys(existingCompletionMap),
+      ...Object.keys(existingImageMap),
+      ...Object.keys(existingAudioMap),
+      ...Object.keys(existingAudioCompletionMap),
+      ...Object.keys(existingDiscountMap),
+      ...Object.keys(existingBillingModeMap),
+      ...Object.keys(existingBillingExprMap),
+    ])
+    previousNames.delete(GLOBAL_MODEL_DISCOUNT_KEY)
+    for (const name of previousNames) {
+      if (documentNames.has(name)) continue
+      if (existingBillingModeMap[name] === 'tiered_expr') continue
+      removed += 1
+    }
   }
 
   const stringify = (value: NumberMap | Record<string, string>) =>

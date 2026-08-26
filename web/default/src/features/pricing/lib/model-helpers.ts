@@ -87,5 +87,12 @@ export function replaceModelInPath(path: string, modelName: string): string {
  * Check if model is token-based pricing
  */
 export function isTokenBasedModel(model: PricingModel): boolean {
-  return model.quota_type === QUOTA_TYPE_VALUES.TOKEN
+  return model.quota_type === QUOTA_TYPE_VALUES.TOKEN && !isPriceUnset(model)
+}
+
+/**
+ * Enabled models with no configured token ratio or per-request price.
+ */
+export function isPriceUnset(model: PricingModel): boolean {
+  return model.price_unset === true
 }

@@ -645,6 +645,14 @@ export const calculateModelPrice = ({
     }
   }
 
+  if (record.price_unset) {
+    return {
+      isUnset: true,
+      usedGroup,
+      usedGroupRatio,
+    };
+  }
+
   // 2. 动态计费（tiered_expr）
   if (record.billing_mode === 'tiered_expr' && record.billing_expr) {
     return {
@@ -776,6 +784,17 @@ export const getModelPriceItems = (
   t,
   quotaDisplayType = 'USD',
 ) => {
+  if (priceData.isUnset) {
+    return [
+      {
+        key: 'unset',
+        label: t('未设置价格'),
+        value: '',
+        suffix: '',
+      },
+    ];
+  }
+
   if (priceData.isDynamicPricing) {
     return [
       {

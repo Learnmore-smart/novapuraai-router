@@ -285,6 +285,54 @@ describe('bulk pricing JSON', () => {
     assert.equal(ratio['new-model'], 0.5)
   })
 
+  test('replace mode drops omitted models and keeps global discount', () => {
+    const maps: BulkPricingMaps = {
+      ...emptyMaps,
+      modelRatio: '{"stale":37.5,"kept":1.5}',
+      completionRatio: '{"stale":1,"kept":3}',
+      modelDiscount: '{"*":0.25,"stale":0.8}',
+    }
+    const result = applyPricingJson(
+      maps,
+      JSON.stringify({
+        kept: { input: 3, output: 9 },
+        'adept/fuyu-8b': null,
+      }),
+      { replace: true }
+    )
+    assert.ok(result.ok)
+    const ratio = JSON.parse(result.updates.ModelRatio)
+    const completion = JSON.parse(result.updates.CompletionRatio)
+    const discount = JSON.parse(result.updates.ModelDiscount)
+    assert.equal(ratio.kept, 1.5)
+    assert.equal(completion.kept, 3)
+    assert.equal(ratio.stale, undefined)
+    assert.equal(ratio['adept/fuyu-8b'], undefined)
+    assert.equal(discount['*'], 0.25)
+    assert.equal(discount.stale, undefined)
+    assert.ok(result.removed >= 1)
+  })
+
+  test('replace mode preserves unlisted expression-billed models', () => {
+    const maps: BulkPricingMaps = {
+      ...emptyMaps,
+      billingMode: '{"expr-model":"tiered_expr"}',
+      billingExpr: '{"expr-model":"tier(\\"base\\", p * 1)"}',
+      modelRatio: '{"token-model":1.5}',
+    }
+    const result = applyPricingJson(
+      maps,
+      '{"token-model": {"input": 3, "output": 9}}',
+      { replace: true }
+    )
+    assert.ok(result.ok)
+    assert.equal(
+      JSON.parse(result.updates['billing_setting.billing_mode'])['expr-model'],
+      'tiered_expr'
+    )
+    assert.equal(JSON.parse(result.updates.ModelRatio)['token-model'], 1.5)
+  })
+
   test('expression-billed models reject discount-only entries', () => {
     const maps: BulkPricingMaps = {
       ...emptyMaps,

@@ -195,7 +195,7 @@ export function formatPrice(
   selectedGroup?: string,
   variant: PriceVariant = 'discounted'
 ): string {
-  if (model.quota_type === QUOTA_TYPE_VALUES.REQUEST) {
+  if (model.price_unset || model.quota_type === QUOTA_TYPE_VALUES.REQUEST) {
     return '-'
   }
 

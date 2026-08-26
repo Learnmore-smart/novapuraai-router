@@ -14,13 +14,13 @@ import {
 } from '../lib/dynamic-price'
 import { parseTags } from '../lib/filters'
 import { getModelProfilePath } from '../lib/model-profile'
-import { isTokenBasedModel } from '../lib/model-helpers'
 import {
   formatPrice,
   formatRequestPrice,
   getModelDiscount,
   hasModelDiscount,
 } from '../lib/price'
+import { isPriceUnset, isTokenBasedModel } from '../lib/model-helpers'
 import type { PricingModel, TokenUnit } from '../types'
 import { ModelBillingModeBadge } from './model-billing-mode-badge'
 import { ModelPerfBadge, type ModelPerfBadgeData } from './model-perf-badge'
@@ -44,6 +44,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
   const usdExchangeRate = props.usdExchangeRate ?? 1
   const showRechargePrice = props.showRechargePrice ?? false
   const isTokenBased = isTokenBasedModel(props.model)
+  const priceUnset = isPriceUnset(props.model)
   const tokenUnitLabel = tokenUnit === 'K' ? '1K' : '1M'
   const tags = parseTags(props.model.tags)
   const groups = props.model.enable_groups || []
@@ -81,7 +82,11 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
   }
 
   let priceSummary: ReactNode
-  if (dynamicSummary) {
+  if (priceUnset) {
+    priceSummary = (
+      <span className='text-muted-foreground text-sm'>{t('Unset price')}</span>
+    )
+  } else if (dynamicSummary) {
     if (dynamicSummary.isSpecialExpression) {
       priceSummary = (
         <span className='min-w-0'>

@@ -180,16 +180,39 @@ func normalizeModelPricingOptionValue(key, value string) (string, error) {
 	if err != nil {
 		return value, err
 	}
-	return normalized, nil
+	if _, ok := numericModelPricingOptionKeys[key]; !ok {
+		return normalized, nil
+	}
+	parsed, err := parseModelPricingNumberMap(normalized)
+	if err != nil {
+		return value, err
+	}
+	encoded, err := common.Marshal(parsed)
+	if err != nil {
+		return value, err
+	}
+	return string(encoded), nil
 }
 
 func parseModelPricingNumberMap(value string) (map[string]float64, error) {
-	values := make(map[string]float64)
-	if err := common.Unmarshal([]byte(value), &values); err != nil {
+	var raw map[string]json.RawMessage
+	if err := common.Unmarshal([]byte(value), &raw); err != nil {
 		return nil, err
 	}
-	if values == nil {
+	if raw == nil {
 		return nil, fmt.Errorf("model pricing JSON must be an object")
+	}
+	values := make(map[string]float64, len(raw))
+	for modelName, message := range raw {
+		trimmed := strings.TrimSpace(string(message))
+		if trimmed == "" || trimmed == "null" {
+			continue
+		}
+		var number float64
+		if err := common.Unmarshal(message, &number); err != nil {
+			return nil, fmt.Errorf("%s: must be a finite number or null", modelName)
+		}
+		values[modelName] = number
 	}
 	return values, nil
 }

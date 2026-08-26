@@ -48,6 +48,12 @@ export type PricingModel = {
   billing_output_per_million?: number
   billing_per_request?: number
   /**
+   * True when the model is enabled but has no configured token ratio or
+   * per-request price. The market must show "Unset price" instead of a
+   * fallback default.
+   */
+  price_unset?: boolean
+  /**
    * Optional model metadata fields reserved for backend-provided catalog data.
    * Keep them data-driven; do not synthesize display values on the client.
    */

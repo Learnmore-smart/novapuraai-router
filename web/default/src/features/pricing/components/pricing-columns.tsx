@@ -18,7 +18,7 @@ import {
 } from '../lib/dynamic-price'
 import { parseTags } from '../lib/filters'
 import { getModelProfilePath } from '../lib/model-profile'
-import { isTokenBasedModel } from '../lib/model-helpers'
+import { isPriceUnset, isTokenBasedModel } from '../lib/model-helpers'
 import {
   formatPrice,
   formatRequestPrice,
@@ -109,6 +109,13 @@ export function usePricingColumns(
       ),
       cell: ({ row }) => {
         const model = row.original
+        if (isPriceUnset(model)) {
+          return (
+            <span className='text-muted-foreground text-xs'>
+              {t('Unset price')}
+            </span>
+          )
+        }
         const dynamicSummary = getDynamicPricingSummary(model, {
           tokenUnit,
           showRechargePrice,
@@ -256,6 +263,9 @@ export function usePricingColumns(
       header: t('Cached'),
       cell: ({ row }) => {
         const model = row.original
+        if (isPriceUnset(model)) {
+          return <span className='text-muted-foreground/30 text-xs'>—</span>
+        }
         const dynamicSummary = getDynamicPricingSummary(model, {
           tokenUnit,
           showRechargePrice,

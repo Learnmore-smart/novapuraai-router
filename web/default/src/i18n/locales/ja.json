@@ -3517,6 +3517,7 @@
     "ONE ENDPOINT · LIVE ROUTING": "1 つのエンドポイント · ライブルーティング",
     "One endpoint, an observable path": "1つのエンドポイント、見える経路",
     "One endpoint, visible usage, predictable access.": "1 つのエンドポイント、見える利用状況、予測可能なアクセス。",
+    "One entry per model with USD prices per 1M tokens: input, output, cache_read, cache_write, image_input, audio_input, audio_output, discount (0–1), or per_request for fixed pricing. null clears a custom price so the model will not fall back to a default. This full document replaces stored prices; omitted models are cleared. Expression-billed models that are not listed are kept.": "モデルごとに 1 件。1M トークンあたりの USD 価格（input、output、cache_read、cache_write、image_input、audio_input、audio_output、discount（0–1））、または従量課金の per_request。null はカスタム価格を削除し、デフォルト高額には戻りません。この完全なドキュメントは保存済み価格を置き換え、未記載のモデルは削除されます。未記載の式課金モデルは保持されます。",
     "One entry per model with USD prices per 1M tokens: input, output, cache_read, cache_write, image_input, audio_input, audio_output, discount (0–1), or per_request for fixed pricing. Set a model to null to remove it; models not listed stay unchanged.": "モデルごとに1MトークンあたりのUSD価格のエントリを記述します：input, output, cache_read, cache_write, image_input, audio_input, audio_output, discount (0–1)、または固定価格の場合は per_request。モデルを null に設定すると削除されます。記載のないモデルは変更されません。",
     "One gateway for routing, prepaid spend, and request-level visibility — so product teams ship models instead of plumbing.": "ルーティング・プリペイド支出・リクエスト単位の可視化を一つのゲートウェイで。製品チームは配管ではなくモデルを出荷できます。",
     "One IP or CIDR range per line": "1行に1つのIPまたはCIDR範囲",
