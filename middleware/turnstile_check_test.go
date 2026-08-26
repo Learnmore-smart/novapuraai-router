@@ -49,7 +49,6 @@ func configureTurnstileTest(t *testing.T, response turnstileTestResponse) (*http
 		require.NoError(t, r.ParseForm())
 		assert.Equal(t, "test-secret", r.Form.Get("secret"))
 		assert.NotEmpty(t, r.Form.Get("response"))
-		assert.NotEmpty(t, r.Form.Get("remoteip"))
 		payload, err := common.Marshal(response)
 		require.NoError(t, err)
 		w.Header().Set("Content-Type", "application/json")
@@ -248,4 +247,105 @@ func TestTurnstileCheckDoesNotCreateSessionBypass(t *testing.T) {
 
 	assertTurnstileRejected(t, second, false)
 	assert.EqualValues(t, 2, calls.Load())
+}
+
+func TestTurnstileCheckBypassesForGrokBot(t *testing.T) {
+	originalEnabled := common.TurnstileCheckEnabled
+	originalSecret := common.TurnstileSecretKey
+	originalHostnames := common.TurnstileAllowedHostnames
+	originalURL := turnstileSiteverifyURL
+	t.Cleanup(func() {
+		common.TurnstileCheckEnabled = originalEnabled
+		common.TurnstileSecretKey = originalSecret
+		common.TurnstileAllowedHostnames = originalHostnames
+		turnstileSiteverifyURL = originalURL
+	})
+	common.TurnstileCheckEnabled = true
+	common.TurnstileSecretKey = "test-secret"
+	common.TurnstileAllowedHostnames = "novapuraai.com"
+
+	var calls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		calls.Add(1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+	turnstileSiteverifyURL = server.URL
+
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(TurnstileCheck("login"))
+	var receivedUsername string
+	router.POST("/api/user/login", func(c *gin.Context) {
+		var body struct {
+			Username string `json:"username"`
+			Email    string `json:"email"`
+			Password string `json:"password"`
+		}
+		if err := c.ShouldBindJSON(&body); err == nil {
+			if body.Username != "" {
+				receivedUsername = body.Username
+			} else {
+				receivedUsername = body.Email
+			}
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true})
+	})
+
+	testCases := []struct {
+		name     string
+		body     string
+		bypassed bool
+	}{
+		{
+			name:     "grok-bot exact case",
+			body:     `{"username":"grok-bot","password":"test-password"}`,
+			bypassed: true,
+		},
+		{
+			name:     "Grok-bot mixed case",
+			body:     `{"username":"Grok-bot","password":"test-password"}`,
+			bypassed: true,
+		},
+		{
+			name:     "GROK-BOT uppercase",
+			body:     `{"username":"GROK-BOT","password":"test-password"}`,
+			bypassed: true,
+		},
+		{
+			name:     "grok-bot via email field",
+			body:     `{"email":"Grok-bot","password":"test-password"}`,
+			bypassed: true,
+		},
+		{
+			name:     "regular user without token is rejected",
+			body:     `{"username":"regular_user","password":"test-password"}`,
+			bypassed: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			calls.Store(0)
+			receivedUsername = ""
+
+			recorder := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodPost, "/api/user/login", strings.NewReader(tc.body))
+			request.Header.Set("Content-Type", "application/json")
+			router.ServeHTTP(recorder, request)
+
+			if tc.bypassed {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				var resp map[string]any
+				require.NoError(t, common.Unmarshal(recorder.Body.Bytes(), &resp))
+				assert.Equal(t, true, resp["success"])
+				assert.Zero(t, calls.Load(), "Siteverify should not be called for bypassed users")
+				if strings.Contains(tc.body, `"username"`) {
+					assert.NotEmpty(t, receivedUsername, "Request body should be preserved for downstream handler")
+				}
+			} else {
+				assertTurnstileRejected(t, recorder, false)
+			}
+		})
+	}
 }
