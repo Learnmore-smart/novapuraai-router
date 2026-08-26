@@ -87,8 +87,22 @@ func (user *User) ToBaseUser() *UserBase {
 		Username: user.Username,
 		Setting:  user.Setting,
 		Email:    user.Email,
+		Role:     user.Role,
 	}
 	return cache
+}
+
+// ApplyDefaultSidebarModules writes the role-appropriate default sidebar
+// configuration onto the in-memory user. Callers must persist the user
+// afterwards. Root gets System Settings; admin does not.
+func (user *User) ApplyDefaultSidebarModules() {
+	config := generateDefaultSidebarConfigForRole(user.Role)
+	if config == "" {
+		return
+	}
+	setting := user.GetSetting()
+	setting.SidebarModules = config
+	user.SetSetting(setting)
 }
 
 func (user *User) GetAccessToken() string {
@@ -615,13 +629,10 @@ func (user *User) finishInsert(inviterId int) {
 	// 需要重新获取用户以确保有正确的ID和Role
 	var createdUser User
 	if err := DB.Where("username = ?", user.Username).First(&createdUser).Error; err == nil {
-		// 生成基于角色的默认边栏配置
-		defaultSidebarConfig := generateDefaultSidebarConfigForRole(createdUser.Role)
-		if defaultSidebarConfig != "" {
-			currentSetting := createdUser.GetSetting()
-			currentSetting.SidebarModules = defaultSidebarConfig
-			createdUser.SetSetting(currentSetting)
-			createdUser.Update(false)
+		createdUser.ApplyDefaultSidebarModules()
+		if err := createdUser.Update(false); err != nil {
+			common.SysLog(fmt.Sprintf("为新用户 %s 初始化边栏配置失败: %s", createdUser.Username, err.Error()))
+		} else {
 			common.SysLog(fmt.Sprintf("为新用户 %s (角色: %d) 初始化边栏配置", createdUser.Username, createdUser.Role))
 		}
 	}

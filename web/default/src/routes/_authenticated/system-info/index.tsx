@@ -8,7 +8,7 @@ export const Route = createFileRoute('/_authenticated/system-info/')({
   beforeLoad: () => {
     const { auth } = useAuthStore.getState()
 
-    if (auth.user?.role !== ROLE.SUPER_ADMIN) {
+    if ((auth.user?.role ?? 0) < ROLE.SUPER_ADMIN) {
       throw redirect({
         to: '/403',
       })

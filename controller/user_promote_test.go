@@ -117,3 +117,85 @@ func TestManageUserPromoteRoot(t *testing.T) {
 	response5 := decodeAPIResponse(t, recorder5)
 	assert.False(t, response5.Success)
 }
+
+func TestPromoteRootEnablesSystemSettingsSidebar(t *testing.T) {
+	db := setupModelListControllerTestDB(t)
+	require.NoError(t, db.AutoMigrate(&model.User{}, &model.Log{}, &model.CasbinRule{}, &model.AuthzRole{}))
+	require.NoError(t, authz.Init(db))
+
+	rootUser := &model.User{
+		Username: "sidebar-root",
+		Role:     common.RoleRootUser,
+		Status:   common.UserStatusEnabled,
+		AffCode:  "AFF_SB_ROOT",
+	}
+	require.NoError(t, db.Create(rootUser).Error)
+
+	adminUser := &model.User{
+		Username: "sidebar-admin",
+		Role:     common.RoleAdminUser,
+		Status:   common.UserStatusEnabled,
+		AffCode:  "AFF_SB_ADMIN",
+	}
+	adminUser.ApplyDefaultSidebarModules()
+	require.NoError(t, db.Create(adminUser).Error)
+	require.False(t, sidebarSettingEnabled(t, adminUser))
+
+	ctx, recorder := newAuthenticatedContext(t, http.MethodPost, "/api/user/manage", ManageRequest{
+		Id:     adminUser.Id,
+		Action: "promote_root",
+	}, rootUser.Id)
+	ctx.Set("role", common.RoleRootUser)
+	ManageUser(ctx)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	response := decodeAPIResponse(t, recorder)
+	require.True(t, response.Success, response.Message)
+
+	updated, err := model.GetUserById(adminUser.Id, false)
+	require.NoError(t, err)
+	assert.Equal(t, common.RoleRootUser, updated.Role)
+	assert.True(t, sidebarSettingEnabled(t, updated))
+}
+
+func TestGetSelfPermissionsFollowDatabaseRole(t *testing.T) {
+	db := setupModelListControllerTestDB(t)
+	require.NoError(t, db.AutoMigrate(&model.User{}, &model.Log{}, &model.CasbinRule{}, &model.AuthzRole{}))
+	require.NoError(t, authz.Init(db))
+
+	user := &model.User{
+		Username: "self-root",
+		Role:     common.RoleRootUser,
+		Status:   common.UserStatusEnabled,
+		AffCode:  "AFF_SELF_ROOT",
+	}
+	require.NoError(t, db.Create(user).Error)
+
+	ctx, recorder := newAuthenticatedContext(t, http.MethodGet, "/api/user/self", nil, user.Id)
+	ctx.Set("role", common.RoleAdminUser)
+	GetSelf(ctx)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	var body struct {
+		Success bool `json:"success"`
+		Data    struct {
+			Role        int            `json:"role"`
+			Permissions map[string]any `json:"permissions"`
+		} `json:"data"`
+	}
+	require.NoError(t, common.Unmarshal(recorder.Body.Bytes(), &body))
+	require.True(t, body.Success)
+	assert.Equal(t, common.RoleRootUser, body.Data.Role)
+	assert.Equal(t, false, body.Data.Permissions["sidebar_settings"])
+}
+
+func sidebarSettingEnabled(t *testing.T, user *model.User) bool {
+	t.Helper()
+	var modules map[string]map[string]any
+	require.NoError(t, common.Unmarshal([]byte(user.GetSetting().SidebarModules), &modules))
+	admin := modules["admin"]
+	require.NotNil(t, admin)
+	setting, ok := admin["setting"].(bool)
+	require.True(t, ok)
+	return setting
+}

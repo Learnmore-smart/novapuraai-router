@@ -64,7 +64,12 @@ import {
   getGroups,
   getPermissionCatalog,
 } from '../api'
-import { BINDING_FIELDS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants'
+import {
+  BINDING_FIELDS,
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES,
+  USER_ROLES,
+} from '../constants'
 import {
   userFormSchema,
   type UserFormValues,
@@ -140,8 +145,10 @@ export function UsersMutateDrawer({
 
   const currentQuotaRaw = form.watch('quota_dollars') || 0
   const selectedRole = form.watch('role')
-  const canEditAdminPermissions = currentUser?.role === ROLE.SUPER_ADMIN
-  const targetIsAdmin = (selectedRole ?? currentRow?.role ?? 0) >= ROLE.ADMIN
+  const canEditAdminPermissions = (currentUser?.role ?? 0) >= ROLE.SUPER_ADMIN
+  const targetRole = selectedRole ?? currentRow?.role ?? 0
+  const targetIsAdmin = targetRole >= ROLE.ADMIN
+  const targetIsRoot = targetRole >= ROLE.SUPER_ADMIN
 
   const onSubmit = async (data: UserFormValues) => {
     if (!isUpdate) {
@@ -295,6 +302,38 @@ export function UsersMutateDrawer({
                         <FormMessage />
                       </FormItem>
                     )}
+                  />
+                )}
+
+                {isUpdate && (
+                  <FormField
+                    control={form.control}
+                    name='role'
+                    render={({ field }) => {
+                      const roleConfig =
+                        USER_ROLES[field.value as keyof typeof USER_ROLES]
+                      return (
+                        <FormItem>
+                          <FormLabel>{t('Role')}</FormLabel>
+                          <FormControl>
+                            <Input
+                              value={
+                                roleConfig
+                                  ? t(roleConfig.labelKey)
+                                  : String(field.value ?? '')
+                              }
+                              readOnly
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t(
+                              'Roles are changed with Promote, Promote to Root, or Demote in the user menu.'
+                            )}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )
+                    }}
                   />
                 )}
 
@@ -464,8 +503,20 @@ export function UsersMutateDrawer({
                 </SideDrawerSection>
               )}
 
+              {canEditAdminPermissions && targetIsRoot && (
+                <SideDrawerSection>
+                  <h3 className='text-sm font-medium'>
+                    {t('Admin Permissions')}
+                  </h3>
+                  <p className='text-muted-foreground text-xs'>
+                    {t('Root has all permissions automatically.')}
+                  </p>
+                </SideDrawerSection>
+              )}
+
               {canEditAdminPermissions &&
                 targetIsAdmin &&
+                !targetIsRoot &&
                 permissionCatalog.resources.length > 0 && (
                   <SideDrawerSection>
                     <h3 className='text-sm font-medium'>

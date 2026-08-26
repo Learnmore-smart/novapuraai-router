@@ -22,6 +22,7 @@ type UserBase struct {
 	Status   int    `json:"status"`
 	Username string `json:"username"`
 	Setting  string `json:"setting"`
+	Role     int    `json:"role"`
 }
 
 func (user *UserBase) WriteContext(c *gin.Context) {
@@ -94,6 +95,9 @@ func updateUserCache(user User) error {
 	if err := updateUserNameCache(user.Id, user.Username); err != nil {
 		return err
 	}
+	if err := updateUserRoleCache(user.Id, user.Role); err != nil {
+		return err
+	}
 	return updateUserSettingCache(user.Id, user.Setting)
 }
 
@@ -112,9 +116,11 @@ func GetUserCache(userId int) (userCache *UserBase, err error) {
 		}
 	}()
 
-	// Try getting from Redis first
+	// Try getting from Redis first. Role was added after the original cache
+	// shape; a missing field unmarshals as 0 (guest) which no real account
+	// uses, so treat that as a miss and reload from DB.
 	userCache, err = cacheGetUserBase(userId)
-	if err == nil {
+	if err == nil && userCache.Role > 0 {
 		return userCache, nil
 	}
 
@@ -125,16 +131,7 @@ func GetUserCache(userId int) (userCache *UserBase, err error) {
 		return nil, err // Return nil and error if DB lookup fails
 	}
 
-	// Create cache object from user data
-	userCache = &UserBase{
-		Id:       user.Id,
-		Group:    user.Group,
-		Quota:    user.Quota,
-		Status:   user.Status,
-		Username: user.Username,
-		Setting:  user.Setting,
-		Email:    user.Email,
-	}
+	userCache = user.ToBaseUser()
 
 	return userCache, nil
 }
@@ -247,6 +244,13 @@ func updateUserNameCache(userId int, username string) error {
 		return nil
 	}
 	return common.RedisHSetField(getUserCacheKey(userId), "Username", username)
+}
+
+func updateUserRoleCache(userId int, role int) error {
+	if !common.RedisEnabled {
+		return nil
+	}
+	return common.RedisHSetField(getUserCacheKey(userId), "Role", fmt.Sprintf("%d", role))
 }
 
 func updateUserSettingCache(userId int, setting string) error {
