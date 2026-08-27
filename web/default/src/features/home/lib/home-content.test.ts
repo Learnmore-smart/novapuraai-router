@@ -6,6 +6,7 @@ import type { FAQItem } from '@/features/dashboard/types'
 import {
   dedupeFAQItems,
   getHomeContentMode,
+  getHomeRouteModelNames,
   getPublicModelNames,
   getRegisterPromo,
 } from './home-content'
@@ -73,5 +74,22 @@ describe('built-in home content boundaries', () => {
 
   test('does not synthesize model labels when the server catalogue is empty', () => {
     assert.deepEqual(getPublicModelNames([{ model_name: null }]), [])
+  })
+
+  test('pins homepage routes to featured models and prefers catalogue spelling', () => {
+    assert.deepEqual(getHomeRouteModelNames([]), [
+      'kimi-k3',
+      'deepseek-v4-flash-0731',
+      'deepseek-v4-pro-0831',
+    ])
+    assert.deepEqual(
+      getHomeRouteModelNames([
+        { model_name: 'inkling' },
+        { model_name: ' moonshotai/kimi-k3 ' },
+        { model_name: 'deepseek-v4-flash-0731' },
+        { model_name: 'laguna-xs-2.1' },
+      ]),
+      ['moonshotai/kimi-k3', 'deepseek-v4-flash-0731', 'deepseek-v4-pro-0831']
+    )
   })
 })

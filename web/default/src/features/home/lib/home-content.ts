@@ -21,6 +21,33 @@ export function getHomeContentMode(input: {
   return 'markdown'
 }
 
+export const HOME_FEATURED_MODELS = [
+  'kimi-k3',
+  'deepseek-v4-flash-0731',
+  'deepseek-v4-pro-0831',
+] as const
+
+export function getHomeRouteModelNames(
+  models: ReadonlyArray<{ model_name?: unknown }>
+): string[] {
+  const catalogByKey = new Map<string, string>()
+
+  for (const model of models) {
+    if (typeof model.model_name !== 'string') continue
+
+    const name = model.model_name.trim()
+    if (!name) continue
+
+    const slash = name.lastIndexOf('/')
+    const key = (slash >= 0 ? name.slice(slash + 1) : name).toLowerCase()
+    if (!catalogByKey.has(key)) catalogByKey.set(key, name)
+  }
+
+  return HOME_FEATURED_MODELS.map(
+    (featured) => catalogByKey.get(featured.toLowerCase()) ?? featured
+  )
+}
+
 export function getPublicModelNames(
   models: ReadonlyArray<{ model_name?: unknown }>,
   limit = 4

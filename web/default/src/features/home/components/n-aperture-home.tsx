@@ -17,7 +17,7 @@ import { useStatus } from '@/hooks/use-status'
 import { formatPublicCurrency, getRegisterPromo } from '@/lib/public-status'
 import { useAuthStore } from '@/stores/auth-store'
 
-import { getPublicModelNames } from '../lib/home-content'
+import { getHomeRouteModelNames } from '../lib/home-content'
 import { NAperture } from './n-aperture'
 import { FAQ } from './sections/faq'
 import { ProviderStrip } from './sections/provider-strip'
@@ -199,7 +199,7 @@ export function NApertureHome(props: NApertureHomeProps) {
     },
     staleTime: 30_000,
   })
-  const modelNames = useMemo(() => getPublicModelNames(models, 3), [models])
+  const modelNames = useMemo(() => getHomeRouteModelNames(models), [models])
   const registerPromo = getRegisterPromo(status)
 
   return (
