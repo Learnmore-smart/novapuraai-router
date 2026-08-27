@@ -115,7 +115,11 @@ export function NAperture(props: NApertureProps) {
 
       <ul className='np-aperture-routes' aria-label={props.accessibleLabel}>
         {props.modelNames.map((modelName) => (
-          <li key={modelName} className='np-aperture-route-chip'>
+          <li
+            key={modelName}
+            className='np-aperture-route-chip'
+            title={modelName}
+          >
             <span className='np-aperture-route-dot' aria-hidden='true' />
             <span className='truncate'>{modelName}</span>
             <span className='np-aperture-route-label'>{props.routeLabel}</span>
