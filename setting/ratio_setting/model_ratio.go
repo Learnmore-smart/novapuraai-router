@@ -240,6 +240,8 @@ var defaultModelRatio = map[string]float64{
 	"command-r-08-2024":      0.075,
 	"command-r-plus-08-2024": 1.25,
 	"deepseek-v4-flash-0731": 0.11,
+	"deepseek-v4-pro-0813":   0.33, // $0.66 / $1.98 per 1M; DeepSeek official off-peak cache-miss/output
+	"kimi-k3":                1.5,  // $3 / $15 per 1M; Moonshot official cache-miss input/output
 	"deepseek-chat":          0.27 / 2,
 	"deepseek-coder":         0.27 / 2,
 	"deepseek-reasoner":      0.55 / 2, // 0.55 / 1k tokens
@@ -273,6 +275,84 @@ var defaultModelRatio = map[string]float64{
 	"deepseek-ai/DeepSeek-R1":                 0.8,
 	"deepseek-ai/DeepSeek-V3-0324":            0.8,
 	"deepseek-ai/DeepSeek-V3.1":               0.8,
+	// Hosted catalog models that were price_unset on novapuraai.com (1 ratio = $2 / 1M input).
+	"01-ai/yi-large":                                 20.0 / 1000 * RMB, // ¥20 / 1M; 01.AI list ¥20/1M; same formula as default yi-large
+	"adept/fuyu-8b":                                  0.08,              // $0.16 / $0.16 per 1M; 8B VLM; match live llama-3.2-11b $0.16
+	"ai21labs/jamba-1.5-large-instruct":              1,                 // $2 / $8 per 1M; AI21 Studio Jamba Large
+	"aisingapore/sea-lion-7b-instruct":               0.1,               // $0.2 / $0.2 per 1M; Fireworks 7B serverless band
+	"bigcode/starcoder2-15b":                         0.1,               // $0.2 / $0.6 per 1M; DeepInfra StarCoder2 15B
+	"databricks/dbrx-instruct":                       0.375,             // $0.75 / $2.25 per 1M; Databricks Foundation Model Serving
+	"deepseek-ai/deepseek-coder-6.7b-instruct":       0.1,               // $0.2 / $0.2 per 1M; Fireworks 7B band
+	"deepseek-ai/deepseek-v4-pro-0813":               0.33,              // $0.66 / $1.98 per 1M; DeepSeek official off-peak cache-miss/output
+	"google/codegemma-1.1-7b":                        0.1,               // $0.2 / $0.2 per 1M; Fireworks CodeGemma 7B
+	"google/codegemma-7b":                            0.1,               // $0.2 / $0.2 per 1M; Fireworks CodeGemma 7B
+	"google/deplot":                                  0.05,              // $0.1 / $0.1 per 1M; small VLM; Fireworks Gemma 2B band
+	"google/gemma-2b":                                0.05,              // $0.1 / $0.1 per 1M; Fireworks/Together Gemma 2B
+	"google/gemma-3-12b-it":                          0.025,             // $0.05 / $0.15 per 1M; OpenRouter google/gemma-3-12b-it
+	"google/gemma-3-4b-it":                           0.025,             // $0.05 / $0.1 per 1M; OpenRouter google/gemma-3-4b-it
+	"google/recurrentgemma-2b":                       0.05,              // $0.1 / $0.1 per 1M; same band as Gemma 2B
+	"ibm/granite-3.0-3b-a800m-instruct":              0.1,               // $0.2 / $0.2 per 1M; IBM Granite 3B class / Fireworks 0-4B
+	"ibm/granite-3.0-8b-instruct":                    0.25,              // $0.5 / $0.5 per 1M; IBM Granite 8B instruct list
+	"ibm/granite-34b-code-instruct":                  0.45,              // $0.9 / $0.9 per 1M; Fireworks 21-90B serverless
+	"ibm/granite-8b-code-instruct":                   0.1,               // $0.2 / $0.2 per 1M; Fireworks 7-8B serverless
+	"meta/codellama-70b":                             0.45,              // $0.9 / $0.9 per 1M; Together/Fireworks CodeLlama 70B
+	"meta/llama-guard-4-12b":                         0.1,               // $0.2 / $0.2 per 1M; Together AI Llama Guard 4 12B
+	"meta/llama2-70b":                                0.32,              // $0.64 / $0.64 per 1M; DeepInfra Llama 2 70B Chat
+	"microsoft/kosmos-2":                             0.05,              // $0.1 / $0.1 per 1M; small VLM; Gemma 2B band
+	"microsoft/phi-3-vision-128k-instruct":           0.075,             // $0.15 / $0.15 per 1M; 4B VLM; live llama-3.2-3b $0.15
+	"microsoft/phi-3.5-moe-instruct":                 0.08,              // $0.16 / $0.64 per 1M; Azure-style Phi MoE ~4x output
+	"mistralai/codestral-22b-instruct-v0.1":          0.15,              // $0.3 / $0.9 per 1M; Mistral official Codestral
+	"mistralai/mistral-7b-instruct-v0.3":             0.035,             // $0.07 / $0.07 per 1M; DeepInfra Mistral 7B
+	"mistralai/mistral-large":                        1,                 // $2 / $6 per 1M; OpenRouter mistral-large (123B NIM)
+	"mistralai/mistral-large-2-instruct":             1,                 // $2 / $6 per 1M; historical Mistral Large 2 $2/$6
+	"mistralai/mixtral-8x22b-v0.1":                   0.325,             // $0.65 / $0.65 per 1M; DeepInfra Mixtral 8x22B
+	"muse-glimmer-30b":                               0.175,             // $0.35 / $1.5 per 1M; Together AI Muse Glimmer 30B
+	"nemotron-3.5-lightning-30b-a3b":                 0.0375,            // $0.075 / $0.3 per 1M; match live nemotron-3-nano-omni 30B
+	"nv-mistralai/mistral-nemo-12b-instruct":         0.075,             // $0.15 / $0.15 per 1M; live 12B class (llama-3.2-11b $0.16)
+	"nvidia/ai-synthetic-video-detector":             0.05,              // $0.1 / $0.1 per 1M; classifier; 1B-8B token band
+	"nvidia/cosmos-reason2-8b":                       0.03,              // $0.06 / $0.23 per 1M; live NVIDIA 8B nemotron nano
+	"nvidia/embed-qa-4":                              0.008,             // $0.016 / $0.016 per 1M; Fireworks 150-350M embedding tier
+	"nvidia/ising-calibration-1.5-31b":               0.2,               // $0.4 / $0.4 per 1M; 31B dense; between 22B and 49B
+	"nvidia/llama-3.1-nemoguard-8b-content-safety":   0.03,              // $0.06 / $0.23 per 1M; live NVIDIA 8B nemotron nano
+	"nvidia/llama-3.1-nemoguard-8b-topic-control":    0.03,              // $0.06 / $0.23 per 1M; live NVIDIA 8B nemotron nano
+	"nvidia/llama-3.1-nemotron-51b-instruct":         0.05,              // $0.1 / $0.4 per 1M; live llama-3.3-nemotron-super-49b-v1.5
+	"nvidia/llama-3.1-nemotron-70b-instruct":         0.36,              // $0.72 / $0.72 per 1M; live 70B llama $0.72
+	"nvidia/llama-3.1-nemotron-safety-guard-8b-v3":   0.03,              // $0.06 / $0.23 per 1M; live NVIDIA 8B nemotron nano
+	"nvidia/llama-3.1-nemotron-ultra-253b-v1":        0.3,               // $0.6 / $1.8 per 1M; Nebius / Artificial Analysis
+	"nvidia/llama-3.2-nemoretriever-1b-vlm-embed-v1": 0.008,             // $0.016 / $0.016 per 1M; Fireworks 150-350M embedding tier
+	"nvidia/llama-3.2-nv-embedqa-1b-v1":              0.008,             // $0.016 / $0.016 per 1M; Fireworks 150-350M embedding tier
+	"nvidia/llama-nemotron-embed-vl-1b-v2":           0.008,             // $0.016 / $0.016 per 1M; Fireworks 150-350M embedding tier
+	"nvidia/llama3-chatqa-1.5-70b":                   0.36,              // $0.72 / $0.72 per 1M; live 70B llama $0.72
+	"nvidia/mistral-nemo-minitron-8b-8k-instruct":    0.03,              // $0.06 / $0.23 per 1M; live NVIDIA 8B nemotron nano
+	"nvidia/nemotron-3-embed-1b":                     0.008,             // $0.016 / $0.016 per 1M; Fireworks 150-350M embedding tier
+	"nvidia/nemotron-3.5-content-safety":             0.03,              // $0.06 / $0.23 per 1M; live NVIDIA 8B nemotron nano
+	"nvidia/nemotron-4-340b-instruct":                2.1,               // $4.2 / $4.2 per 1M; DeepInfra Nemotron 4 340B
+	"nvidia/nemotron-4-340b-reward":                  2.1,               // $4.2 / $4.2 per 1M; same backbone as instruct
+	"nvidia/nemotron-nano-3-30b-a3b":                 0.03,              // $0.06 / $0.24 per 1M; live nemotron-3-nano-30b-a3b
+	"nvidia/nemotron-parse":                          0.1,               // $0.2 / $0.2 per 1M; document VLM; 7-8B band
+	"nvidia/neva-22b":                                0.15,              // $0.3 / $0.3 per 1M; 22B VLM interpolate 11B $0.16 and 70B $0.72
+	"nvidia/nv-embedqa-mistral-7b-v2":                0.05,              // $0.1 / $0.1 per 1M; Fireworks ~8B embedding $0.10
+	"nvidia/nvclip":                                  0.008,             // $0.016 / $0.016 per 1M; Fireworks 150-350M embedding tier
+	"nvidia/riva-translate-4b-instruct":              0.02,              // $0.04 / $0.16 per 1M; live nemotron-mini-4b
+	"nvidia/riva-translate-4b-instruct-v1.1":         0.02,              // $0.04 / $0.16 per 1M; live nemotron-mini-4b
+	"nvidia/riva-translate-4b-instruct-v2":           0.02,              // $0.04 / $0.16 per 1M; live nemotron-mini-4b
+	"nvidia/vila":                                    0.1,               // $0.2 / $0.2 per 1M; 13-40B VLM; Fireworks 7-16B band
+	"snowflake/arctic-embed-l":                       0.008,             // $0.016 / $0.016 per 1M; Fireworks 150-350M embedding tier
+	"writer/palmyra-creative-122b":                   0.45,              // $0.9 / $0.9 per 1M; Fireworks 80B+ dense band
+	"writer/palmyra-fin-70b-32k":                     0.36,              // $0.72 / $0.72 per 1M; live 70B llama $0.72
+	"writer/palmyra-med-70b":                         0.36,              // $0.72 / $0.72 per 1M; live 70B llama $0.72
+	"writer/palmyra-med-70b-32k":                     0.36,              // $0.72 / $0.72 per 1M; live 70B llama $0.72
+	"zyphra/zamba2-7b-instruct":                      0.1,               // $0.2 / $0.2 per 1M; Fireworks 7B serverless band
+	// Unprefixed NVIDIA NIM client IDs (same rates as the nvidia/ keys above).
+	"bevformer":                             0.05, // $0.1 / $0.1 per 1M; NVIDIA BEVFormer detector; classifier band
+	"cosmos-transfer1-7b":                   0.1,  // $0.2 / $0.2 per 1M; Cosmos Transfer 7B; Fireworks 7B band
+	"cosmos-transfer2.5-2b":                 0.05, // $0.1 / $0.1 per 1M; Cosmos Transfer 2B; Gemma 2B band
+	"cosmos3-nano":                          0.03, // $0.06 / $0.23 per 1M; Cosmos 3 Nano ~8B; live NVIDIA 8B nemotron nano
+	"cosmos3-nano-reasoner":                 0.03, // $0.06 / $0.23 per 1M; Cosmos 3 Reasoner Nano; live NVIDIA 8B nemotron nano
+	"ising-calibration-1-35b-a3b":           0.03, // $0.06 / $0.24 per 1M; 35B-A3B MoE; live nemotron-3-nano-30b-a3b
+	"ising-calibration-1.5-31b":             0.2,  // $0.4 / $0.4 per 1M; 31B dense; between 22B and 49B
+	"llama-3.1-nemotron-safety-guard-8b-v3": 0.03, // $0.06 / $0.23 per 1M; live NVIDIA 8B nemotron nano
+	"llama-guard-4-12b":                     0.1,  // $0.2 / $0.2 per 1M; Together AI Llama Guard 4 12B
 }
 
 var defaultModelPrice = map[string]float64{
@@ -332,13 +412,43 @@ var modelRatioMap = types.NewRWMap[string, float64]()
 var completionRatioMap = types.NewRWMap[string, float64]()
 
 var defaultCompletionRatio = map[string]float64{
-	"gpt-4-gizmo-*":          2,
-	"gpt-4o-gizmo-*":         3,
-	"gpt-4-all":              2,
-	"gpt-image-1":            8,
-	"deepseek-v4-flash-0731": 3,
-	"grok-4.5":               3, // $6 out / $2 in
-	"grok-4":                 3,
+	"gpt-4-gizmo-*":                                2,
+	"gpt-4o-gizmo-*":                               3,
+	"gpt-4-all":                                    2,
+	"gpt-image-1":                                  8,
+	"deepseek-v4-flash-0731":                       3,
+	"deepseek-v4-pro-0813":                         3, // $0.66 / $1.98 per 1M; DeepSeek official off-peak cache-miss/output
+	"kimi-k3":                                      5, // $3 / $15 per 1M; Moonshot official cache-miss input/output
+	"grok-4.5":                                     3, // $6 out / $2 in
+	"grok-4":                                       3,
+	"ai21labs/jamba-1.5-large-instruct":            4,            // $2 / $8 per 1M; AI21 Studio Jamba Large
+	"bigcode/starcoder2-15b":                       3,            // $0.2 / $0.6 per 1M; DeepInfra StarCoder2 15B
+	"databricks/dbrx-instruct":                     3,            // $0.75 / $2.25 per 1M; Databricks Foundation Model Serving
+	"deepseek-ai/deepseek-v4-pro-0813":             3,            // $0.66 / $1.98 per 1M; DeepSeek official off-peak cache-miss/output
+	"google/gemma-3-12b-it":                        3,            // $0.05 / $0.15 per 1M; OpenRouter google/gemma-3-12b-it
+	"google/gemma-3-4b-it":                         2,            // $0.05 / $0.1 per 1M; OpenRouter google/gemma-3-4b-it
+	"microsoft/phi-3.5-moe-instruct":               4,            // $0.16 / $0.64 per 1M; Azure-style Phi MoE ~4x output
+	"mistralai/codestral-22b-instruct-v0.1":        3,            // $0.3 / $0.9 per 1M; Mistral official Codestral
+	"mistralai/mistral-large":                      3,            // $2 / $6 per 1M; OpenRouter mistral-large (123B NIM)
+	"mistralai/mistral-large-2-instruct":           3,            // $2 / $6 per 1M; historical Mistral Large 2 $2/$6
+	"muse-glimmer-30b":                             4.2857142857, // $0.35 / $1.5 per 1M; Together AI Muse Glimmer 30B
+	"nemotron-3.5-lightning-30b-a3b":               4,            // $0.075 / $0.3 per 1M; match live nemotron-3-nano-omni 30B
+	"nvidia/cosmos-reason2-8b":                     3.8333333333, // $0.06 / $0.23 per 1M; live NVIDIA 8B nemotron nano
+	"nvidia/llama-3.1-nemoguard-8b-content-safety": 3.8333333333, // $0.06 / $0.23 per 1M; live NVIDIA 8B nemotron nano
+	"nvidia/llama-3.1-nemoguard-8b-topic-control":  3.8333333333, // $0.06 / $0.23 per 1M; live NVIDIA 8B nemotron nano
+	"nvidia/llama-3.1-nemotron-51b-instruct":       4,            // $0.1 / $0.4 per 1M; live llama-3.3-nemotron-super-49b-v1.5
+	"nvidia/llama-3.1-nemotron-safety-guard-8b-v3": 3.8333333333, // $0.06 / $0.23 per 1M; live NVIDIA 8B nemotron nano
+	"nvidia/llama-3.1-nemotron-ultra-253b-v1":      3,            // $0.6 / $1.8 per 1M; Nebius / Artificial Analysis
+	"nvidia/mistral-nemo-minitron-8b-8k-instruct":  3.8333333333, // $0.06 / $0.23 per 1M; live NVIDIA 8B nemotron nano
+	"nvidia/nemotron-3.5-content-safety":           3.8333333333, // $0.06 / $0.23 per 1M; live NVIDIA 8B nemotron nano
+	"nvidia/nemotron-nano-3-30b-a3b":               4,            // $0.06 / $0.24 per 1M; live nemotron-3-nano-30b-a3b
+	"nvidia/riva-translate-4b-instruct":            4,            // $0.04 / $0.16 per 1M; live nemotron-mini-4b
+	"nvidia/riva-translate-4b-instruct-v1.1":       4,            // $0.04 / $0.16 per 1M; live nemotron-mini-4b
+	"nvidia/riva-translate-4b-instruct-v2":         4,            // $0.04 / $0.16 per 1M; live nemotron-mini-4b
+	"cosmos3-nano":                                 3.8333333333, // $0.06 / $0.23 per 1M; Cosmos 3 Nano ~8B
+	"cosmos3-nano-reasoner":                        3.8333333333, // $0.06 / $0.23 per 1M; Cosmos 3 Reasoner Nano
+	"ising-calibration-1-35b-a3b":                  4,            // $0.06 / $0.24 per 1M; live nemotron-3-nano-30b-a3b
+	"llama-3.1-nemotron-safety-guard-8b-v3":        3.8333333333, // $0.06 / $0.23 per 1M; live NVIDIA 8B nemotron nano
 }
 
 // InitRatioSettings initializes all model related settings maps
