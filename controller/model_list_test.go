@@ -181,6 +181,19 @@ func decodeUserModelsResponse(t *testing.T, recorder *httptest.ResponseRecorder)
 	return payload.Data
 }
 
+func insertEnabledListChannel(t *testing.T, db *gorm.DB, id int, modelsCSV string) {
+	t.Helper()
+	require.NoError(t, db.Create(&model.Channel{
+		Id:     id,
+		Type:   constant.ChannelTypeOpenAI,
+		Key:    fmt.Sprintf("list-channel-%d", id),
+		Name:   fmt.Sprintf("list-channel-%d", id),
+		Status: common.ChannelStatusEnabled,
+		Models: modelsCSV,
+		Group:  "default",
+	}).Error)
+}
+
 func TestGetUserModelsFiltersByRequestedGroup(t *testing.T) {
 	db := setupModelListControllerTestDB(t)
 	require.NoError(t, db.Create(&model.User{
@@ -190,6 +203,7 @@ func TestGetUserModelsFiltersByRequestedGroup(t *testing.T) {
 		Group:    "default",
 		Status:   common.UserStatusEnabled,
 	}).Error)
+	insertEnabledListChannel(t, db, 1, "zz-default-only-model,zz-disabled-model")
 	require.NoError(t, db.Create(&[]model.Ability{
 		{Group: "default", Model: "zz-default-only-model", ChannelId: 1, Enabled: true},
 		{Group: "default", Model: "zz-disabled-model", ChannelId: 1, Enabled: false},
@@ -234,6 +248,7 @@ func TestListModelsIncludesTieredBillingModel(t *testing.T) {
 		Group:    "default",
 		Status:   common.UserStatusEnabled,
 	}).Error)
+	insertEnabledListChannel(t, db, 1, "zz-tiered-visible-model,zz-tiered-empty-expr-model,zz-tiered-missing-expr-model,zz-unpriced-model")
 	require.NoError(t, db.Create(&[]model.Ability{
 		{Group: "default", Model: "zz-tiered-visible-model", ChannelId: 1, Enabled: true},
 		{Group: "default", Model: "zz-tiered-empty-expr-model", ChannelId: 1, Enabled: true},

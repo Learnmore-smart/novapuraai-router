@@ -54,6 +54,14 @@ func insertPricingEndpointAbility(t *testing.T, channelID int, modelName string)
 		ChannelId: channelID,
 		Enabled:   true,
 	}).Error)
+	var channel Channel
+	require.NoError(t, DB.First(&channel, channelID).Error)
+	if channel.Models == "" {
+		channel.Models = modelName
+	} else {
+		channel.Models = channel.Models + "," + modelName
+	}
+	require.NoError(t, DB.Model(&Channel{}).Where("id = ?", channelID).Update("models", channel.Models).Error)
 }
 
 func pricingEndpointAdvancedCustomConfig(routes ...dto.AdvancedCustomRoute) dto.ChannelOtherSettings {

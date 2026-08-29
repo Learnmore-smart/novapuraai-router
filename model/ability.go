@@ -26,31 +26,69 @@ type Ability struct {
 
 type AbilityWithChannel struct {
 	Ability
-	ChannelType int `json:"channel_type"`
+	ChannelType   int    `json:"channel_type"`
+	ChannelModels string `json:"-" gorm:"column:channel_models"`
 }
 
 func GetAllEnableAbilityWithChannels() ([]AbilityWithChannel, error) {
+	return loadEnabledAbilitiesWithChannels("")
+}
+
+func loadEnabledAbilitiesWithChannels(group string) ([]AbilityWithChannel, error) {
 	var abilities []AbilityWithChannel
-	err := DB.Table("abilities").
-		Select("abilities.*, channels.type as channel_type").
-		Joins("left join channels on abilities.channel_id = channels.id").
-		Where("abilities.enabled = ?", true).
-		Scan(&abilities).Error
-	return abilities, err
+	query := DB.Table("abilities").
+		Select("abilities.*, channels.type as channel_type, channels.models as channel_models").
+		Joins("JOIN channels ON abilities.channel_id = channels.id").
+		Where("abilities.enabled = ? AND channels.status = ?", true, common.ChannelStatusEnabled)
+	if group != "" {
+		query = query.Where("abilities."+commonGroupCol+" = ?", group)
+	}
+	if err := query.Scan(&abilities).Error; err != nil {
+		return nil, err
+	}
+	listed := make([]AbilityWithChannel, 0, len(abilities))
+	for _, ability := range abilities {
+		onChannel := false
+		for _, raw := range strings.Split(ability.ChannelModels, ",") {
+			if strings.TrimSpace(raw) == ability.Model {
+				onChannel = true
+				break
+			}
+		}
+		if onChannel {
+			listed = append(listed, ability)
+		}
+	}
+	return listed, nil
+}
+
+func distinctAbilityModels(abilities []AbilityWithChannel) []string {
+	seen := make(map[string]struct{}, len(abilities))
+	names := make([]string, 0, len(abilities))
+	for _, ability := range abilities {
+		if _, ok := seen[ability.Model]; ok {
+			continue
+		}
+		seen[ability.Model] = struct{}{}
+		names = append(names, ability.Model)
+	}
+	return names
 }
 
 func GetGroupEnabledModels(group string) []string {
-	var models []string
-	// Find distinct models
-	DB.Table("abilities").Where(commonGroupCol+" = ? and enabled = ?", group, true).Distinct("model").Pluck("model", &models)
-	return models
+	abilities, err := loadEnabledAbilitiesWithChannels(group)
+	if err != nil {
+		return nil
+	}
+	return distinctAbilityModels(abilities)
 }
 
 func GetEnabledModels() []string {
-	var models []string
-	// Find distinct models
-	DB.Table("abilities").Where("enabled = ?", true).Distinct("model").Pluck("model", &models)
-	return models
+	abilities, err := loadEnabledAbilitiesWithChannels("")
+	if err != nil {
+		return nil
+	}
+	return distinctAbilityModels(abilities)
 }
 
 func GetAllEnableAbilities() []Ability {
