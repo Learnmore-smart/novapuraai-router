@@ -36,6 +36,12 @@ func TestMatchDefaultVendorUsesPrefixBeforeSubstring(t *testing.T) {
 		{model: "ising-calibration-1.5-31b", vendor: "NVIDIA"},
 		{model: "llama-3.1-nemotron-safety-guard-8b-v3", vendor: "NVIDIA"},
 		{model: "llama-guard-4-12b", vendor: "Meta"},
+		{model: "synthetic-video-detector", vendor: "NVIDIA"},
+		{model: "sparsedrive", vendor: "NVIDIA"},
+		{model: "streampetr", vendor: "NVIDIA"},
+		{model: "riva-translate-4b-instruct-v1_1", vendor: "NVIDIA"},
+		{model: "riva-translate-4b-instruct-v2", vendor: "NVIDIA"},
+		{model: "nemotron-3.5-content-safety", vendor: "NVIDIA"},
 	}
 
 	for _, tc := range cases {

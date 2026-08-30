@@ -353,6 +353,12 @@ var defaultModelRatio = map[string]float64{
 	"ising-calibration-1.5-31b":             0.2,  // $0.4 / $0.4 per 1M; 31B dense; between 22B and 49B
 	"llama-3.1-nemotron-safety-guard-8b-v3": 0.03, // $0.06 / $0.23 per 1M; live NVIDIA 8B nemotron nano
 	"llama-guard-4-12b":                     0.1,  // $0.2 / $0.2 per 1M; Together AI Llama Guard 4 12B
+	"nemotron-3.5-content-safety":           0.03, // $0.06 / $0.23 per 1M; live NVIDIA 8B nemotron nano
+	"riva-translate-4b-instruct-v1_1":       0.02, // $0.04 / $0.16 per 1M; live ID uses underscore, not v1.1
+	"riva-translate-4b-instruct-v2":         0.02, // $0.04 / $0.16 per 1M; live nemotron-mini-4b
+	"sparsedrive":                           0.05, // $0.1 / $0.1 per 1M; NVIDIA SparseDrive; same band as bevformer
+	"streampetr":                            0.05, // $0.1 / $0.1 per 1M; NVIDIA StreamPETR; same band as bevformer
+	"synthetic-video-detector":              0.05, // $0.1 / $0.1 per 1M; NVIDIA AI synthetic video detector
 }
 
 var defaultModelPrice = map[string]float64{
@@ -449,6 +455,9 @@ var defaultCompletionRatio = map[string]float64{
 	"cosmos3-nano-reasoner":                        3.8333333333, // $0.06 / $0.23 per 1M; Cosmos 3 Reasoner Nano
 	"ising-calibration-1-35b-a3b":                  4,            // $0.06 / $0.24 per 1M; live nemotron-3-nano-30b-a3b
 	"llama-3.1-nemotron-safety-guard-8b-v3":        3.8333333333, // $0.06 / $0.23 per 1M; live NVIDIA 8B nemotron nano
+	"nemotron-3.5-content-safety":                  3.8333333333, // $0.06 / $0.23 per 1M; live NVIDIA 8B nemotron nano
+	"riva-translate-4b-instruct-v1_1":              4,            // $0.04 / $0.16 per 1M; live ID uses underscore
+	"riva-translate-4b-instruct-v2":                4,            // $0.04 / $0.16 per 1M; live nemotron-mini-4b
 }
 
 // InitRatioSettings initializes all model related settings maps

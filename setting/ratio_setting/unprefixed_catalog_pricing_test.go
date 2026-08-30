@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -20,6 +21,12 @@ func TestUnprefixedSquareModelsHaveDefaultTokenPricing(t *testing.T) {
 		"ising-calibration-1.5-31b",
 		"llama-3.1-nemotron-safety-guard-8b-v3",
 		"llama-guard-4-12b",
+		"nemotron-3.5-content-safety",
+		"riva-translate-4b-instruct-v1_1",
+		"riva-translate-4b-instruct-v2",
+		"sparsedrive",
+		"streampetr",
+		"synthetic-video-detector",
 	}
 	defaults := GetDefaultModelRatioMap()
 	for _, name := range models {
@@ -31,13 +38,27 @@ func TestUnprefixedSquareModelsHaveDefaultTokenPricing(t *testing.T) {
 	require.Equal(t, 3.8333333333, defaultCompletionRatio["cosmos3-nano-reasoner"])
 	require.Equal(t, 4.0, defaultCompletionRatio["ising-calibration-1-35b-a3b"])
 	require.Equal(t, 3.8333333333, defaultCompletionRatio["llama-3.1-nemotron-safety-guard-8b-v3"])
+	require.Equal(t, 3.8333333333, defaultCompletionRatio["nemotron-3.5-content-safety"])
+	require.Equal(t, 4.0, defaultCompletionRatio["riva-translate-4b-instruct-v1_1"])
+	require.Equal(t, 4.0, defaultCompletionRatio["riva-translate-4b-instruct-v2"])
 
 	_, thisFile, _, ok := runtime.Caller(0)
 	require.True(t, ok)
-	sqlPath := filepath.Join(filepath.Dir(thisFile), "..", "..", "bin", "add_unprefixed_catalog_pricing.sql")
-	sql, err := os.ReadFile(sqlPath)
-	require.NoError(t, err)
+	sqlFiles := []string{
+		"add_unprefixed_catalog_pricing.sql",
+		"add_remaining_unprefixed_pricing.sql",
+	}
 	for _, name := range models {
-		require.Contains(t, string(sql), name)
+		found := false
+		for _, file := range sqlFiles {
+			sqlPath := filepath.Join(filepath.Dir(thisFile), "..", "..", "bin", file)
+			sql, err := os.ReadFile(sqlPath)
+			require.NoError(t, err, file)
+			if strings.Contains(string(sql), name) {
+				found = true
+				break
+			}
+		}
+		require.True(t, found, name)
 	}
 }
