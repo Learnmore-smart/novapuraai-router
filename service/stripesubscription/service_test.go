@@ -987,6 +987,25 @@ func TestPortalUsesOwnedCustomerAndFixedSandboxConfiguration(t *testing.T) {
 	assert.Equal(t, 1, fake.portalCalls)
 }
 
+func TestIsRecurringEventDoesNotTreatBareInvoiceIDAsSubscription(t *testing.T) {
+	event := invoiceEvent("evt_invoice_id_only", "invoice.paid", "", "in_invoice_id_only", model.SandboxStripeSubscriptionFounderPriceID, 1999, 1, 2)
+	event.Data.Object["subscription"] = ""
+	assert.False(t, IsRecurringEvent(event))
+}
+
+func TestForeignInvoiceWithoutLocalBindingIsAcknowledged(t *testing.T) {
+	setupStripeSubscriptionServiceDB(t)
+	paid := invoiceEvent("evt_foreign_invoice_ack", "invoice.paid", "sub_not_local", "in_foreign_ack", model.SandboxStripeSubscriptionFounderPriceID, 1999, time.Now().Unix(), time.Now().Add(time.Hour).Unix())
+	require.NoError(t, HandleRecurringEvent(context.Background(), paid))
+}
+
+func TestInvoiceSubscriptionIDAcceptsExpandedObject(t *testing.T) {
+	setupStripeSubscriptionServiceDB(t)
+	paid := invoiceEvent("evt_expanded_sub_object", "invoice.paid", "sub_not_local", "in_expanded_sub", model.SandboxStripeSubscriptionFounderPriceID, 1999, time.Now().Unix(), time.Now().Add(time.Hour).Unix())
+	paid.Data.Object["subscription"] = map[string]interface{}{"id": "sub_not_local", "object": "subscription"}
+	require.NoError(t, HandleRecurringEvent(context.Background(), paid))
+}
+
 func isASCIIAlpha(value string) bool {
 	if len(value) != 8 {
 		return false

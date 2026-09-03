@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service/deepseekfairuse"
 	"github.com/QuantumNous/new-api/setting"
@@ -979,13 +980,7 @@ func IsRecurringEvent(event stripe.Event) bool {
 		if recurringObjectMarker(&event) {
 			return true
 		}
-		subscriptionID := objectString(event.Data, "subscription")
-		if subscriptionID == "" {
-			subscriptionID = objectString(event.Data, "id")
-		}
-		// Invoice/subscription event types are recurring by Stripe contract;
-		// do not let a transient local lookup failure fall through to the
-		// one-time top-up processor and get acknowledged as a no-op.
+		subscriptionID := stripeSubscriptionIDFromEvent(event)
 		return subscriptionID != "" || hasLocalRecurringSubscription(subscriptionID)
 	default:
 		return false
@@ -1080,12 +1075,16 @@ func HandleRecurringEvent(ctx context.Context, event stripe.Event) error {
 		return nil
 	}
 	if err := handleRecurringEvent(event); err != nil {
-		if errors.Is(err, ErrRecurringPaymentMismatch) {
+		if errors.Is(err, ErrRecurringEventNotHandled) {
+			logger.LogInfo(ctx, fmt.Sprintf("stripe recurring webhook ignored event_id=%s type=%s", event.ID, event.Type))
+		} else if errors.Is(err, ErrRecurringPaymentMismatch) {
 			if finalizeErr := model.FinalizeStripeWebhookEvent(event.ID, model.StripeWebhookEventManualReview, err.Error(), common.GetTimestamp()); finalizeErr != nil {
 				return fmt.Errorf("recurring webhook manual-review finalization failed: %w", finalizeErr)
 			}
+			return err
+		} else {
+			return err
 		}
-		return err
 	}
 	if err := model.FinalizeStripeWebhookEvent(event.ID, model.StripeWebhookEventProcessed, "", common.GetTimestamp()); err != nil {
 		return err
@@ -1249,13 +1248,7 @@ func handleCheckoutExpired(event stripe.Event) error {
 }
 
 func findRecurringSubscriptionFromEvent(event stripe.Event) (*model.StripeSubscription, *model.SubscriptionPlan, error) {
-	stripeSubscriptionID := objectString(event.Data, "subscription")
-	if stripeSubscriptionID == "" && (event.Type == stripe.EventTypeCustomerSubscriptionUpdated || event.Type == stripe.EventTypeCustomerSubscriptionDeleted) {
-		stripeSubscriptionID = objectString(event.Data, "id")
-	}
-	if stripeSubscriptionID == "" {
-		stripeSubscriptionID = recurringMetadataString(event, "subscription_id")
-	}
+	stripeSubscriptionID := stripeSubscriptionIDFromEvent(event)
 	if stripeSubscriptionID == "" {
 		return nil, nil, fmt.Errorf("%w: recurring subscription id missing", ErrRecurringPaymentMismatch)
 	}
@@ -1284,7 +1277,12 @@ func findRecurringSubscriptionFromEvent(event stripe.Event) (*model.StripeSubscr
 			}
 		}
 		if reservation == nil {
-			return nil, nil, ErrRecurringPaymentPending
+			if recurringMetadataString(event, "reservation_id") != "" ||
+				recurringMetadataString(event, "reservation_reference_id") != "" ||
+				recurringObjectMarker(&event) {
+				return nil, nil, ErrRecurringPaymentPending
+			}
+			return nil, nil, ErrRecurringEventNotHandled
 		}
 		if referenceID := recurringMetadataString(event, "reservation_reference_id"); referenceID != "" && referenceID != reservation.ReferenceId {
 			return nil, nil, fmt.Errorf("%w: reservation reference metadata mismatch", ErrRecurringPaymentMismatch)
@@ -1651,6 +1649,42 @@ func handleSubscriptionDeleted(event stripe.Event) error {
 		return err
 	}
 	return model.EndStripeSubscription(subscription.StripeSubscriptionId, common.GetTimestamp())
+}
+
+func stripeSubscriptionIDFromEvent(event stripe.Event) string {
+	candidates := []string{
+		objectResourceID(event.Data, "subscription"),
+		objectResourceID(event.Data, "parent", "subscription_details", "subscription"),
+		recurringMetadataString(event, "subscription_id"),
+	}
+	if event.Type == stripe.EventTypeCustomerSubscriptionUpdated || event.Type == stripe.EventTypeCustomerSubscriptionDeleted {
+		candidates = append(candidates, objectResourceID(event.Data, "id"))
+	}
+	for _, candidate := range candidates {
+		if strings.HasPrefix(candidate, "sub_") {
+			return candidate
+		}
+	}
+	return ""
+}
+
+func objectResourceID(data *stripe.EventData, keys ...string) string {
+	if data == nil || data.Object == nil || len(keys) == 0 {
+		return ""
+	}
+	value, ok := nestedObjectValue(data.Object, keys)
+	if !ok || value == nil {
+		return ""
+	}
+	switch typed := value.(type) {
+	case string:
+		return strings.TrimSpace(typed)
+	case map[string]interface{}:
+		if id, ok := typed["id"].(string); ok {
+			return strings.TrimSpace(id)
+		}
+	}
+	return ""
 }
 
 func objectString(data *stripe.EventData, keys ...string) string {

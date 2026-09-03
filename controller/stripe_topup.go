@@ -377,19 +377,13 @@ func AdminRetryTopupCredit(c *gin.Context) {
 // Also falls back to legacy fulfillOrder for old TopUp trade_no.
 func StripeWebhookV2(c *gin.Context) {
 	ctx := c.Request.Context()
-	topupEnabled := isStripeWebhookEnabled()
-	recurringEnabled, recurringConfigErr := stripesubscription.IsWebhookEnabledWithError()
-	if recurringConfigErr != nil && !topupEnabled {
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-	if !topupEnabled && !recurringEnabled {
-		c.AbortWithStatus(http.StatusForbidden)
-		return
-	}
 	payload, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		c.AbortWithStatus(http.StatusServiceUnavailable)
+		return
+	}
+	if strings.TrimSpace(setting.StripeWebhookSecret) == "" {
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 	signature := c.GetHeader("Stripe-Signature")
@@ -403,6 +397,9 @@ func StripeWebhookV2(c *gin.Context) {
 	}
 	ctx = stripesubscription.WithVerifiedWebhookContext(ctx)
 
+	topupEnabled := isStripeWebhookEnabled()
+	recurringEnabled, recurringConfigErr := stripesubscription.IsWebhookEnabledWithError()
+
 	// Recurring events must be classified before the legacy top-up processor
 	// claims the shared event ledger. A valid recurring marker is never allowed
 	// to fall through to a one-time payment handler.
@@ -411,19 +408,23 @@ func StripeWebhookV2(c *gin.Context) {
 			c.Status(http.StatusInternalServerError)
 			return
 		}
-		if !recurringEnabled {
-			c.AbortWithStatus(http.StatusForbidden)
-			return
-		}
-		if err := stripesubscription.HandleRecurringEvent(ctx, event); err != nil {
-			logger.LogWarn(ctx, "stripe recurring webhook process: "+err.Error())
-			if errors.Is(err, stripesubscription.ErrRecurringPaymentMismatch) {
-				c.Status(http.StatusBadRequest)
+		if recurringEnabled {
+			if err := stripesubscription.HandleRecurringEvent(ctx, event); err != nil {
+				logger.LogWarn(ctx, "stripe recurring webhook process: "+err.Error())
+				if errors.Is(err, stripesubscription.ErrRecurringPaymentMismatch) ||
+					errors.Is(err, stripesubscription.ErrRecurringEventNotHandled) {
+					c.Status(http.StatusOK)
+					return
+				}
+				c.Status(http.StatusInternalServerError)
 				return
 			}
-			c.Status(http.StatusInternalServerError)
+			c.Status(http.StatusOK)
 			return
 		}
+	}
+
+	if !topupEnabled {
 		c.Status(http.StatusOK)
 		return
 	}
@@ -431,7 +432,7 @@ func StripeWebhookV2(c *gin.Context) {
 	if err := stripetopup.ProcessVerifiedEvent(ctx, event); err != nil {
 		// If new-order path failed because order missing, try legacy handlers for same event types.
 		logger.LogWarn(ctx, "stripe webhook v2 process: "+err.Error())
-		if errors.Is(err, stripetopup.ErrWebhookPaymentMismatch) {
+		if errors.Is(err, stripetopup.ErrWebhookPaymentMismatch) || errors.Is(err, stripetopup.ErrWebhookNotRetryable) {
 			c.Status(http.StatusOK)
 			return
 		}

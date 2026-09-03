@@ -752,6 +752,17 @@ func TestEnabledStripeSubscriptionPlanRequiresTheFixedRuntimeCatalog(t *testing.
 	assert.False(t, enabled)
 }
 
+func TestHasStripeSubscriptionLifecyclePlanTreatsInvalidCatalogAsDisabled(t *testing.T) {
+	clearStripeSubscriptionEnv(t)
+	db := setupStripeSubscriptionModelTestDB(t)
+	plan := seedStripeSubscriptionPlan(t, db)
+	require.NoError(t, db.Model(plan).Update("stripe_product_id", "prod_wrong_catalog").Error)
+
+	enabled, err := HasStripeSubscriptionLifecyclePlan()
+	require.NoError(t, err)
+	assert.False(t, enabled)
+}
+
 func TestValidateStripeSubscriptionPlanUsesConfigGateOnlyWhenEnabledIsRequired(t *testing.T) {
 	clearStripeSubscriptionEnv(t)
 	db := setupStripeSubscriptionModelTestDB(t)

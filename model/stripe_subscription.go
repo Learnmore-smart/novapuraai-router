@@ -749,6 +749,9 @@ func EnabledStripeSubscriptionPlan() (bool, error) {
 		return false, gorm.ErrInvalidDB
 	}
 	config, err := StripeSubscriptionRuntimePreflight()
+	if isNonRetryableStripeSubscriptionLookup(err) {
+		return false, nil
+	}
 	if err != nil {
 		return false, err
 	}
@@ -756,7 +759,7 @@ func EnabledStripeSubscriptionPlan() (bool, error) {
 		return false, nil
 	}
 	_, err = GetFixedStripeSubscriptionPlan(config, true)
-	if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, ErrStripeSubscriptionDisabled) {
+	if isNonRetryableStripeSubscriptionLookup(err) {
 		return false, nil
 	}
 	if err != nil {
@@ -773,17 +776,26 @@ func HasStripeSubscriptionLifecyclePlan() (bool, error) {
 		return false, gorm.ErrInvalidDB
 	}
 	config, err := StripeSubscriptionRuntimePreflight()
+	if isNonRetryableStripeSubscriptionLookup(err) {
+		return false, nil
+	}
 	if err != nil {
 		return false, err
 	}
 	_, err = GetFixedStripeSubscriptionPlan(config, false)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
+	if isNonRetryableStripeSubscriptionLookup(err) {
 		return false, nil
 	}
 	if err != nil {
 		return false, err
 	}
 	return true, nil
+}
+
+func isNonRetryableStripeSubscriptionLookup(err error) bool {
+	return errors.Is(err, gorm.ErrRecordNotFound) ||
+		errors.Is(err, ErrStripeSubscriptionDisabled) ||
+		errors.Is(err, ErrStripeSubscriptionPlanInvalid)
 }
 
 func expireStripeSubscriptionReservationsTx(tx *gorm.DB, now int64) (int64, error) {
