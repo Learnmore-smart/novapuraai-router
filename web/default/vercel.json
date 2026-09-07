@@ -1,0 +1,29 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "cd .. && bun install --frozen-lockfile",
+  "buildCommand": "bun run build",
+  "outputDirectory": "dist",
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/api/:match*",
+      "destination": "https://novapuraai-router-225072369047.asia-east1.run.app/api/:match*"
+    },
+    {
+      "source": "/v1/:match*",
+      "destination": "https://novapuraai-router-225072369047.asia-east1.run.app/v1/:match*"
+    },
+    {
+      "source": "/mj/:match*",
+      "destination": "https://novapuraai-router-225072369047.asia-east1.run.app/mj/:match*"
+    },
+    {
+      "source": "/pg/:match*",
+      "destination": "https://novapuraai-router-225072369047.asia-east1.run.app/pg/:match*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

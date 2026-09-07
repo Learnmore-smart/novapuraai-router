@@ -1,8 +1,10 @@
 {
   "name": "new-api-workspace",
   "private": true,
+  "packageManager": "bun@1.3.14",
   "scripts": {
-    "dev": "concurrently -k -n api,web -c blue,green \"go run main.go\" \"cd web/default && bun run dev\""
+    "dev": "concurrently -k -n api,web -c blue,green \"go run main.go\" \"cd web/default && bun run dev\"",
+    "build": "cd web && bun install --frozen-lockfile && cd default && bun run build"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"
