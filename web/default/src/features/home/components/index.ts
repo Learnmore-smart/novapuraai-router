@@ -1,3 +1,4 @@
+export { ArchivedBanner } from './archived-banner'
 export { NApertureHome } from './n-aperture-home'
 export { NAperture } from './n-aperture'
 export { CTA } from './sections/cta'

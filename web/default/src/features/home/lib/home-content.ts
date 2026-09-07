@@ -9,6 +9,13 @@ export type HomeContentMode =
   | 'markdown'
   | 'built-in'
 
+/** Model IDs shown next to the homepage N mark, in display order. */
+export const HOME_FEATURED_MODEL_NAMES = [
+  'kimi-k3',
+  'deepseek-v4-flash-0731',
+  'deepseek-v4-pro-0813',
+] as const
+
 export function getHomeContentMode(input: {
   isLoaded: boolean
   content: string
@@ -50,15 +57,15 @@ export function getHomeRouteModelNames(
 
 export function getPublicModelNames(
   models: ReadonlyArray<{ model_name?: unknown }>,
-  limit = 4
+  limit = HOME_FEATURED_MODEL_NAMES.length
 ): string[] {
   if (limit <= 0) return []
 
   const names: string[] = []
   const seen = new Set<string>()
+  const byNormalized = new Map<string, string>()
 
   for (const model of models) {
-    if (names.length >= limit) break
     if (typeof model.model_name !== 'string') continue
 
     const name = model.model_name.trim()
@@ -67,9 +74,18 @@ export function getPublicModelNames(
 
     seen.add(normalizedName)
     names.push(name)
+    byNormalized.set(normalizedName, name)
   }
 
-  return names
+  const featured: string[] = []
+  for (const preferred of HOME_FEATURED_MODEL_NAMES) {
+    if (featured.length >= limit) break
+    const actual = byNormalized.get(preferred.toLowerCase())
+    if (actual) featured.push(actual)
+  }
+  if (featured.length > 0) return featured
+
+  return names.slice(0, limit)
 }
 
 function normalizeFingerprintPart(value: string): string {

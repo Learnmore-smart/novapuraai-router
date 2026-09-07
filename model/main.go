@@ -220,6 +220,7 @@ func InitDB() (err error) {
 		// Poolside / Step / Sarvam entries) take effect on existing DB rows
 		// without manual intervention.
 		SyncDefaultVendorIcons()
+		SyncChannelModelMetadata()
 		return nil
 	} else {
 		common.FatalLog(err)

@@ -204,7 +204,7 @@ export function NApertureHome(props: NApertureHomeProps) {
 
   return (
     <main className='np-aperture-page'>
-      <section className='np-aperture-hero'>
+      <section className='np-aperture-hero has-banner'>
         <div className='np-aperture-container np-aperture-hero-grid'>
           <div className='np-aperture-hero-copy'>
             <p className='np-aperture-overline'>

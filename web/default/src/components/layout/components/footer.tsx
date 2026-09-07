@@ -24,7 +24,10 @@ import { useStatus } from '@/hooks/use-status'
 import { useSystemConfig } from '@/hooks/use-system-config'
 import { cn } from '@/lib/utils'
 
+import { GitHubIcon } from '@/components/icons/github-icon'
 import { BrandMark } from './brand-mark'
+
+const GITHUB_REPO_URL = 'https://github.com/Learnmore-smart/novapuraai-router'
 
 interface FooterLink {
   text: string
@@ -157,6 +160,7 @@ export function Footer(props: FooterProps) {
     ]
 
     const docsLinks: FooterLink[] = [
+      { text: 'GitHub', href: GITHUB_REPO_URL },
       { text: 'Docs', href: '/docs' },
       { text: 'Terms and Conditions', href: '/user-agreement' },
       { text: 'Privacy Policy', href: '/privacy-policy' },
@@ -181,6 +185,10 @@ export function Footer(props: FooterProps) {
       {
         title: t('footer.columns.related.title'),
         links: [
+          {
+            text: 'NovaPura Router (GitHub)',
+            href: GITHUB_REPO_URL,
+          },
           {
             text: t('footer.columns.related.links.oneApi'),
             href: 'https://github.com/songquanpeng/one-api',
@@ -250,6 +258,17 @@ export function Footer(props: FooterProps) {
                 'One OpenAI-compatible endpoint. Prepaid balances. Clear usage per request.'
               )}
             </p>
+            <div className='mt-3'>
+              <a
+                href={GITHUB_REPO_URL}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-xs font-medium transition-colors'
+              >
+                <GitHubIcon className='size-4' />
+                <span>GitHub: Learnmore-smart/novapuraai-router</span>
+              </a>
+            </div>
           </div>
 
           <div className='grid grid-cols-2 gap-10 sm:grid-cols-3 md:gap-14'>

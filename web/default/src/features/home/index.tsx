@@ -9,7 +9,7 @@ import { useTheme } from '@/context/theme-provider'
 import { isLikelyHtml } from '@/lib/content-format'
 import { useAuthStore } from '@/stores/auth-store'
 
-import { NApertureHome } from './components'
+import { ArchivedBanner, NApertureHome } from './components'
 import { useHomePageContent } from './hooks'
 
 export function Home() {
@@ -73,6 +73,7 @@ export function Home() {
     if (isUrl) {
       return (
         <PublicLayout showMainContainer={false}>
+          <ArchivedBanner />
           {/*
             allow-top-navigation-by-user-activation: the custom home page URL is
             admin-configured (trusted); this lets its target="_top" nav/menu links
@@ -84,7 +85,7 @@ export function Home() {
           <iframe
             ref={iframeRef}
             src={content}
-            className='h-screen w-full border-none'
+            className='h-[calc(100vh-var(--app-header-height))] w-full border-none'
             title={t('Custom Home Page')}
             sandbox='allow-forms allow-popups allow-popups-to-escape-sandbox allow-scripts allow-top-navigation-by-user-activation'
             onLoad={syncIframePreferences}
@@ -98,6 +99,7 @@ export function Home() {
     if (contentIsHtml) {
       return (
         <PublicLayout showMainContainer={false}>
+          <ArchivedBanner />
           <RichContent
             mode='html'
             htmlVariant='isolated'
@@ -110,6 +112,7 @@ export function Home() {
 
     return (
       <PublicLayout>
+        <ArchivedBanner />
         <div className='mx-auto max-w-6xl px-4 py-8'>
           <RichContent
             mode='markdown'
@@ -123,6 +126,7 @@ export function Home() {
 
   return (
     <PublicLayout showMainContainer={false}>
+      <ArchivedBanner />
       <NApertureHome isAuthenticated={isAuthenticated} />
       <Footer />
     </PublicLayout>

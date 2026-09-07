@@ -410,7 +410,7 @@ func GetVendorModelCounts() (map[int64]int64, error) {
 		VendorID int64
 		Count    int64
 	}
-	if err := DB.Model(&Model{}).
+	if err := applyHostedChannelModelFilter(DB.Model(&Model{})).
 		Select("vendor_id as vendor_id, count(*) as count").
 		Group("vendor_id").
 		Scan(&stats).Error; err != nil {
@@ -510,9 +510,13 @@ func GetPreferredModelOwnerChannelTypes(modelNames []string, groups []string) (m
 	return result, nil
 }
 
+func applyHostedChannelModelFilter(db *gorm.DB) *gorm.DB {
+	return db.Where("EXISTS (SELECT 1 FROM abilities WHERE abilities.model = models.model_name AND abilities.enabled = ?)", true)
+}
+
 func SearchModels(keyword string, vendor string, status string, syncOfficial string, offset int, limit int) ([]*Model, int64, error) {
 	var models []*Model
-	db := DB.Model(&Model{})
+	db := applyHostedChannelModelFilter(DB.Model(&Model{}))
 	if keyword != "" {
 		like := "%" + keyword + "%"
 		db = db.Where("model_name LIKE ? OR description LIKE ? OR tags LIKE ?", like, like, like)

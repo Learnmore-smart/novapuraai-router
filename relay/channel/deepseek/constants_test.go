@@ -11,4 +11,5 @@ func TestModelListContainsCanonicalDeepSeekV4Flash0731(t *testing.T) {
 	assert.NotContains(t, ModelList, "deepseek-v4-flash-0731\"")
 	assert.Contains(t, ModelList, "deepseek-v4-flash-none")
 	assert.Contains(t, ModelList, "deepseek-v4-flash-max")
+	assert.Contains(t, ModelList, "deepseek-v4-pro-0813")
 }

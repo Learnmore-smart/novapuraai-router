@@ -145,6 +145,10 @@ For commercial licensing, please contact support@quantumnous.com
     padding: clamp(7rem, 13vw, 11rem) 0 clamp(4rem, 8vw, 7rem);
   }
 
+  .np-aperture-hero.has-banner {
+    padding-top: clamp(3.5rem, 7vw, 6rem);
+  }
+
   .np-aperture-hero-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.1fr) minmax(22rem, 0.9fr);

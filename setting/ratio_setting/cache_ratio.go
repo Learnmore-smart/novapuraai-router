@@ -39,6 +39,7 @@ var defaultCacheRatio = map[string]float64{
 	"deepseek-chat":                       0.25,
 	"deepseek-reasoner":                   0.25,
 	"deepseek-coder":                      0.25,
+	"kimi-k3":                             0.1,
 	"claude-3-sonnet-20240229":            0.1,
 	"claude-3-opus-20240229":              0.1,
 	"claude-3-haiku-20240307":             0.1,

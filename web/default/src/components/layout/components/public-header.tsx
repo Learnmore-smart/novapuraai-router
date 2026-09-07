@@ -35,10 +35,12 @@ import { isDefaultBrandLogo } from '@/lib/dom-utils'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 
+import { GitHubIcon } from '@/components/icons/github-icon'
 import { defaultTopNavLinks } from '../config/top-nav.config'
 import type { TopNavLink } from '../types'
 import { HeaderLogo } from './header-logo'
 
+const GITHUB_REPO_URL = 'https://github.com/Learnmore-smart/novapuraai-router'
 const AUTH_PROMPT_SECONDS = 5
 
 type AuthPromptTarget = {
@@ -354,6 +356,15 @@ export function PublicHeader(props: PublicHeaderProps) {
           </div>
 
           <div className='hidden items-center gap-1.5 md:flex'>
+            <a
+              href={GITHUB_REPO_URL}
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-muted-foreground hover:text-foreground hover:bg-muted inline-flex size-9 items-center justify-center rounded-md transition-colors'
+              aria-label={t('GitHub Repository')}
+            >
+              <GitHubIcon className='size-[1.125rem]' />
+            </a>
             {showLanguageSwitcher && <LanguageSwitcher />}
             {showThemeSwitch && <ThemeSwitch />}
             {showNotifications && isAuthenticated && (
@@ -372,6 +383,15 @@ export function PublicHeader(props: PublicHeaderProps) {
           </div>
 
           <div className='flex items-center gap-1.5 md:hidden'>
+            <a
+              href={GITHUB_REPO_URL}
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-muted-foreground hover:text-foreground hover:bg-muted inline-flex size-9 items-center justify-center rounded-md transition-colors'
+              aria-label={t('GitHub Repository')}
+            >
+              <GitHubIcon className='size-[1.125rem]' />
+            </a>
             {showThemeSwitch && <ThemeSwitch />}
             {showAuthButtons && !loading && isAuthenticated && (
               <ProfileDropdown />
@@ -446,6 +466,16 @@ export function PublicHeader(props: PublicHeaderProps) {
                   </Link>
                 )
               })}
+              <a
+                href={GITHUB_REPO_URL}
+                target='_blank'
+                rel='noopener noreferrer'
+                onClick={() => setMobileOpen(false)}
+                className='text-muted-foreground hover:text-foreground flex items-center gap-2 py-3 text-base font-medium tracking-tight transition-colors'
+              >
+                <GitHubIcon className='size-5' />
+                <span>{t('GitHub')}</span>
+              </a>
             </nav>
 
             {showAuthButtons && (

@@ -1,0 +1,471 @@
+{
+  "01-ai/yi-large": {
+    "input_usd_per_million": 2.73972602739726,
+    "output_usd_per_million": 2.73972602739726,
+    "model_ratio": 1.3698630137,
+    "completion_ratio": 1.0,
+    "source": "01.AI list ¥20/1M; same formula as default yi-large"
+  },
+  "adept/fuyu-8b": {
+    "input_usd_per_million": 0.16,
+    "output_usd_per_million": 0.16,
+    "model_ratio": 0.08,
+    "completion_ratio": 1.0,
+    "source": "8B VLM; match live llama-3.2-11b $0.16"
+  },
+  "ai21labs/jamba-1.5-large-instruct": {
+    "input_usd_per_million": 2.0,
+    "output_usd_per_million": 8.0,
+    "model_ratio": 1.0,
+    "completion_ratio": 4.0,
+    "source": "AI21 Studio Jamba Large"
+  },
+  "aisingapore/sea-lion-7b-instruct": {
+    "input_usd_per_million": 0.2,
+    "output_usd_per_million": 0.2,
+    "model_ratio": 0.1,
+    "completion_ratio": 1.0,
+    "source": "Fireworks 7B serverless band"
+  },
+  "bigcode/starcoder2-15b": {
+    "input_usd_per_million": 0.2,
+    "output_usd_per_million": 0.6,
+    "model_ratio": 0.1,
+    "completion_ratio": 3.0,
+    "source": "DeepInfra StarCoder2 15B"
+  },
+  "databricks/dbrx-instruct": {
+    "input_usd_per_million": 0.75,
+    "output_usd_per_million": 2.25,
+    "model_ratio": 0.375,
+    "completion_ratio": 3.0,
+    "source": "Databricks Foundation Model Serving"
+  },
+  "deepseek-ai/deepseek-coder-6.7b-instruct": {
+    "input_usd_per_million": 0.2,
+    "output_usd_per_million": 0.2,
+    "model_ratio": 0.1,
+    "completion_ratio": 1.0,
+    "source": "Fireworks 7B band"
+  },
+  "deepseek-ai/deepseek-v4-pro-0813": {
+    "input_usd_per_million": 0.66,
+    "output_usd_per_million": 1.98,
+    "model_ratio": 0.33,
+    "completion_ratio": 3.0,
+    "source": "DeepSeek official off-peak cache-miss/output"
+  },
+  "google/codegemma-1.1-7b": {
+    "input_usd_per_million": 0.2,
+    "output_usd_per_million": 0.2,
+    "model_ratio": 0.1,
+    "completion_ratio": 1.0,
+    "source": "Fireworks CodeGemma 7B"
+  },
+  "google/codegemma-7b": {
+    "input_usd_per_million": 0.2,
+    "output_usd_per_million": 0.2,
+    "model_ratio": 0.1,
+    "completion_ratio": 1.0,
+    "source": "Fireworks CodeGemma 7B"
+  },
+  "google/deplot": {
+    "input_usd_per_million": 0.1,
+    "output_usd_per_million": 0.1,
+    "model_ratio": 0.05,
+    "completion_ratio": 1.0,
+    "source": "small VLM; Fireworks Gemma 2B band"
+  },
+  "google/gemma-2b": {
+    "input_usd_per_million": 0.1,
+    "output_usd_per_million": 0.1,
+    "model_ratio": 0.05,
+    "completion_ratio": 1.0,
+    "source": "Fireworks/Together Gemma 2B"
+  },
+  "google/gemma-3-12b-it": {
+    "input_usd_per_million": 0.05,
+    "output_usd_per_million": 0.15,
+    "model_ratio": 0.025,
+    "completion_ratio": 3.0,
+    "source": "OpenRouter google/gemma-3-12b-it"
+  },
+  "google/gemma-3-4b-it": {
+    "input_usd_per_million": 0.05,
+    "output_usd_per_million": 0.1,
+    "model_ratio": 0.025,
+    "completion_ratio": 2.0,
+    "source": "OpenRouter google/gemma-3-4b-it"
+  },
+  "google/recurrentgemma-2b": {
+    "input_usd_per_million": 0.1,
+    "output_usd_per_million": 0.1,
+    "model_ratio": 0.05,
+    "completion_ratio": 1.0,
+    "source": "same band as Gemma 2B"
+  },
+  "ibm/granite-3.0-3b-a800m-instruct": {
+    "input_usd_per_million": 0.2,
+    "output_usd_per_million": 0.2,
+    "model_ratio": 0.1,
+    "completion_ratio": 1.0,
+    "source": "IBM Granite 3B class / Fireworks 0-4B"
+  },
+  "ibm/granite-3.0-8b-instruct": {
+    "input_usd_per_million": 0.5,
+    "output_usd_per_million": 0.5,
+    "model_ratio": 0.25,
+    "completion_ratio": 1.0,
+    "source": "IBM Granite 8B instruct list"
+  },
+  "ibm/granite-34b-code-instruct": {
+    "input_usd_per_million": 0.9,
+    "output_usd_per_million": 0.9,
+    "model_ratio": 0.45,
+    "completion_ratio": 1.0,
+    "source": "Fireworks 21-90B serverless"
+  },
+  "ibm/granite-8b-code-instruct": {
+    "input_usd_per_million": 0.2,
+    "output_usd_per_million": 0.2,
+    "model_ratio": 0.1,
+    "completion_ratio": 1.0,
+    "source": "Fireworks 7-8B serverless"
+  },
+  "meta/codellama-70b": {
+    "input_usd_per_million": 0.9,
+    "output_usd_per_million": 0.9,
+    "model_ratio": 0.45,
+    "completion_ratio": 1.0,
+    "source": "Together/Fireworks CodeLlama 70B"
+  },
+  "meta/llama-guard-4-12b": {
+    "input_usd_per_million": 0.2,
+    "output_usd_per_million": 0.2,
+    "model_ratio": 0.1,
+    "completion_ratio": 1.0,
+    "source": "Together AI Llama Guard 4 12B"
+  },
+  "meta/llama2-70b": {
+    "input_usd_per_million": 0.64,
+    "output_usd_per_million": 0.64,
+    "model_ratio": 0.32,
+    "completion_ratio": 1.0,
+    "source": "DeepInfra Llama 2 70B Chat"
+  },
+  "microsoft/kosmos-2": {
+    "input_usd_per_million": 0.1,
+    "output_usd_per_million": 0.1,
+    "model_ratio": 0.05,
+    "completion_ratio": 1.0,
+    "source": "small VLM; Gemma 2B band"
+  },
+  "microsoft/phi-3-vision-128k-instruct": {
+    "input_usd_per_million": 0.15,
+    "output_usd_per_million": 0.15,
+    "model_ratio": 0.075,
+    "completion_ratio": 1.0,
+    "source": "4B VLM; live llama-3.2-3b $0.15"
+  },
+  "microsoft/phi-3.5-moe-instruct": {
+    "input_usd_per_million": 0.16,
+    "output_usd_per_million": 0.64,
+    "model_ratio": 0.08,
+    "completion_ratio": 4.0,
+    "source": "Azure-style Phi MoE ~4x output"
+  },
+  "mistralai/codestral-22b-instruct-v0.1": {
+    "input_usd_per_million": 0.3,
+    "output_usd_per_million": 0.9,
+    "model_ratio": 0.15,
+    "completion_ratio": 3.0,
+    "source": "Mistral official Codestral"
+  },
+  "mistralai/mistral-7b-instruct-v0.3": {
+    "input_usd_per_million": 0.07,
+    "output_usd_per_million": 0.07,
+    "model_ratio": 0.035,
+    "completion_ratio": 1.0,
+    "source": "DeepInfra Mistral 7B"
+  },
+  "mistralai/mistral-large": {
+    "input_usd_per_million": 2.0,
+    "output_usd_per_million": 6.0,
+    "model_ratio": 1.0,
+    "completion_ratio": 3.0,
+    "source": "OpenRouter mistral-large (123B NIM)"
+  },
+  "mistralai/mistral-large-2-instruct": {
+    "input_usd_per_million": 2.0,
+    "output_usd_per_million": 6.0,
+    "model_ratio": 1.0,
+    "completion_ratio": 3.0,
+    "source": "historical Mistral Large 2 $2/$6"
+  },
+  "mistralai/mixtral-8x22b-v0.1": {
+    "input_usd_per_million": 0.65,
+    "output_usd_per_million": 0.65,
+    "model_ratio": 0.325,
+    "completion_ratio": 1.0,
+    "source": "DeepInfra Mixtral 8x22B"
+  },
+  "muse-glimmer-30b": {
+    "input_usd_per_million": 0.35,
+    "output_usd_per_million": 1.5,
+    "model_ratio": 0.175,
+    "completion_ratio": 4.2857142857,
+    "source": "Together AI Muse Glimmer 30B"
+  },
+  "nemotron-3.5-lightning-30b-a3b": {
+    "input_usd_per_million": 0.075,
+    "output_usd_per_million": 0.3,
+    "model_ratio": 0.0375,
+    "completion_ratio": 4.0,
+    "source": "match live nemotron-3-nano-omni 30B"
+  },
+  "nv-mistralai/mistral-nemo-12b-instruct": {
+    "input_usd_per_million": 0.15,
+    "output_usd_per_million": 0.15,
+    "model_ratio": 0.075,
+    "completion_ratio": 1.0,
+    "source": "live 12B class (llama-3.2-11b $0.16)"
+  },
+  "nvidia/ai-synthetic-video-detector": {
+    "input_usd_per_million": 0.1,
+    "output_usd_per_million": 0.1,
+    "model_ratio": 0.05,
+    "completion_ratio": 1.0,
+    "source": "classifier; 1B-8B token band"
+  },
+  "nvidia/cosmos-reason2-8b": {
+    "input_usd_per_million": 0.06,
+    "output_usd_per_million": 0.23,
+    "model_ratio": 0.03,
+    "completion_ratio": 3.8333333333,
+    "source": "live NVIDIA 8B nemotron nano"
+  },
+  "nvidia/embed-qa-4": {
+    "input_usd_per_million": 0.016,
+    "output_usd_per_million": 0.016,
+    "model_ratio": 0.008,
+    "completion_ratio": 1.0,
+    "source": "Fireworks 150-350M embedding tier"
+  },
+  "nvidia/ising-calibration-1.5-31b": {
+    "input_usd_per_million": 0.4,
+    "output_usd_per_million": 0.4,
+    "model_ratio": 0.2,
+    "completion_ratio": 1.0,
+    "source": "31B dense; between 22B and 49B"
+  },
+  "nvidia/llama-3.1-nemoguard-8b-content-safety": {
+    "input_usd_per_million": 0.06,
+    "output_usd_per_million": 0.23,
+    "model_ratio": 0.03,
+    "completion_ratio": 3.8333333333,
+    "source": "live NVIDIA 8B nemotron nano"
+  },
+  "nvidia/llama-3.1-nemoguard-8b-topic-control": {
+    "input_usd_per_million": 0.06,
+    "output_usd_per_million": 0.23,
+    "model_ratio": 0.03,
+    "completion_ratio": 3.8333333333,
+    "source": "live NVIDIA 8B nemotron nano"
+  },
+  "nvidia/llama-3.1-nemotron-51b-instruct": {
+    "input_usd_per_million": 0.1,
+    "output_usd_per_million": 0.4,
+    "model_ratio": 0.05,
+    "completion_ratio": 4.0,
+    "source": "live llama-3.3-nemotron-super-49b-v1.5"
+  },
+  "nvidia/llama-3.1-nemotron-70b-instruct": {
+    "input_usd_per_million": 0.72,
+    "output_usd_per_million": 0.72,
+    "model_ratio": 0.36,
+    "completion_ratio": 1.0,
+    "source": "live 70B llama $0.72"
+  },
+  "nvidia/llama-3.1-nemotron-safety-guard-8b-v3": {
+    "input_usd_per_million": 0.06,
+    "output_usd_per_million": 0.23,
+    "model_ratio": 0.03,
+    "completion_ratio": 3.8333333333,
+    "source": "live NVIDIA 8B nemotron nano"
+  },
+  "nvidia/llama-3.1-nemotron-ultra-253b-v1": {
+    "input_usd_per_million": 0.6,
+    "output_usd_per_million": 1.8,
+    "model_ratio": 0.3,
+    "completion_ratio": 3.0,
+    "source": "Nebius / Artificial Analysis"
+  },
+  "nvidia/llama-3.2-nemoretriever-1b-vlm-embed-v1": {
+    "input_usd_per_million": 0.016,
+    "output_usd_per_million": 0.016,
+    "model_ratio": 0.008,
+    "completion_ratio": 1.0,
+    "source": "Fireworks 150-350M embedding tier"
+  },
+  "nvidia/llama-3.2-nv-embedqa-1b-v1": {
+    "input_usd_per_million": 0.016,
+    "output_usd_per_million": 0.016,
+    "model_ratio": 0.008,
+    "completion_ratio": 1.0,
+    "source": "Fireworks 150-350M embedding tier"
+  },
+  "nvidia/llama-nemotron-embed-vl-1b-v2": {
+    "input_usd_per_million": 0.016,
+    "output_usd_per_million": 0.016,
+    "model_ratio": 0.008,
+    "completion_ratio": 1.0,
+    "source": "Fireworks 150-350M embedding tier"
+  },
+  "nvidia/llama3-chatqa-1.5-70b": {
+    "input_usd_per_million": 0.72,
+    "output_usd_per_million": 0.72,
+    "model_ratio": 0.36,
+    "completion_ratio": 1.0,
+    "source": "live 70B llama $0.72"
+  },
+  "nvidia/mistral-nemo-minitron-8b-8k-instruct": {
+    "input_usd_per_million": 0.06,
+    "output_usd_per_million": 0.23,
+    "model_ratio": 0.03,
+    "completion_ratio": 3.8333333333,
+    "source": "live NVIDIA 8B nemotron nano"
+  },
+  "nvidia/nemotron-3-embed-1b": {
+    "input_usd_per_million": 0.016,
+    "output_usd_per_million": 0.016,
+    "model_ratio": 0.008,
+    "completion_ratio": 1.0,
+    "source": "Fireworks 150-350M embedding tier"
+  },
+  "nvidia/nemotron-3.5-content-safety": {
+    "input_usd_per_million": 0.06,
+    "output_usd_per_million": 0.23,
+    "model_ratio": 0.03,
+    "completion_ratio": 3.8333333333,
+    "source": "live NVIDIA 8B nemotron nano"
+  },
+  "nvidia/nemotron-4-340b-instruct": {
+    "input_usd_per_million": 4.2,
+    "output_usd_per_million": 4.2,
+    "model_ratio": 2.1,
+    "completion_ratio": 1.0,
+    "source": "DeepInfra Nemotron 4 340B"
+  },
+  "nvidia/nemotron-4-340b-reward": {
+    "input_usd_per_million": 4.2,
+    "output_usd_per_million": 4.2,
+    "model_ratio": 2.1,
+    "completion_ratio": 1.0,
+    "source": "same backbone as instruct"
+  },
+  "nvidia/nemotron-nano-3-30b-a3b": {
+    "input_usd_per_million": 0.06,
+    "output_usd_per_million": 0.24,
+    "model_ratio": 0.03,
+    "completion_ratio": 4.0,
+    "source": "live nemotron-3-nano-30b-a3b"
+  },
+  "nvidia/nemotron-parse": {
+    "input_usd_per_million": 0.2,
+    "output_usd_per_million": 0.2,
+    "model_ratio": 0.1,
+    "completion_ratio": 1.0,
+    "source": "document VLM; 7-8B band"
+  },
+  "nvidia/neva-22b": {
+    "input_usd_per_million": 0.3,
+    "output_usd_per_million": 0.3,
+    "model_ratio": 0.15,
+    "completion_ratio": 1.0,
+    "source": "22B VLM interpolate 11B $0.16 and 70B $0.72"
+  },
+  "nvidia/nv-embedqa-mistral-7b-v2": {
+    "input_usd_per_million": 0.1,
+    "output_usd_per_million": 0.1,
+    "model_ratio": 0.05,
+    "completion_ratio": 1.0,
+    "source": "Fireworks ~8B embedding $0.10"
+  },
+  "nvidia/nvclip": {
+    "input_usd_per_million": 0.016,
+    "output_usd_per_million": 0.016,
+    "model_ratio": 0.008,
+    "completion_ratio": 1.0,
+    "source": "Fireworks 150-350M embedding tier"
+  },
+  "nvidia/riva-translate-4b-instruct": {
+    "input_usd_per_million": 0.04,
+    "output_usd_per_million": 0.16,
+    "model_ratio": 0.02,
+    "completion_ratio": 4.0,
+    "source": "live nemotron-mini-4b"
+  },
+  "nvidia/riva-translate-4b-instruct-v1.1": {
+    "input_usd_per_million": 0.04,
+    "output_usd_per_million": 0.16,
+    "model_ratio": 0.02,
+    "completion_ratio": 4.0,
+    "source": "live nemotron-mini-4b"
+  },
+  "nvidia/riva-translate-4b-instruct-v2": {
+    "input_usd_per_million": 0.04,
+    "output_usd_per_million": 0.16,
+    "model_ratio": 0.02,
+    "completion_ratio": 4.0,
+    "source": "live nemotron-mini-4b"
+  },
+  "nvidia/vila": {
+    "input_usd_per_million": 0.2,
+    "output_usd_per_million": 0.2,
+    "model_ratio": 0.1,
+    "completion_ratio": 1.0,
+    "source": "13-40B VLM; Fireworks 7-16B band"
+  },
+  "snowflake/arctic-embed-l": {
+    "input_usd_per_million": 0.016,
+    "output_usd_per_million": 0.016,
+    "model_ratio": 0.008,
+    "completion_ratio": 1.0,
+    "source": "Fireworks 150-350M embedding tier"
+  },
+  "writer/palmyra-creative-122b": {
+    "input_usd_per_million": 0.9,
+    "output_usd_per_million": 0.9,
+    "model_ratio": 0.45,
+    "completion_ratio": 1.0,
+    "source": "Fireworks 80B+ dense band"
+  },
+  "writer/palmyra-fin-70b-32k": {
+    "input_usd_per_million": 0.72,
+    "output_usd_per_million": 0.72,
+    "model_ratio": 0.36,
+    "completion_ratio": 1.0,
+    "source": "live 70B llama $0.72"
+  },
+  "writer/palmyra-med-70b": {
+    "input_usd_per_million": 0.72,
+    "output_usd_per_million": 0.72,
+    "model_ratio": 0.36,
+    "completion_ratio": 1.0,
+    "source": "live 70B llama $0.72"
+  },
+  "writer/palmyra-med-70b-32k": {
+    "input_usd_per_million": 0.72,
+    "output_usd_per_million": 0.72,
+    "model_ratio": 0.36,
+    "completion_ratio": 1.0,
+    "source": "live 70B llama $0.72"
+  },
+  "zyphra/zamba2-7b-instruct": {
+    "input_usd_per_million": 0.2,
+    "output_usd_per_million": 0.2,
+    "model_ratio": 0.1,
+    "completion_ratio": 1.0,
+    "source": "Fireworks 7B serverless band"
+  }
+}
