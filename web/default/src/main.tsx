@@ -47,7 +47,7 @@ const queryClient = new QueryClient({
 
         return !(
           error instanceof AxiosError &&
-          [401, 403].includes(error.response?.status ?? 0)
+          [400, 401, 403, 404].includes(error.response?.status ?? 0)
         )
       },
       // Keep focused tabs from silently re-running heavy pages like logs.

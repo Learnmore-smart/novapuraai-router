@@ -94,8 +94,10 @@ api.interceptors.response.use(
       if (!skip) {
         toast.error(t('Session expired!'))
       }
-    } else if (!skip) {
-      // Other errors: show error message from response or default
+    } else if (!skip && status !== 404) {
+      // Other errors: show error message from response or default.
+      // 404 is not toasted: a stopped backend / disabled feature would
+      // otherwise spam "Request failed with status code 404".
       const msg =
         error?.response?.data?.message || error?.message || t('Request failed')
       toast.error(msg)
@@ -195,7 +197,9 @@ export async function getUserGroups(): Promise<{
 
 // Get system status
 export async function getStatus() {
-  const res = await api.get('/api/status')
+  const res = await api.get('/api/status', {
+    skipErrorHandler: true,
+  })
   return res.data?.data as Record<string, unknown>
 }
 
@@ -205,7 +209,9 @@ export async function getNotice(): Promise<{
   message?: string
   data?: string
 }> {
-  const res = await api.get('/api/notice')
+  const res = await api.get('/api/notice', {
+    skipErrorHandler: true,
+  })
   return res.data
 }
 

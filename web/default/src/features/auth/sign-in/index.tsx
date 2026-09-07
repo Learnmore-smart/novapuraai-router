@@ -5,6 +5,8 @@ import { useStatus } from '@/hooks/use-status'
 
 import { AuthLayout } from '../auth-layout'
 import { TermsFooter } from '../components/terms-footer'
+import { GUEST_ONLY_LOGIN } from '../constants'
+import { GuestContinueButton } from './components/guest-continue-button'
 import { UserAuthForm } from './components/user-auth-form'
 
 export function SignIn() {
@@ -19,7 +21,8 @@ export function SignIn() {
           <h2 className='text-2xl font-semibold tracking-tight'>
             {t('Sign in to your account')}
           </h2>
-          {!status?.self_use_mode_enabled &&
+          {!GUEST_ONLY_LOGIN &&
+            !status?.self_use_mode_enabled &&
             status?.register_enabled !== false && (
               <p className='text-muted-foreground text-sm'>
                 {t("Don't have an account?")}{' '}
@@ -33,7 +36,11 @@ export function SignIn() {
             )}
         </div>
 
-        <UserAuthForm redirectTo={redirect} />
+        {GUEST_ONLY_LOGIN ? (
+          <GuestContinueButton />
+        ) : (
+          <UserAuthForm redirectTo={redirect} />
+        )}
 
         <TermsFooter
           variant='sign-in'

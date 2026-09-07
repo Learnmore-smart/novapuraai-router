@@ -198,6 +198,7 @@ export function NApertureHome(props: NApertureHomeProps) {
       return normalizeSubscriptionOffer(response.data)
     },
     staleTime: 30_000,
+    retry: false,
   })
   const modelNames = useMemo(() => getHomeRouteModelNames(models), [models])
   const registerPromo = getRegisterPromo(status)

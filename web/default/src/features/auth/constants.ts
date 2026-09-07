@@ -58,3 +58,9 @@ export const PASSWORD_RESET_COUNTDOWN = 30 // seconds
 // ============================================================================
 
 export const OAUTH_BIND_STORAGE_KEY = 'oauth:binding:result'
+
+/**
+ * While account processing is paused, sign-in shows only "Continue as guest".
+ * Set to false to restore password, Google/OIDC, GitHub, and Passkey.
+ */
+export const GUEST_ONLY_LOGIN = true

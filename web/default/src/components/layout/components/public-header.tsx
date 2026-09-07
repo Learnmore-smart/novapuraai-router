@@ -28,6 +28,7 @@ import { ProfileDropdown } from '@/components/profile-dropdown'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { GUEST_ONLY_LOGIN } from '@/features/auth/constants'
 import { useNotifications } from '@/hooks/use-notifications'
 import { useSystemConfig } from '@/hooks/use-system-config'
 import { useTopNavLinks } from '@/hooks/use-top-nav-links'
@@ -270,14 +271,56 @@ export function PublicHeader(props: PublicHeaderProps) {
         >
           {t('Login')}
         </Button>
-        <Button
-          size='sm'
-          className='h-9 rounded-md px-3.5 text-xs font-semibold shadow-none'
-          render={<Link to='/sign-up' />}
+        {!GUEST_ONLY_LOGIN && (
+          <Button
+            size='sm'
+            className='h-9 rounded-md px-3.5 text-xs font-semibold shadow-none'
+            render={<Link to='/sign-up' />}
+          >
+            {t('Sign up')}
+          </Button>
+        )}
+      </div>
+    )
+  }
+
+  let mobileAuthControl: React.ReactNode = (
+    <Link
+      to='/sign-in'
+      onClick={() => setMobileOpen(false)}
+      className='bg-primary text-primary-foreground inline-flex h-11 items-center justify-center rounded-md text-sm font-semibold transition-opacity hover:opacity-90'
+    >
+      {t('Login')}
+    </Link>
+  )
+  if (isAuthenticated) {
+    mobileAuthControl = (
+      <Link
+        to='/dashboard'
+        onClick={() => setMobileOpen(false)}
+        className='bg-primary text-primary-foreground inline-flex h-11 items-center justify-center rounded-md text-sm font-semibold transition-opacity hover:opacity-90'
+      >
+        {t('Dashboard')}
+      </Link>
+    )
+  } else if (!GUEST_ONLY_LOGIN) {
+    mobileAuthControl = (
+      <>
+        <Link
+          to='/sign-up'
+          onClick={() => setMobileOpen(false)}
+          className='bg-primary text-primary-foreground inline-flex h-11 items-center justify-center rounded-md text-sm font-semibold transition-opacity hover:opacity-90'
         >
           {t('Sign up')}
-        </Button>
-      </div>
+        </Link>
+        <Link
+          to='/sign-in'
+          onClick={() => setMobileOpen(false)}
+          className='border-border text-foreground inline-flex h-11 items-center justify-center rounded-md border text-sm font-medium transition-colors hover:bg-muted'
+        >
+          {t('Login')}
+        </Link>
+      </>
     )
   }
 
@@ -480,32 +523,7 @@ export function PublicHeader(props: PublicHeaderProps) {
 
             {showAuthButtons && (
               <div className='flex flex-col gap-2 border-t border-border pt-6'>
-                {isAuthenticated ? (
-                  <Link
-                    to='/dashboard'
-                    onClick={() => setMobileOpen(false)}
-                    className='bg-primary text-primary-foreground inline-flex h-11 items-center justify-center rounded-md text-sm font-semibold transition-opacity hover:opacity-90'
-                  >
-                    {t('Dashboard')}
-                  </Link>
-                ) : (
-                  <>
-                    <Link
-                      to='/sign-up'
-                      onClick={() => setMobileOpen(false)}
-                      className='bg-primary text-primary-foreground inline-flex h-11 items-center justify-center rounded-md text-sm font-semibold transition-opacity hover:opacity-90'
-                    >
-                      {t('Sign up')}
-                    </Link>
-                    <Link
-                      to='/sign-in'
-                      onClick={() => setMobileOpen(false)}
-                      className='border-border text-foreground inline-flex h-11 items-center justify-center rounded-md border text-sm font-medium transition-colors hover:bg-muted'
-                    >
-                      {t('Login')}
-                    </Link>
-                  </>
-                )}
+                {mobileAuthControl}
               </div>
             )}
           </div>
