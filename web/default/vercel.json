@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "cd .. && bun install --frozen-lockfile",
-  "buildCommand": "bun run build",
+  "installCommand": "export PATH=\"$HOME/.bun/bin:$PATH\" && (which bun || curl -fsSL https://bun.sh/install | bash) && export PATH=\"$HOME/.bun/bin:$PATH\" && cd .. && bun install --frozen-lockfile",
+  "buildCommand": "export PATH=\"$HOME/.bun/bin:$PATH\" && bun run build",
   "outputDirectory": "dist",
   "framework": null,
   "rewrites": [
